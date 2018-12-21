@@ -15,7 +15,7 @@ def gather_files(filetype="psx"):
     fileList = glob.glob("{}/*.{}".format(inputPath,filetype))
     return fileList
 
-def find_stars():
+def find_stars(ra, dec):
     fileList = gather_files()
     #Initialisation values
     #exoplanetRows=[]
@@ -28,7 +28,7 @@ def find_stars():
     minCompStars=5 # This is the minimum number of comp stars required
     usedImages=[]
     # Generate a blank targetstars.csv file
-    targetStars=[(0,0,0,0),(0,0,0,0)]
+    targetStars=[(0,0,0,0),(ra,dec,0,0)]
     numpy.savetxt("targetstars.csv", targetStars, delimiter=",", fmt='%0.8f')
 
     # LOOK FOR REJECTING NON-WCS IMAGES

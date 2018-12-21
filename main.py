@@ -14,9 +14,11 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 @click.option('--comparison', is_flag=True)
 @click.option('--calc', is_flag=True)
 @click.option('--plot', is_flag=True)
-def main(full, stars, comparison, calc, plot):
+@click.option('--ra', required=True, type=float)
+@click.option('--dec', required=True, type=float)
+def main(full, stars, comparison, calc, plot, ra, dec):
     if full or stars:
-        identify.find_stars()
+        identify.find_stars(ra, dec)
     if full or comparison:
         comparison.find_comparisons()
     if full or calc:
