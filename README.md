@@ -1,6 +1,19 @@
 # autovar
 Analysis script for sources with variability in their brightness
 
+## Installation
+
+It is strongly recommended you use python 3 and a virtual environment e.g.
+```bash
+conda create -n autovar python=3
+source activate autovar
+```
+
+There are only a couple of packages you will need. These are listed in `requirements.pip`. To install them you can use:
+
+```bash
+pip install -r requirements.pip
+```
 
 ## Options
 
