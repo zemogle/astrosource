@@ -39,7 +39,7 @@ def find_comparisons(stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.
     compFile = numpy.genfromtxt('screenedComps.csv', dtype=float, delimiter=',')
 
     if removeTargets == 1:
-        logger.info("Removing Target Stars from potential Comparisons")
+        logger.info("Removing Target Stars from potential comparisons")
         targetFile = numpy.genfromtxt('targetstars.csv', dtype=float, delimiter=',')
         fileRaDec = SkyCoord(ra=compFile[:,0]*u.degree, dec=compFile[:,1]*u.degree)
         for q in range(targetFile.shape[0]):
@@ -107,7 +107,7 @@ def find_comparisons(stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.
             if ( stdCompStar[j] > (stdCompMed + (stdMultiplier*stdCompStd)) ):
                 logger.error("Star Rejected, Variability too high!")
                 starRejecter.append(j)
-                #potVar.append([compFile[j][0],compFile[j][1],stdCompStar[j]])
+                
             if ( numpy.isnan(stdCompStar[j]) ) :
                 logger.error("Star Rejected, Invalid Entry!")
                 starRejecter.append(j)
@@ -130,7 +130,7 @@ def find_comparisons(stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.
 
 
 
-        # Once we have stopped rejecting stars, this is our final candidate catalogue
+        # Once we have stopped rejecting stars, this is our final candidate catalogue then we start to select the subset of this final catalogue that we actually use.
         if (starRejecter == []):
 
             logger.info('Statistical stability reached.')
@@ -138,7 +138,8 @@ def find_comparisons(stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.
 
             numpy.savetxt("stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
 
-            # GET REFERENCE IMAGE
+            # The following process selects the subset of the candidates that we will use (the least variable comparisons that hopefully get the request countrate)
+            
             # Sort through and find the largest file and use that as the reference file
             fileSizer=0
             logger.info("Finding image with most stars detected")
@@ -151,7 +152,7 @@ def find_comparisons(stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.
             logger.info("Setting up reference Frame")
             fileRaDec = SkyCoord(ra=referenceFrame[:,0]*u.degree, dec=referenceFrame[:,1]*u.degree)
 
-            # SORT THE COMP FILE such that least variable comparison is first
+            # SORT THE COMP CANDIDATE FILE such that least variable comparison is first
             sortStars=(sortStars[sortStars[:,2].argsort()])
 
             # PICK COMPS UNTIL OVER THE THRESHOLD OF COUNTS OR VRAIABILITY ACCORDING TO REFERENCE IMAGE
@@ -160,15 +161,15 @@ def find_comparisons(stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.
             tempCountCounter=0.0
             for j in range(sortStars.shape[0]):
                 matchCoord=SkyCoord(ra=sortStars[j][0]*u.degree, dec=sortStars[j][1]*u.degree)
-                idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-                tempCountCounter=numpy.add(tempCountCounter,referenceFrame[idx][4])
+                idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)                
 
                 if tempCountCounter < thresholdCounts:
                     if sortStars[j][2] < variabilityMax:
                         compFile.append([sortStars[j][0],sortStars[j][1]])
+                        tempCountCounter=numpy.add(tempCountCounter,referenceFrame[idx][4])
                         logger.info("Comp " + str(j+1) + " std: " + str(sortStars[j][2]))
                         logger.info("Cumulative Counts thus far: " + str(tempCountCounter))
-
+                        
             logger.info("Selected stars listed below:")
             logger.info(compFile)
 
