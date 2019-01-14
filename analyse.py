@@ -16,10 +16,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def calculate_curves(parentPath = None):
+def calculate_curves(ra, dec, parentPath = None):
     errorReject=0.05 # reject measurements with instrumental errors larger than this (this is not total error, just the estimated error in the single measurement of the variable)
     acceptDistance=2.0 # Furtherest distance in arcseconds for matches
-    # These two parameters are used when you are creating calibrated photometry..... we will get to that ;) 
+    # These two parameters are used when you are creating calibrated photometry..... we will get to that ;)
     filterCode = 3 # u=0, g=1, r=2, i=3, z=4
     calibFlag = 0 # 0 = no calibration attempted, 1 = calibration attempted.
 
@@ -44,7 +44,8 @@ def calculate_curves(parentPath = None):
 
     # Load in list of used files
     fileList=[]
-    with open("usedImages.txt", "r") as f:
+    used_file = os.path.join(parentPath, "usedImages.txt")
+    with open(used_file, "r") as f:
       for line in f:
         fileList.append(line.strip())
 
@@ -56,9 +57,8 @@ def calculate_curves(parentPath = None):
 
     photFileArray=numpy.asarray(photFileArray)
 
-    targetFile = numpy.genfromtxt('targetstars.csv', dtype=float, delimiter=',')
-
-    compFile=numpy.genfromtxt('compsUsed.csv', dtype=float, delimiter=',')
+    comp_file = os.path.join(parentPath, 'compsUsed.csv')
+    compFile=numpy.genfromtxt(comp_file, dtype=float, delimiter=',')
     #compFile=numpy.asarray(compFile)
 
     logger.info("Stable Comparison Candidates below variability threshold")
@@ -103,116 +103,113 @@ def calculate_curves(parentPath = None):
 
     allcountscount=0
     # For each variable calculate all the things
-    for q in range(targetFile.shape[0]):
-        starErrorRejCount=0
-        starDistanceRejCount=0
-        logger.info("***********************************************************************")
-        logger.info("Processing Variable " +str(q+1))
-        logger.info("RA")
-        logger.info(targetFile[q][0])
-        logger.info("DEC")
-        logger.info(targetFile[q][1])
-        varCoord = SkyCoord(targetFile[q][0],(targetFile[q][1]), frame='icrs', unit=u.deg) # Need to remove target stars from consideration
-        # Check that this is connecting to the correct star... is there a maximum limit set? 2 arcseconds?
-        #idx, d2d, d3d = varCoord.match_to_catalog_sky(fileRaDec)
-        #referenceFrame=numpy.delete(referenceFrame, idx, axis=0)
-        # Grabbing variable rows
-        logger.info("Extracting and Measuring Differential Magnitude in each Photometry File")
-        #countCount=0
-        outputPhot=[] # new
-        compArray=[]
+    starErrorRejCount=0
+    starDistanceRejCount=0
+    logger.info("***********************************************************************")
+    logger.info("Processing Target ")
+    logger.info("RA: {}".format(ra))
+    logger.info("DEC: {}".format(dec))
+    varCoord = SkyCoord(ra, dec, frame='icrs', unit=u.deg) # Need to remove target stars from consideration
+    # Check that this is connecting to the correct star... is there a maximum limit set? 2 arcseconds?
+    #idx, d2d, d3d = varCoord.match_to_catalog_sky(fileRaDec)
+    #referenceFrame=numpy.delete(referenceFrame, idx, axis=0)
+    # Grabbing variable rows
+    logger.info("Extracting and Measuring Differential Magnitude in each Photometry File")
+    #countCount=0
+    outputPhot=[] # new
+    compArray=[]
+    compList=[]
+    allcountscount=0
+    for imgs in range(photFileArray.shape[0]):
         compList=[]
-        allcountscount=0
-        for imgs in range(photFileArray.shape[0]):
-            compList=[]
 
-            fileRaDec = SkyCoord(ra=photFileArray[imgs][:,0]*u.degree, dec=photFileArray[imgs][:,1]*u.degree)
+        fileRaDec = SkyCoord(ra=photFileArray[imgs][:,0]*u.degree, dec=photFileArray[imgs][:,1]*u.degree)
 
-            idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
+        idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
 
-            starRejected=0
-            if (numpy.less(d2d.arcsecond, acceptDistance)):
-                magErrVar = 1.0857 * (photFileArray[imgs][idx][5]/photFileArray[imgs][idx][4])
-                #logger.info("Distance ok!")
-                #logger.info(magErrVar)
-                if magErrVar < errorReject:
-                    #logger.info("MagError ok!")
-                    magErrEns = 1.0857 * (allCountsErr/allCounts)
-                    magErrTotal = pow( pow(magErrVar,2) + pow(magErrEns,2),0.5)
+        starRejected=0
+        if (numpy.less(d2d.arcsecond, acceptDistance)):
+            magErrVar = 1.0857 * (photFileArray[imgs][idx][5]/photFileArray[imgs][idx][4])
+            #logger.info("Distance ok!")
+            #logger.info(magErrVar)
+            if magErrVar < errorReject:
+                #logger.info("MagError ok!")
+                magErrEns = 1.0857 * (allCountsErr/allCounts)
+                magErrTotal = pow( pow(magErrVar,2) + pow(magErrEns,2),0.5)
 
-                    #templist is a temporary holder of the resulting file.
-                    tempList=photFileArray[imgs][idx,:]
+                #templist is a temporary holder of the resulting file.
+                tempList=photFileArray[imgs][idx,:]
 
 
-                    googFile = (fileList[imgs].replace(parentPath,"").replace('inputs',"").replace('//',"").replace('\\',""))
-                    #logger.info(googFile.split("_")[5])
-                    tempList=numpy.append(tempList, float(googFile.split("_")[5].replace("d",".")))
-                    tempList=numpy.append(tempList, float(googFile.split("_")[4].replace("a",".")))
-                    tempList=numpy.append(tempList, allCountsArray[allcountscount][0])
-                    tempList=numpy.append(tempList, allCountsArray[allcountscount][1])
+                googFile = (fileList[imgs].replace(parentPath,"").replace('inputs',"").replace('//',"").replace('\\',""))
+                #logger.info(googFile.split("_")[5])
+                tempList=numpy.append(tempList, float(googFile.split("_")[5].replace("d",".")))
+                tempList=numpy.append(tempList, float(googFile.split("_")[4].replace("a",".")))
+                tempList=numpy.append(tempList, allCountsArray[allcountscount][0])
+                tempList=numpy.append(tempList, allCountsArray[allcountscount][1])
 
-                    #Differential Magnitude
-                    tempList=numpy.append(tempList,-2.5 * numpy.log10(photFileArray[imgs][idx][4]/allCountsArray[allcountscount][0]))
-                    #logger.info(numpy.append(tempList,-2.5 * numpy.log10(photFile[idx][4]/allCountsArray[countCount][0])))
-                    tempList=numpy.append(tempList, magErrTotal)
+                #Differential Magnitude
+                tempList=numpy.append(tempList,-2.5 * numpy.log10(photFileArray[imgs][idx][4]/allCountsArray[allcountscount][0]))
+                #logger.info(numpy.append(tempList,-2.5 * numpy.log10(photFile[idx][4]/allCountsArray[countCount][0])))
+                tempList=numpy.append(tempList, magErrTotal)
 
 
-                    #Add these things to compArray also
+                #Add these things to compArray also
+                tempList=numpy.append(tempList, photFileArray[imgs][idx][4])
+                tempList=numpy.append(tempList, photFileArray[imgs][idx][5])
+
+                for j in range(compFile.shape[0]):
+
+                    matchCoord=SkyCoord(ra=compFile[j][0]*u.degree, dec=compFile[j][1]*u.degree)
+                    idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
                     tempList=numpy.append(tempList, photFileArray[imgs][idx][4])
-                    tempList=numpy.append(tempList, photFileArray[imgs][idx][5])
 
-                    for j in range(compFile.shape[0]):
+                outputPhot.append(tempList)
 
-                        matchCoord=SkyCoord(ra=compFile[j][0]*u.degree, dec=compFile[j][1]*u.degree)
-                        idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-                        tempList=numpy.append(tempList, photFileArray[imgs][idx][4])
+                fileCount.append(allCounts)
+                #countCount = countCount + 1
+                allcountscount=allcountscount+1
 
-                    outputPhot.append(tempList)
-
-                    fileCount.append(allCounts)
-                    #countCount = countCount + 1
-                    allcountscount=allcountscount+1
-
-                else:
-                    #logger.info('Star Error Too High - ' + str(magErrVar) + ' - measurement rejected')
-                    starErrorRejCount=starErrorRejCount+1
-                    starRejected=1
             else:
-                    #logger.info('Star Distance Too High - ' + str(magErrVar) + ' - measurement rejected')
-                    starDistanceRejCount=starDistanceRejCount+1
-                    starRejected=1
+                #logger.info('Star Error Too High - ' + str(magErrVar) + ' - measurement rejected')
+                starErrorRejCount=starErrorRejCount+1
+                starRejected=1
+        else:
+                #logger.info('Star Distance Too High - ' + str(magErrVar) + ' - measurement rejected')
+                starDistanceRejCount=starDistanceRejCount+1
+                starRejected=1
 
-            if ( starRejected == 1):
+        if ( starRejected == 1):
 
-                    #templist is a temporary holder of the resulting file.
-                    tempList=photFileArray[imgs][idx,:]
+                #templist is a temporary holder of the resulting file.
+                tempList=photFileArray[imgs][idx,:]
 
 
-                    googFile = (fileList[imgs].replace(parentPath,"").replace('inputs',"").replace('//',""))
-                    #logger.info(googFile.split("_")[5])
-                    tempList=numpy.append(tempList, float(googFile.split("_")[5].replace("d",".")))
-                    tempList=numpy.append(tempList, float(googFile.split("_")[4].replace("a",".")))
-                    tempList=numpy.append(tempList, allCountsArray[allcountscount][0])
-                    tempList=numpy.append(tempList, allCountsArray[allcountscount][1])
+                googFile = (fileList[imgs].replace(parentPath,"").replace('inputs',"").replace('//',""))
+                #logger.info(googFile.split("_")[5])
+                tempList=numpy.append(tempList, float(googFile.split("_")[5].replace("d",".")))
+                tempList=numpy.append(tempList, float(googFile.split("_")[4].replace("a",".")))
+                tempList=numpy.append(tempList, allCountsArray[allcountscount][0])
+                tempList=numpy.append(tempList, allCountsArray[allcountscount][1])
 
-                    #Differential Magnitude
-                    tempList=numpy.append(tempList,numpy.nan)
+                #Differential Magnitude
+                tempList=numpy.append(tempList,numpy.nan)
 
-                    tempList=numpy.append(tempList,numpy.nan)
+                tempList=numpy.append(tempList,numpy.nan)
 
+                tempList=numpy.append(tempList, photFileArray[imgs][idx][4])
+                tempList=numpy.append(tempList, photFileArray[imgs][idx][5])
+
+                for j in range(compFile.shape[0]):
+
+                    matchCoord=SkyCoord(ra=compFile[j][0]*u.degree, dec=compFile[j][1]*u.degree)
+                    idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
                     tempList=numpy.append(tempList, photFileArray[imgs][idx][4])
-                    tempList=numpy.append(tempList, photFileArray[imgs][idx][5])
 
-                    for j in range(compFile.shape[0]):
+                outputPhot.append(tempList)
 
-                        matchCoord=SkyCoord(ra=compFile[j][0]*u.degree, dec=compFile[j][1]*u.degree)
-                        idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-                        tempList=numpy.append(tempList, photFileArray[imgs][idx][4])
-
-                    outputPhot.append(tempList)
-
-                    fileCount.append(allCounts)
-                    allcountscount=allcountscount+1
+                fileCount.append(allCounts)
+                allcountscount=allcountscount+1
 
         imageReject=[]
         for j in range(numpy.asarray(outputPhot).shape[0]):
@@ -246,7 +243,7 @@ def calculate_curves(parentPath = None):
         outputPhot=numpy.delete(outputPhot, starReject, axis=0)
 
         if outputPhot.shape[0] > 2:
-            numpy.savetxt(os.path.join(outcatPath,"doerPhot_V" +str(q+1) +".csv"), outputPhot, delimiter=",", fmt='%0.8f')
+            numpy.savetxt(os.path.join(outcatPath,"doerPhot_V.csv"), outputPhot, delimiter=",", fmt='%0.8f')
 
         return
 

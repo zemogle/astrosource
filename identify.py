@@ -215,14 +215,9 @@ def find_stars(indir, ra, dec):
     logger.info("Number of candidate Comparison Stars Detected: " + str(len(outputComps)))
     logger.info(' ')
     logger.info('Output sent to screenedComps.csv ready for use in CompDeviation')
-<<<<<<< HEAD
 
     screened_file = os.path.join(indir, "screenedComps.csv")
     numpy.savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
-=======
-    numpy.savetxt("screenedComps.csv", outputComps, delimiter=",", fmt='%0.8f')
-    # The list of non-rejected images are saved to this text file and are used throughout the rest of the procedure.
->>>>>>> e0abfd11dccb295ec14dd29d64430f333ecc495b
     logger.info('UsedImages ready for use in CompDeviation')
     used_file = os.path.join(indir, "usedImages.txt")
     with open(used_file, "w") as f:

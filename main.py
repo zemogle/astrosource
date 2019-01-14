@@ -21,9 +21,9 @@ def main(full, stars, comparison, calc, plot, indir, ra, dec):
     if full or stars:
         find_stars(indir, ra, dec)
     if full or comparison:
-        find_comparisons(indir)
+        find_comparisons(ra, dec, indir)
     if full or calc:
-        calculate_curves(indir)
+        calculate_curves(ra, dec, indir)
     if full or plot:
         plot_lightcurves(indir)
     return
