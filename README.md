@@ -33,6 +33,8 @@ There are a few options when running the scripts. You can either run the whole a
 
 --plot = Produce lightcurve plots
 
+--indir = Path of directory containing LCO data files. If none is given, autovar assumes the current directory
+
 
 ### Example Usage
 
