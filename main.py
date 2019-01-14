@@ -1,6 +1,6 @@
-import identify
-import comparison
-import analyse
+from identify import find_stars
+from comparison import find_comparisons
+from analyse import calculate_curves, plot_lightcurves
 import click
 
 import logging
@@ -14,17 +14,18 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 @click.option('--comparison', is_flag=True)
 @click.option('--calc', is_flag=True)
 @click.option('--plot', is_flag=True)
+@click.option('--indir', type=str)
 @click.option('--ra', required=True, type=float)
 @click.option('--dec', required=True, type=float)
-def main(full, stars, comparison, calc, plot, ra, dec):
+def main(full, stars, comparison, calc, plot, indir, ra, dec):
     if full or stars:
-        identify.find_stars(ra, dec)
+        find_stars(indir, ra, dec)
     if full or comparison:
-        comparison.find_comparisons()
+        find_comparisons(indir)
     if full or calc:
-        analyse.calculate_curves()
+        calculate_curves(indir)
     if full or plot:
-        analyse.plot_lightcurves()
+        plot_lightcurves(indir)
     return
 
 if __name__ == '__main__':

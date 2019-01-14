@@ -16,12 +16,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def calculate_curves():
+def calculate_curves(parentPath = None):
     errorReject=0.05 # reject measurements with instrumental errors larger than this (this is not total error, just the estimated error in the single measurement of the variable)
     acceptDistance=2.0 # Furtherest distance in arcseconds for matches
 
     # Get list of phot files
-    parentPath = os.getcwd()
+    if not parentPath:
+        parentPath = os.getcwd()
     outputPath = os.path.join(parentPath,"outputplots")
     outcatPath = os.path.join(parentPath,"outputcats")
     checkPath = os.path.join(parentPath,"checkplots")
@@ -53,15 +54,12 @@ def calculate_curves():
 
     targetFile = numpy.genfromtxt('targetstars.csv', dtype=float, delimiter=',')
 
-    filterCode = 3 # u=0, g=1, r=2, i=3, z=4
-    calibFlag = 0 # 0 = no calibration attempted, 1 = calibration attempted.
-
     compFile=numpy.genfromtxt('compsUsed.csv', dtype=float, delimiter=',')
     #compFile=numpy.asarray(compFile)
 
     logger.info("Stable Comparison Candidates below variability threshold")
     logger.info(compFile.shape[0])
-    logger.info(compFile)
+    logger.debug(compFile)
 
 
 
@@ -97,7 +95,7 @@ def calculate_curves():
 
         allCountsArray.append([allCounts,allCountsErr])
 
-    logger.info(allCountsArray)
+    logger.debug(allCountsArray)
 
     allcountscount=0
     # For each variable calculate all the things
@@ -248,10 +246,17 @@ def calculate_curves():
 
         return
 
-def plot_lightcurves():
-    parentPath = os.getcwd()
+def plot_lightcurves(parentPath=None):
+    filterCode = 3 # u=0, g=1, r=2, i=3, z=4
+    calibFlag = 0 # 0 = no calibration attempted, 1 = calibration attempted.
+
+    if not parentPath:
+        parentPath = os.getcwd()
     doerPath = os.path.join(parentPath,"outputcats")
     fileList = glob.glob("{}/doer*.csv".format(doerPath))
+    outputPath = os.path.join(parentPath,"outputplots")
+    checkPath = os.path.join(parentPath,"checkplots")
+    outcatPath = doerPath
 
     for file in fileList:
         outputPhot=numpy.genfromtxt(file, delimiter=",", dtype='float')

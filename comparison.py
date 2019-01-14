@@ -9,7 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def find_comparisons(stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.025, removeTargets=1, acceptDistance=1.0):
+def find_comparisons(parentPath, stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.025, removeTargets=1, acceptDistance=1.0):
     '''
     :stdMultiplier param:  This is how many standard deviations above the mean to cut off the top. The cycle will continue until there are no stars this many std.dev above the mean
     :thresholdCounts param:  This is the target countrate for the ensemble comparison... the lowest variability stars will be added until this countrate is reached.
@@ -20,10 +20,12 @@ def find_comparisons(stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.
     '''
 
     # Get list of phot files
-    parentPath = os.getcwd()
+    if not parentPath:
+        parentPath = os.getcwd()
 
     fileList=[]
-    with open("usedImages.txt", "r") as f:
+    used_file = os.path.join(parentPath, "usedImages.txt")
+    with open(used_file, "r") as f:
       for line in f:
         fileList.append(line.strip())
 
@@ -36,11 +38,12 @@ def find_comparisons(stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.
 
 
     #Grab the candidate comparison stars
-    compFile = numpy.genfromtxt('screenedComps.csv', dtype=float, delimiter=',')
+    screened_file = os.path.join(parentPath, "screenedComps.csv")
+    compFile = numpy.genfromtxt(screened_file, dtype=float, delimiter=',')
 
     if removeTargets == 1:
         logger.info("Removing Target Stars from potential Comparisons")
-        targetFile = numpy.genfromtxt('targetstars.csv', dtype=float, delimiter=',')
+        targetFile = numpy.genfromtxt(os.path.join(parentPath, 'targetstars.csv'), dtype=float, delimiter=',')
         fileRaDec = SkyCoord(ra=compFile[:,0]*u.degree, dec=compFile[:,1]*u.degree)
         for q in range(targetFile.shape[0]):
             varCoord = SkyCoord(targetFile[q][0],(targetFile[q][1]), frame='icrs', unit=u.deg) # Need to remove target stars from consideration
@@ -136,7 +139,7 @@ def find_comparisons(stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.
             logger.info('Statistical stability reached.')
             logger.info('List of stable comparison candidates output to stdComps.csv')
 
-            numpy.savetxt("stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
+            numpy.savetxt(os.path.join(parentPath, "stdComps.csv"), sortStars, delimiter=",", fmt='%0.8f')
 
             # GET REFERENCE IMAGE
             # Sort through and find the largest file and use that as the reference file

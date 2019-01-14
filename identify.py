@@ -1,6 +1,8 @@
 import numpy
 from astropy import units as u
+from astropy import wcs
 from astropy.coordinates import SkyCoord
+from astropy.io import fits
 import glob
 import sys
 import os
@@ -8,15 +10,72 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def gather_files(filetype="psx"):
-    # Get list of phot files
-    parentPath = os.getcwd()
-    inputPath = os.path.join(parentPath,"inputs")
-    fileList = glob.glob("{}/*.{}".format(inputPath,filetype))
-    return fileList
+def rename_data_file(prihdr):
 
-def find_stars(ra, dec):
-    fileList = gather_files()
+    prihdrkeys = prihdr.keys()
+
+    if any("OBJECT" in s for s in prihdrkeys):
+        objectTemp=prihdr['OBJECT'].replace('-','d').replace('+','p').replace('.','d').replace(' ','').replace('_','').replace('=','e').replace('(','').replace(')','').replace('<','').replace('>','').replace('/','')
+    else:
+        objectTemp="UNKNOWN"
+
+    if 'FILTER1' in prihdr:
+        filterOne=(prihdr['FILTER1'])
+        filterTwo=(prihdr['FILTER2'])
+        filterThree=(prihdr['FILTER3'])
+
+    expTime=(str(prihdr['EXPTIME']).replace('.','d'))
+    dateObs=(prihdr['DATE'].replace('-','d').replace(':','d').replace('.','d'))
+    airMass=(str(prihdr['AIRMASS']).replace('.','a'))
+    instruMe=(prihdr['INSTRUME']).replace(' ','').replace('/','').replace('-','')
+
+    if (prihdr['MJD-OBS'] == 'UNKNOWN'):
+        newName=objectTemp + "_" + filterOne + "_" + expTime + "_" + dateObs + "_" + airMass + "_UNKNOWN_" + instruMe + ".csv"
+    else:
+        mjdObs = '{0:.10f}'.format(prihdr[' MJD-OBS  '])
+        newName=objectTemp + "_" + filterOne + "_" + expTime + "_" + dateObs + "_" + airMass + "_" + str(mjdObs).replace('.','d') + "_" + instruMe + ".csv"
+
+    return newName
+
+def export_photometry_files(filelist, indir, filetype='csv'):
+    phot_list = []
+    for f in filelist:
+        # phot_filename = "{}.{}".format(f.split('.')[0], filetype)
+        out = extract_photometry(f, indir)
+        phot_list.append(out)
+    return phot_list
+
+def extract_photometry(infile, indir, outfile=None):
+
+    hdulist = fits.open(infile)
+
+    if not outfile:
+        outfile = rename_data_file(hdulist[1].header)
+    outfile = os.path.join(indir, outfile)
+    w = wcs.WCS(hdulist[1].header)
+    data = hdulist[2].data
+    xpixel = data['x']
+    ypixel = data['y']
+    ra, dec = w.wcs_pix2world(xpixel, ypixel, 1)
+    counts = data['flux']
+    countserr = data['fluxerr']
+    numpy.savetxt(outfile, numpy.transpose([ra, dec, xpixel, ypixel, counts, countserr]), delimiter=',')
+    return outfile
+
+def gather_files(indir=None, filetype="fz"):
+    # Get list of files
+    if not indir:
+        # Set default inputs directory to be relative to local path
+        indir = "inputs"
+        parentPath = os.getcwd()
+        indir = os.path.join(parentPath, indir)
+
+    filelist = glob.glob("{}/*.{}".format(indir,filetype))
+    phot_list = export_photometry_files(filelist, indir)
+    return phot_list
+
+def find_stars(indir, ra, dec):
+    fileList = gather_files(indir, filetype='fz')
     #Initialisation values
     #exoplanetRows=[]
     acceptDistance=1.0 # Furtherest distance in arcseconds for matches
@@ -29,7 +88,8 @@ def find_stars(ra, dec):
     usedImages=[]
     # Generate a blank targetstars.csv file
     targetStars=[(0,0,0,0),(ra,dec,0,0)]
-    numpy.savetxt("targetstars.csv", targetStars, delimiter=",", fmt='%0.8f')
+    targetfile = os.path.join(indir,"targetstars.csv")
+    numpy.savetxt(targetfile, targetStars, delimiter=",", fmt='%0.8f')
 
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
@@ -154,9 +214,12 @@ def find_stars(ra, dec):
     logger.info("Number of candidate Comparison Stars Detected: " + str(len(outputComps)))
     logger.info(' ')
     logger.info('Output sent to screenedComps.csv ready for use in CompDeviation')
-    numpy.savetxt("screenedComps.csv", outputComps, delimiter=",", fmt='%0.8f')
+
+    screened_file = os.path.join(indir, "screenedComps.csv")
+    numpy.savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
     logger.info('UsedImages ready for use in CompDeviation')
-    with open("usedImages.txt", "w") as f:
+    used_file = os.path.join(indir, "usedImages.txt")
+    with open(used_file, "w") as f:
         for s in usedImages:
             f.write(str(s) +"\n")
 
