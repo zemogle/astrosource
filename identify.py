@@ -93,8 +93,8 @@ def find_stars(indir, ra, dec):
 
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
-    wcsReject=[]
-    q=0
+    #wcsReject=[]
+    #q=0
     for file in fileList:
         photFile = numpy.genfromtxt(file, dtype=float, delimiter=',')
         if (( numpy.asarray(photFile[:,0]) > 360).sum() > 0) :
@@ -105,7 +105,7 @@ def find_stars(indir, ra, dec):
             logger.info("REJECT")
             logger.info(file)
             fileList.remove(file)
-            q=q+1
+            #q=q+1
 
     # Sort through and find the largest file and use that as the reference file
     fileSizer=0
@@ -137,7 +137,7 @@ def find_stars(indir, ra, dec):
     imgsize=imageFracReject * fileSizer # set threshold size
     rejStartCounter=0
     imgReject=0 # Number of images rejected due to high rejection rate
-    loFileReject=0
+    loFileReject=0 # Number of images rejected due to too few stars in the photometry file
     for file in fileList:
         rejStartCounter=rejStartCounter +1
         photFile = numpy.genfromtxt(file, dtype=float, delimiter=',')
@@ -156,7 +156,7 @@ def find_stars(indir, ra, dec):
             for j in range(referenceFrame.shape[0]):
                 photRAandDec=SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
                 testStar=SkyCoord(ra=referenceFrame[j][0]*u.degree, dec=referenceFrame[j][1]*u.degree)
-                idx, d2d, d3d = testStar.match_to_catalog_sky(photRAandDec)
+                _, d2d, _ = testStar.match_to_catalog_sky(photRAandDec)
                 if (d2d.arcsecond > acceptDistance):
                     #"No Match! Nothing within range."
                     rejectStars.append(int(j))
@@ -198,6 +198,7 @@ def find_stars(indir, ra, dec):
             logger.error('**********************')
             loFileReject=loFileReject+1
 
+    # Construct the output file containing candidate comparison stars
     outputComps=[]
     for j in range (referenceFrame.shape[0]):
         outputComps.append([referenceFrame[j][0],referenceFrame[j][1]])
@@ -214,9 +215,14 @@ def find_stars(indir, ra, dec):
     logger.info("Number of candidate Comparison Stars Detected: " + str(len(outputComps)))
     logger.info(' ')
     logger.info('Output sent to screenedComps.csv ready for use in CompDeviation')
+<<<<<<< HEAD
 
     screened_file = os.path.join(indir, "screenedComps.csv")
     numpy.savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
+=======
+    numpy.savetxt("screenedComps.csv", outputComps, delimiter=",", fmt='%0.8f')
+    # The list of non-rejected images are saved to this text file and are used throughout the rest of the procedure.
+>>>>>>> e0abfd11dccb295ec14dd29d64430f333ecc495b
     logger.info('UsedImages ready for use in CompDeviation')
     used_file = os.path.join(indir, "usedImages.txt")
     with open(used_file, "w") as f:

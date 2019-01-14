@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 def calculate_curves(parentPath = None):
     errorReject=0.05 # reject measurements with instrumental errors larger than this (this is not total error, just the estimated error in the single measurement of the variable)
     acceptDistance=2.0 # Furtherest distance in arcseconds for matches
+    # These two parameters are used when you are creating calibrated photometry..... we will get to that ;) 
+    filterCode = 3 # u=0, g=1, r=2, i=3, z=4
+    calibFlag = 0 # 0 = no calibration attempted, 1 = calibration attempted.
+
 
     # Get list of phot files
     if not parentPath:
@@ -140,7 +144,7 @@ def calculate_curves(parentPath = None):
                     tempList=photFileArray[imgs][idx,:]
 
 
-                    googFile = (fileList[imgs].replace(parentPath,"").replace('inputs',"").replace('//',""))
+                    googFile = (fileList[imgs].replace(parentPath,"").replace('inputs',"").replace('//',"").replace('\\',""))
                     #logger.info(googFile.split("_")[5])
                     tempList=numpy.append(tempList, float(googFile.split("_")[5].replace("d",".")))
                     tempList=numpy.append(tempList, float(googFile.split("_")[4].replace("a",".")))
