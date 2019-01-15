@@ -45,14 +45,15 @@ def calculate_curves(ra, dec, parentPath = None):
     fileList=[]
     used_file = os.path.join(parentPath, "usedImages.txt")
     with open(used_file, "r") as f:
-      for line in f:
-        fileList.append(line.strip())
+        for line in f:
+            fileList.append(line.strip())
 
     # LOAD Phot FILES INTO LIST
 
     photFileArray=[]
     for file in fileList:
-        photFileArray.append(numpy.genfromtxt(file, dtype=float, delimiter=','))
+        data = numpy.genfromtxt(file, dtype=float, delimiter=',')
+        photFileArray.append(data)
 
     photFileArray=numpy.asarray(photFileArray)
 
@@ -84,7 +85,7 @@ def calculate_curves(ra, dec, parentPath = None):
         #Array of comp measurements
         #compList=[]
         #logger.info("***************************************")
-        logger.info("Calculating total Comparison counts for" + str(fileList[imgs]))
+        logger.info("Calculating total Comparison counts for - " + str(fileList[imgs]))
 
 
         for j in range(compFile.shape[0]):
@@ -97,8 +98,6 @@ def calculate_curves(ra, dec, parentPath = None):
             # Make array of comp measurements for this file
 
         allCountsArray.append([allCounts,allCountsErr])
-
-    logger.debug(allCountsArray)
 
     allcountscount=0
     # For each variable calculate all the things
@@ -119,9 +118,10 @@ def calculate_curves(ra, dec, parentPath = None):
     compArray=[]
     compList=[]
     allcountscount=0
+
     for imgs in range(photFileArray.shape[0]):
         compList=[]
-
+        logger.debug("Processing phot for {}".format(imgs))
         fileRaDec = SkyCoord(ra=photFileArray[imgs][:,0]*u.degree, dec=photFileArray[imgs][:,1]*u.degree)
 
         idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
@@ -210,41 +210,41 @@ def calculate_curves(ra, dec, parentPath = None):
                 fileCount.append(allCounts)
                 allcountscount=allcountscount+1
 
-        imageReject=[]
-        for j in range(numpy.asarray(outputPhot).shape[0]):
-            if numpy.isnan(outputPhot[j][11]):
-                imageReject.append(j)
-                #logger.info("IMAGE REJECTED")
-        outputPhot=numpy.delete(outputPhot, imageReject, axis=0)
-        #compArray=numpy.delete(compArray, imageReject, axis=0)
+    imageReject=[]
+    for j in range(numpy.asarray(outputPhot).shape[0]):
+        if numpy.isnan(outputPhot[j][11]):
+            imageReject.append(j)
+            #logger.info("IMAGE REJECTED")
+    outputPhot=numpy.delete(outputPhot, imageReject, axis=0)
+    #compArray=numpy.delete(compArray, imageReject, axis=0)
 
-        ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
-        stdVar=numpy.nanstd(numpy.asarray(outputPhot)[:,10])
-        avgVar=numpy.nanmean(numpy.asarray(outputPhot)[:,10])
-        starReject=[]
-        #numpy.savetxt("compArraybugFind.csv", compArray, delimiter=",", fmt='%0.8f')
-        stdevReject=0
-        for j in range(numpy.asarray(outputPhot).shape[0]):
-            if outputPhot[j][10] > avgVar+(4*stdVar) or outputPhot[j][10] < avgVar-(4*stdVar) :
-                starReject.append(j)
-                #logger.info("REJECT")
-                #logger.info(outputPhot[j][10])
-                stdevReject=stdevReject+1
+    ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
+    stdVar=numpy.nanstd(numpy.asarray(outputPhot)[:,10])
+    avgVar=numpy.nanmean(numpy.asarray(outputPhot)[:,10])
+    starReject=[]
+    #numpy.savetxt("compArraybugFind.csv", compArray, delimiter=",", fmt='%0.8f')
+    stdevReject=0
+    for j in range(numpy.asarray(outputPhot).shape[0]):
+        if outputPhot[j][10] > avgVar+(4*stdVar) or outputPhot[j][10] < avgVar-(4*stdVar) :
+            starReject.append(j)
+            #logger.info("REJECT")
+            #logger.info(outputPhot[j][10])
+            stdevReject=stdevReject+1
 
-        logger.info("Rejected Stdev Measurements: " + str(stdevReject))
-        logger.info("Rejected Error Measurements: " + str(starErrorRejCount))
-        logger.info("Rejected Distance Measurements: " + str(starDistanceRejCount))
-        logger.info("Variability of Comparisons")
-        logger.info("Average : " +str(avgVar))
-        logger.info("Stdev   : "+str(stdVar))
+    logger.info("Rejected Stdev Measurements: " + str(stdevReject))
+    logger.info("Rejected Error Measurements: " + str(starErrorRejCount))
+    logger.info("Rejected Distance Measurements: " + str(starDistanceRejCount))
+    logger.info("Variability of Comparisons")
+    logger.info("Average : " +str(avgVar))
+    logger.info("Stdev   : "+str(stdVar))
 
-        #logger.info(outputPhot)
-        outputPhot=numpy.delete(outputPhot, starReject, axis=0)
+    #logger.info(outputPhot)
+    outputPhot=numpy.delete(outputPhot, starReject, axis=0)
 
-        if outputPhot.shape[0] > 2:
-            numpy.savetxt(os.path.join(outcatPath,"doerPhot_V.csv"), outputPhot, delimiter=",", fmt='%0.8f')
+    if outputPhot.shape[0] > 2:
+        numpy.savetxt(os.path.join(outcatPath,"doerPhot_V.csv"), outputPhot, delimiter=",", fmt='%0.8f')
 
-        return
+    return
 
 def plot_lightcurves(parentPath=None):
     filterCode = 3 # u=0, g=1, r=2, i=3, z=4
