@@ -3,7 +3,10 @@ Analysis script for sources with variability in their brightness
 
 ## Installation
 
-It is strongly recommended you use python 3 and a virtual environment e.g.
+It is strongly recommended you use python 3 and a virtual environment
+
+Using the [Anaconda](https://www.anaconda.com/download/) distribution of Python:
+
 ```bash
 conda create -n autovar python=3
 source activate autovar
@@ -15,32 +18,35 @@ There are only a couple of packages you will need. These are listed in `requirem
 pip install -r requirements.pip
 ```
 
-## Options
+## Usage
 
-There are a few options when running the scripts. You can either run the whole analysis at once or the individual stages.
+There are a few input options when running the scripts. You can either run the whole analysis at once or the individual stages.
 
---ra [required] = Right Ascension of the target (in decimal)
+`--ra` *[required parameter]* Right Ascension of the target (in decimal)
 
---dec [required] = Declination of the target (in decimal)
+`--dec` *[required parameter]* Declination of the target (in decimal)
 
---full = Run the whole code
+`--indir` [parameter] Path of directory containing LCO data files. If none is given, autovar assumes the current directory
 
---stars = Identify and match stars from each photometry file
+`--full` [boolean flag] Run the whole code. This will run the following steps in this order `stars` > `comparison` > `calc` > `plot`
 
---comparison = Identify non-varying stars to use for comparisons
+`--stars` [boolean flag] Step 1: Identify and match stars from each data file
 
---calc = Calculate the brightness change of the target
+`--comparison` [boolean flag] Step 2: Identify non-varying stars to use for comparisons
 
---plot = Produce lightcurve plots
+`--calc` [boolean flag] Step 3: Calculate the brightness change of the target
 
---indir = Path of directory containing LCO data files. If none is given, autovar assumes the current directory
+`--plot` [boolean flag] Step 4: Produce lightcurve plots
+
 
 
 ### Example Usage
 
 ```bash
-python main.py --full --ra 154.9083708 --dec -9.8062778
+python main.py --ra 154.9083708 --dec -9.8062778 --indir /path/to/your/data --full
 ```
 
-## Acknowledgements
-Written by Michael Fitzgerald. Adapted by Edward Gomez
+All the files generated will be stored in the directory you specify in `--indir`
+
+## Authors
+Written by Michael Fitzgerald. Adapted by [Edward Gomez](@zemogle)
