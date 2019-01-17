@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def calculate_curves(ra, dec, parentPath = None):
     errorReject=0.05 # reject measurements with instrumental errors larger than this (this is not total error, just the estimated error in the single measurement of the variable)
-    acceptDistance=2.0 # Furtherest distance in arcseconds for matches
+    acceptDistance=5.0 # Furtherest distance in arcseconds for matches
     # These two parameters are used when you are creating calibrated photometry..... we will get to that ;)
     filterCode = 3 # u=0, g=1, r=2, i=3, z=4
     calibFlag = 0 # 0 = no calibration attempted, 1 = calibration attempted.
@@ -129,7 +129,7 @@ def calculate_curves(ra, dec, parentPath = None):
         starRejected=0
         if (numpy.less(d2d.arcsecond, acceptDistance)):
             magErrVar = 1.0857 * (photFileArray[imgs][idx][5]/photFileArray[imgs][idx][4])
-            #logger.info("Distance ok!")
+            logger.debug("Distance ok!")
             #logger.info(magErrVar)
             if magErrVar < errorReject:
                 #logger.info("MagError ok!")
@@ -149,7 +149,6 @@ def calculate_curves(ra, dec, parentPath = None):
 
                 #Differential Magnitude
                 tempList=numpy.append(tempList,-2.5 * numpy.log10(photFileArray[imgs][idx][4]/allCountsArray[allcountscount][0]))
-                #logger.info(numpy.append(tempList,-2.5 * numpy.log10(photFile[idx][4]/allCountsArray[countCount][0])))
                 tempList=numpy.append(tempList, magErrTotal)
 
 
@@ -170,11 +169,11 @@ def calculate_curves(ra, dec, parentPath = None):
                 allcountscount=allcountscount+1
 
             else:
-                #logger.info('Star Error Too High - ' + str(magErrVar) + ' - measurement rejected')
+                logger.debug('Star Error Too High - ' + str(magErrVar) + ' - measurement rejected')
                 starErrorRejCount=starErrorRejCount+1
                 starRejected=1
         else:
-                #logger.info('Star Distance Too High - ' + str(magErrVar) + ' - measurement rejected')
+                logger.debug('Star Distance Too High - {}" - measurement rejected'.format(d2d.arcsecond))
                 starDistanceRejCount=starDistanceRejCount+1
                 starRejected=1
 
@@ -185,7 +184,7 @@ def calculate_curves(ra, dec, parentPath = None):
 
 
                 googFile = (fileList[imgs].replace(parentPath,"").replace('inputs',"").replace('//',""))
-                #logger.info(googFile.split("_")[5])
+                logger.debug(googFile.split("_")[5])
                 tempList=numpy.append(tempList, float(googFile.split("_")[5].replace("d",".")))
                 tempList=numpy.append(tempList, float(googFile.split("_")[4].replace("a",".")))
                 tempList=numpy.append(tempList, allCountsArray[allcountscount][0])
@@ -217,6 +216,9 @@ def calculate_curves(ra, dec, parentPath = None):
             #logger.info("IMAGE REJECTED")
     outputPhot=numpy.delete(outputPhot, imageReject, axis=0)
     #compArray=numpy.delete(compArray, imageReject, axis=0)
+    if outputPhot.shape[0] == 0 :
+        logger.error("All stars rejected! Photometry failed")
+        return
 
     ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
     stdVar=numpy.nanstd(numpy.asarray(outputPhot)[:,10])
