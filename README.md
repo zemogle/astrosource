@@ -48,5 +48,19 @@ python main.py --ra 154.9083708 --dec -9.8062778 --indir /path/to/your/data --fu
 
 All the files generated will be stored in the directory you specify in `--indir`
 
+### Tests
+
+If you are developing this package, you will want to run the tests. You will need `pytest` installed and then, from the package directory, run:
+
+```bash
+pytest
+```
+
+To suppress the warning messages use:
+
+```bash
+pytest --disable-pytest-warnings
+```
+
 ## Authors
 Written by Michael Fitzgerald. Adapted by [Edward Gomez](@zemogle)
