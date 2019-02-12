@@ -2,3 +2,4 @@ astropy
 click
 matplotlib
 numpy
+pytest

@@ -11,12 +11,25 @@ logger = logging.getLogger(__name__)
 
 def find_comparisons(ra, dec, parentPath, stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.025, removeTargets=1, acceptDistance=1.0):
     '''
-    :stdMultiplier param:  This is how many standard deviations above the mean to cut off the top. The cycle will continue until there are no stars this many std.dev above the mean
-    :thresholdCounts param:  This is the target countrate for the ensemble comparison... the lowest variability stars will be added until this countrate is reached.
-    :variabilityMax param: This will stop adding ensemble comparisons if it starts using stars higher than this variability
-    :removeTargets param: Set this to 1 to remove targets from consideration for comparison stars
-    :acceptDistance param: Furtherest distance in arcseconds for matches
+    Find stable comparison stars for the target photometry
 
+    Parameters
+    ----------
+    stdMultiplier : int
+            This is how many standard deviations above the mean to cut off the top. The cycle will continue until there are no stars this many std.dev above the mean
+    thresholdCounts : int
+            This is the target countrate for the ensemble comparison... the lowest variability stars will be added until this countrate is reached.
+    variabilityMax : float
+            This will stop adding ensemble comparisons if it starts using stars higher than this variability
+    removeTargets : int
+            Set this to 1 to remove targets from consideration for comparison stars
+    acceptDistance : float
+            Furtherest distance in arcseconds for matches
+
+    Returns
+    -------
+    outfile : str
+            
     '''
 
     # Get list of phot files
@@ -182,6 +195,7 @@ def find_comparisons(ra, dec, parentPath, stdMultiplier=3, thresholdCounts=10000
             logger.info(str(compFile.shape[0]) + " Stable Comparison Candidates below variability threshold output to compsUsed.csv")
             #logger.info(compFile.shape[0])
 
-            numpy.savetxt(os.path.join(parentPath,"compsUsed.csv"), compFile, delimiter=",", fmt='%0.8f')
+            outfile = os.path.join(parentPath,"compsUsed.csv")
+            numpy.savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
 
-            return
+            return outfile

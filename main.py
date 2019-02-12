@@ -14,12 +14,13 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 @click.option('--comparison', is_flag=True)
 @click.option('--calc', is_flag=True)
 @click.option('--plot', is_flag=True)
-@click.option('--indir', type=str)
+@click.option('--indir', default=None, type=str)
 @click.option('--ra', required=True, type=float)
 @click.option('--dec', required=True, type=float)
-def main(full, stars, comparison, calc, plot, indir, ra, dec):
+@click.option('--format', default='fz', type=str)
+def main(full, stars, comparison, calc, plot, indir, ra, dec, format):
     if full or stars:
-        find_stars(indir, ra, dec)
+        find_stars(indir, ra, dec, filetype=format)
     if full or comparison:
         find_comparisons(ra, dec, indir)
     if full or calc:

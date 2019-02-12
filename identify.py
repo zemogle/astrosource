@@ -46,7 +46,7 @@ def export_photometry_files(filelist, indir, filetype='csv'):
     return phot_list
 
 def extract_photometry(infile, indir, outfile=None):
-    
+
     hdulist = fits.open(infile)
 
     if not outfile:
@@ -110,6 +110,9 @@ def find_stars(indir, ra, dec, filetype='fz', acceptDistance=1.0, minimumCounts=
     """
 
     fileList = gather_files(indir, filetype=filetype)
+    if not fileList:
+        logger.error("No files of type '.{}' found".format(filetype))
+        return False
     #Initialisation values
     usedImages=[]
     # Generate a blank targetstars.csv file
@@ -168,7 +171,7 @@ def find_stars(indir, ra, dec, filetype='fz', acceptDistance=1.0, minimumCounts=
 
         logger.info('Image Number: ' + str(rejStartCounter))
         logger.info(file)
-        logger.info("Image treshold size: "+str(imgsize))
+        logger.info("Image threshold size: "+str(imgsize))
         logger.info("Image catalogue size: "+str(photFile.size))
         if photFile.size > imgsize:
 
@@ -228,8 +231,8 @@ def find_stars(indir, ra, dec, filetype='fz', acceptDistance=1.0, minimumCounts=
     for j in range (referenceFrame.shape[0]):
         outputComps.append([referenceFrame[j][0],referenceFrame[j][1]])
 
-    logger.info("These are the identified common stars of sufficient brightness that are in every image")
-    logger.info(outputComps)
+    logger.debug("These are the identified common stars of sufficient brightness that are in every image")
+    logger.debug(outputComps)
 
     logger.info(' ')
     logger.info('Images Rejected due to high star rejection rate: ' + str(imgReject))
