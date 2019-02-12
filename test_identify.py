@@ -79,13 +79,21 @@ def test_find_stars():
     ra = 117.0269708
     dec = 50.2258111
     used_file = find_stars(TEST_DATA_PATH, ra, dec, filetype='fits')
+    # Check the targets are in targetstars.csv
+    test_targets = file_to_list(os.path.join(TEST_DATA_PATH, 'targetstars.csv'))
+    assert test_targets == ['0.00000000,0.00000000,0.00000000,0.00000000', '117.02697080,50.22581110,0.00000000,0.00000000']
+    # Check the right files are saved
     result_list = file_to_list(used_file)
     test_list = file_to_list(os.path.join(TEST_DATA_PATH, 'usedImages_test.txt'))
     assert result_list.sort() == test_list.sort()
     # Clean up
     os.remove(os.path.join(TEST_DATA_PATH,'usedImages.txt'))
-    for tf in glob.glob(os.path.join(TEST_DATA_PATH,'*.csv')):
-        os.remove(tf)
+    test_files = ['XOd2_ip_22d293_2017d01d04_1a0899013_57757d0522793000_kb29.csv',
+                  'XOd2_ip_22d284_2017d01d04_1a089113_57757d0532642000_kb29.csv',
+                  'screenedComps.csv',
+                  'targetstars.csv']
+    for tf in test_files:
+        os.remove(os.path.join(TEST_DATA_PATH,tf))
 
 def file_to_list(infile):
     fileList=[]

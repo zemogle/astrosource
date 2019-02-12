@@ -9,27 +9,29 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def find_comparisons(ra, dec, parentPath, stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.025, removeTargets=1, acceptDistance=1.0):
+def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=1000000, variabilityMax=0.025, removeTargets=1, acceptDistance=1.0):
     '''
     Find stable comparison stars for the target photometry
 
     Parameters
     ----------
+    parentPath : str
+            Path to the
     stdMultiplier : int
-            This is how many standard deviations above the mean to cut off the top. The cycle will continue until there are no stars this many std.dev above the mean
+            Number of standard deviations above the mean to cut off the top. The cycle will continue until there are no stars this many std.dev above the mean
     thresholdCounts : int
-            This is the target countrate for the ensemble comparison... the lowest variability stars will be added until this countrate is reached.
+            Target countrate for the ensemble comparison. The lowest variability stars will be added until this countrate is reached.
     variabilityMax : float
             This will stop adding ensemble comparisons if it starts using stars higher than this variability
     removeTargets : int
             Set this to 1 to remove targets from consideration for comparison stars
     acceptDistance : float
-            Furtherest distance in arcseconds for matches
+            Furthest distance in arcseconds for matches
 
     Returns
     -------
     outfile : str
-            
+
     '''
 
     # Get list of phot files
@@ -55,14 +57,7 @@ def find_comparisons(ra, dec, parentPath, stdMultiplier=3, thresholdCounts=10000
     compFile = numpy.genfromtxt(screened_file, dtype=float, delimiter=',')
 
     if removeTargets == 1:
-        logger.info("Removing Target Stars from potential Comparisons")
-        targetFile = numpy.genfromtxt(os.path.join(parentPath, 'targetstars.csv'), dtype=float, delimiter=',')
-        fileRaDec = SkyCoord(ra=compFile[:,0]*u.degree, dec=compFile[:,1]*u.degree)
-        for q in range(targetFile.shape[0]):
-            varCoord = SkyCoord(targetFile[q][0],(targetFile[q][1]), frame='icrs', unit=u.deg) # Need to remove target stars from consideration
-            idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
-            if d2d.arcsecond < acceptDistance:
-              targetFile=numpy.delete(compFile, idx, axis=0)
+        targetFile = remove_targets(parentPath, compFile, acceptDistance)
 
     while True:
         # First half of Loop: Add up all of the counts of all of the comparison stars
@@ -75,9 +70,9 @@ def find_comparisons(ra, dec, parentPath, stdMultiplier=3, thresholdCounts=10000
             photFile = photFileArray[imgs]
             fileRaDec = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
             for j in range(compFile.shape[0]):
-                matchCoord=SkyCoord(ra=compFile[j][0]*u.degree, dec=compFile[j][1]*u.degree)
+                matchCoord = SkyCoord(ra=compFile[j][0]*u.degree, dec=compFile[j][1]*u.degree)
                 idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-                allCounts=numpy.add(allCounts,photFile[idx][4])
+                allCounts = numpy.add(allCounts,photFile[idx][4])
 
 
             logger.info(fileList[imgs] + "\nTotal Counts in Image: " + str(allCounts) +"\n*")
@@ -89,19 +84,18 @@ def find_comparisons(ra, dec, parentPath, stdMultiplier=3, thresholdCounts=10000
         stdCompStar=[]
         sortStars=[]
         for j in range(compFile.shape[0]):
-            compDiffMags=[]
+            compDiffMags = []
             q=0
             logger.info("*************************")
             logger.info("RA : " + str(compFile[j][0]))
             logger.info("DEC: " + str(compFile[j][1]))
             for imgs in range(photFileArray.shape[0]):
-                #print file
                 photFile = photFileArray[imgs]
                 fileRaDec = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
-                matchCoord=SkyCoord(ra=compFile[j][0]*u.degree, dec=compFile[j][1]*u.degree)
+                matchCoord = SkyCoord(ra=compFile[j][0]*u.degree, dec=compFile[j][1]*u.degree)
                 idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-                compDiffMags=numpy.append(compDiffMags,2.5 * numpy.log10(photFile[idx][4]/fileCount[q]))
-                q=numpy.add(q,1)
+                compDiffMags = numpy.append(compDiffMags,2.5 * numpy.log10(photFile[idx][4]/fileCount[q]))
+                q = numpy.add(q,1)
 
             logger.info("VAR: " +str(numpy.std(compDiffMags)))
             stdCompStar.append(numpy.std(compDiffMags))
@@ -199,3 +193,14 @@ def find_comparisons(ra, dec, parentPath, stdMultiplier=3, thresholdCounts=10000
             numpy.savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
 
             return outfile
+
+def remove_targets(parentPath, compFile, acceptDistance):
+    logger.info("Removing Target Stars from potential Comparisons")
+    targetFile = numpy.genfromtxt(os.path.join(parentPath, 'targetstars.csv'), dtype=float, delimiter=',')
+    fileRaDec = SkyCoord(ra=compFile[:,0]*u.degree, dec=compFile[:,1]*u.degree)
+    for q in range(targetFile.shape[0]):
+        varCoord = SkyCoord(targetFile[q][0],(targetFile[q][1]), frame='icrs', unit=u.deg) # Need to remove target stars from consideration
+        idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
+        if d2d.arcsecond < acceptDistance:
+          targetFile = numpy.delete(compFile, idx, axis=0)
+    return targetFile

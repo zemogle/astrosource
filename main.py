@@ -22,7 +22,7 @@ def main(full, stars, comparison, calc, plot, indir, ra, dec, format):
     if full or stars:
         find_stars(indir, ra, dec, filetype=format)
     if full or comparison:
-        find_comparisons(ra, dec, indir)
+        find_comparisons(indir)
     if full or calc:
         calculate_curves(ra, dec, indir)
     if full or plot:
