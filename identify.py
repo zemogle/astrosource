@@ -71,7 +71,11 @@ def gather_files(indir=None, filetype="fz"):
         indir = os.path.join(parentPath, indir)
 
     filelist = glob.glob("{}/*.{}".format(indir,filetype))
-    phot_list = export_photometry_files(filelist, indir)
+    if filetype not in ['fits','fit','fz']:
+        # Assume we are not dealing with image files but photometry files
+        phot_list = filelist
+    else:
+        phot_list = export_photometry_files(filelist, indir)
     return phot_list
 
 def find_stars(indir, ra, dec, filetype='fz', acceptDistance=1.0, minimumCounts=20000, maximumCounts=500000, imageFracReject=0.33, starFracReject=0.15, rejectStart=7, minCompStars=5):
