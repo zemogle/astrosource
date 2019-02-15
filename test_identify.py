@@ -6,8 +6,9 @@ import glob
 from .identify import rename_data_file, export_photometry_files, extract_photometry, \
                     gather_files, find_stars
 
-TEST_DATA_PATH = os.environ.get('AUTOVAR_TEST_DATA_PATH','/usr/var/data/autovar')
+TEST_PATH = os.environ.get('AUTOVAR_TEST_DATA_PATH',os.path.join(os.getcwd(),'test_files'))
 
+TEST_DATA_PATH = os.path.join(TEST_PATH,'stars')
 
 def test_rename_object():
     header = {  "OBJECT"    : "M1",
