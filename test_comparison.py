@@ -6,7 +6,7 @@ from .test_files import output_tests
 
 from .comparison import find_comparisons, read_data_files, find_reference_frame
 
-TEST_DATA_PATH = os.environ.get('AUTOVAR_TEST_DATA_PATH', os.path.join(os.getcwd(),'test_files'))
+TEST_DATA_PATH = os.path.join(os.getcwd(),'test_files')
 
 COMP_DATA_PATH = os.path.join(TEST_DATA_PATH, 'comparison')
 
