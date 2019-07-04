@@ -2,11 +2,11 @@ from identify import find_stars
 from comparison import find_comparisons
 from analyse import calculate_curves, plot_lightcurves
 import click
+import sys
 
 import logging
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
-
 
 @click.command()
 @click.option('--full', is_flag=True)
@@ -19,6 +19,7 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 @click.option('--dec', required=True, type=float)
 @click.option('--format', default='fz', type=str)
 def main(full, stars, comparison, calc, plot, indir, ra, dec, format):
+    sys.tracebacklimit = 0
     if full or stars:
         find_stars(indir, ra, dec, filetype=format)
     if full or comparison:

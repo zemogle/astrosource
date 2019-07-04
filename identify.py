@@ -29,7 +29,6 @@ def rename_data_file(prihdr):
         filter =list(set(filters))
         filter.remove('air')
         filterOne = filter[0]
-    print(filterOne)
 
     expTime=(str(prihdr['EXPTIME']).replace('.','d'))
     dateObs=(prihdr['DATE'].replace('-','d').replace(':','d').replace('.','d'))
@@ -85,10 +84,9 @@ def gather_files(indir=None, filetype="fz"):
         phot_list = export_photometry_files(filelist, indir)
     filters = set([os.path.basename(f).split('_')[1] for f in phot_list])
 
-    logger.info("Filter Set: {}".format(filters))
+    logger.debug("Filter Set: {}".format(filters))
     if len(filters) > 1:
-        logger.error("Check your images, the script detected multiple filters in your file list. Autovar currently only does one filter at a time.")
-        return []
+        raise Exception("Check your images, the script detected multiple filters in your file list. Autovar currently only does one filter at a time.")
     return phot_list
 
 def find_stars(indir, ra, dec, filetype='fz', acceptDistance=1.0, minimumCounts=10000, maximumCounts=1000000, imageFracReject=0.0, starFracReject=0.1, rejectStart=7, minCompStars=1):
