@@ -19,10 +19,17 @@ def rename_data_file(prihdr):
     else:
         objectTemp="UNKNOWN"
 
-    if 'FILTER1' in prihdr:
-        filterOne=(prihdr['FILTER1'])
-        filterTwo=(prihdr['FILTER2'])
-        filterThree=(prihdr['FILTER3'])
+    if 'FILTER' in prihdr:
+        filterOne=(prihdr['FILTER'])
+    else:
+        filters = []
+        filters.append(prihdr['FILTER1'])
+        filters.append(prihdr['FILTER2'])
+        filters.append(prihdr['FILTER3'])
+        filter =list(set(filters))
+        filter.remove('air')
+        filterOne = filter[0]
+    print(filterOne)
 
     expTime=(str(prihdr['EXPTIME']).replace('.','d'))
     dateObs=(prihdr['DATE'].replace('-','d').replace(':','d').replace('.','d'))
@@ -30,10 +37,10 @@ def rename_data_file(prihdr):
     instruMe=(prihdr['INSTRUME']).replace(' ','').replace('/','').replace('-','')
 
     if (prihdr['MJD-OBS'] == 'UNKNOWN'):
-        newName=objectTemp + "_" + filterOne + "_" + expTime + "_" + dateObs + "_" + airMass + "_UNKNOWN_" + instruMe + ".csv"
+        mjdObs = 'UNKNOWN'
     else:
-        mjdObs = '{0:.10f}'.format(prihdr['MJD-OBS'])
-        newName=objectTemp + "_" + filterOne + "_" + expTime + "_" + dateObs + "_" + airMass + "_" + str(mjdObs).replace('.','d') + "_" + instruMe + ".csv"
+        mjdObs = '{0:.10f}'.format(prihdr['MJD-OBS']).replace('.','d')
+    newName="{}_{}_{}_{}_{}_{}_{}.csv".format(objectTemp, filterOne, expTime, dateObs, airMass,mjdObs, instruMe)
 
     return newName
 
@@ -76,9 +83,15 @@ def gather_files(indir=None, filetype="fz"):
         phot_list = filelist
     else:
         phot_list = export_photometry_files(filelist, indir)
+    filters = set([os.path.basename(f).split('_')[1] for f in phot_list])
+
+    logger.info("Filter Set: {}".format(filters))
+    if len(filters) > 1:
+        logger.error("Check your images, the script detected multiple filters in your file list. Autovar currently only does one filter at a time.")
+        return []
     return phot_list
 
-def find_stars(indir, ra, dec, filetype='fz', acceptDistance=1.0, minimumCounts=20000, maximumCounts=500000, imageFracReject=0.33, starFracReject=0.15, rejectStart=7, minCompStars=5):
+def find_stars(indir, ra, dec, filetype='fz', acceptDistance=1.0, minimumCounts=10000, maximumCounts=1000000, imageFracReject=0.0, starFracReject=0.1, rejectStart=7, minCompStars=1):
     """
     Finds stars useful for photometry in each photometry/data file
 
@@ -116,7 +129,7 @@ def find_stars(indir, ra, dec, filetype='fz', acceptDistance=1.0, minimumCounts=
     fileList = gather_files(indir, filetype=filetype)
     if not fileList:
         logger.error("No files of type '.{}' found".format(filetype))
-        return False
+        return
     #Initialisation values
     usedImages=[]
     # Generate a blank targetstars.csv file
@@ -133,19 +146,21 @@ def find_stars(indir, ra, dec, filetype='fz', acceptDistance=1.0, minimumCounts=
     for file in fileList:
         photFile = numpy.genfromtxt(file, dtype=float, delimiter=',')
         if (( numpy.asarray(photFile[:,0]) > 360).sum() > 0) :
-            logger.info("REJECT")
-            logger.info(file)
+            logger.warning("REJECT")
+            logger.warning(file)
             fileList.remove(file)
         elif (( numpy.asarray(photFile[:,1]) > 90).sum() > 0) :
-            logger.info("REJECT")
-            logger.info(file)
+            logger.warning("REJECT")
+            logger.warning(file)
             fileList.remove(file)
         else:
             # Sort through and find the largest file and use that as the reference file
             if photFile.size > fileSizer:
-                referenceFrame = photFile
-                fileSizer = photFile.size
-                logger.debug(photFile.size)
+                phottmparr = numpy.asarray(photFile)
+                if (( phottmparr[:,0] > 360).sum() == 0) and ( phottmparr[0][0] != 'null') and ( phottmparr[0][0] != 0.0) :
+                    referenceFrame = photFile
+                    fileSizer = photFile.size
+                    logger.debug("{} - {}".format(photFile.size, file))
 
     logger.info("Setting up reference Frame")
     fileRaDec = SkyCoord(ra=referenceFrame[:,0]*u.degree, dec=referenceFrame[:,1]*u.degree)
@@ -168,35 +183,38 @@ def find_stars(indir, ra, dec, filetype='fz', acceptDistance=1.0, minimumCounts=
     rejStartCounter = 0
     imgReject = 0 # Number of images rejected due to high rejection rate
     loFileReject = 0 # Number of images rejected due to too few stars in the photometry file
+    wcsFileReject=0
     for file in fileList:
         rejStartCounter = rejStartCounter +1
         photFile = numpy.genfromtxt(file, dtype=float, delimiter=',')
-        fileRaDec = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
+        # DUP fileRaDec = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
 
         logger.info('Image Number: ' + str(rejStartCounter))
         logger.info(file)
         logger.info("Image threshold size: "+str(imgsize))
         logger.info("Image catalogue size: "+str(photFile.size))
-        if photFile.size > imgsize:
+        if photFile.size > imgsize and photFile.size > 7:
+            phottmparr = numpy.asarray(photFile)
+            if (( phottmparr[:,0] > 360).sum() == 0) and ( phottmparr[0][0] != 'null') and ( phottmparr[0][0] != 0.0) :
 
-            # Checking existance of stars in all photometry files
-            rejectStars=[] # A list to hold what stars are to be rejected
+                # Checking existance of stars in all photometry files
+                rejectStars=[] # A list to hold what stars are to be rejected
 
-            # Find whether star in reference list is in this phot file, if not, reject star.
-            for j in range(referenceFrame.shape[0]):
-                photRAandDec = SkyCoord(ra = photFile[:,0]*u.degree, dec = photFile[:,1]*u.degree)
-                testStar = SkyCoord(ra = referenceFrame[j][0]*u.degree, dec = referenceFrame[j][1]*u.degree)
-                _, d2d, _ = testStar.match_to_catalog_sky(photRAandDec)
-                if (d2d.arcsecond > acceptDistance):
-                    #"No Match! Nothing within range."
-                    rejectStars.append(int(j))
+                # Find whether star in reference list is in this phot file, if not, reject star.
+                for j in range(referenceFrame.shape[0]):
+                    photRAandDec = SkyCoord(ra = photFile[:,0]*u.degree, dec = photFile[:,1]*u.degree)
+                    testStar = SkyCoord(ra = referenceFrame[j][0]*u.degree, dec = referenceFrame[j][1]*u.degree)
+                    idx, d2d, d3d = testStar.match_to_catalog_sky(photRAandDec)
+                    if (d2d.arcsecond > acceptDistance):
+                        #"No Match! Nothing within range."
+                        rejectStars.append(int(j))
 
 
             # if the rejectstar list is not empty, remove the stars from the reference List
             if rejectStars != []:
 
                 if not (((len(rejectStars) / referenceFrame.shape[0]) > starFracReject) and rejStartCounter > rejectStart):
-                    referenceFrame=numpy.delete(referenceFrame, rejectStars, axis=0)
+                    referenceFrame = numpy.delete(referenceFrame, rejectStars, axis=0)
                     logger.info('**********************')
                     logger.info('Stars Removed  : ' +str(len(rejectStars)))
                     logger.info('Remaining Stars: ' +str(referenceFrame.shape[0]))
@@ -224,6 +242,11 @@ def find_stars(indir, ra, dec, filetype='fz', acceptDistance=1.0, minimumCounts=
                 logger.error("There are fewer than the requested number of Comp Stars. Try removing problematic files or raising the imageFracReject")
                 logger.error("Problem file - {}".format(file))
                 return
+        elif photFile.size < 7:
+            print ('**********************')
+            print ("WCS Coordinates broken")
+            print ('**********************')
+            wcsFileReject=wcsFileReject+1
         else:
             logger.error('**********************')
             logger.error("CONTAINS TOO FEW STARS")
@@ -250,7 +273,7 @@ def find_stars(indir, ra, dec, filetype='fz', acceptDistance=1.0, minimumCounts=
 
     screened_file = os.path.join(indir, "screenedComps.csv")
     numpy.savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
-    logger.info('UsedImages ready for use in CompDeviation')
+    logger.info('Ready for Comparison phase')
     used_file = os.path.join(indir, "usedImages.txt")
     with open(used_file, "w") as f:
         for s in usedImages:
