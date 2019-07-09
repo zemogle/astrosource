@@ -3,8 +3,8 @@ import numpy
 import os
 import glob
 
-from .identify import rename_data_file, export_photometry_files, extract_photometry, \
-                    gather_files, find_stars
+from autovar.identify import (rename_data_file, export_photometry_files,
+    extract_photometry, gather_files, find_stars)
 
 TEST_PATH = os.path.join(os.getcwd(),'test_files')
 

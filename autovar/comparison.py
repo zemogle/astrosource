@@ -10,7 +10,7 @@ from astroquery.vo_conesearch import conesearch
 from astroquery.vo_conesearch import ConeSearch
 from astroquery.vizier import Vizier
 
-from utils import AutovarException
+from autovar.utils import AutovarException
 
 import logging
 
