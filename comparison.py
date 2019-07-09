@@ -1,9 +1,9 @@
 import glob
 import sys
 import os
-import platform
+from pathlib import Path
 
-import numpy
+import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astroquery.vo_conesearch import conesearch
@@ -14,14 +14,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=1000000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=1.0):
     '''
     Find stable comparison stars for the target photometry
 
     Parameters
     ----------
-    parentPath : str
-            Path to the
+    parentPath : str or Path object
+            Path to the data files
     stdMultiplier : int
             Number of standard deviations above the mean to cut off the top. The cycle will continue until there are no stars this many std.dev above the mean
     thresholdCounts : int
@@ -41,7 +42,9 @@ def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=100000000
 
     # Get list of phot files
     if not parentPath:
-        parentPath = os.getcwd()
+        parentPath = Path(os.getcwd())
+    if type(parentPath) == 'str':
+        parentPath = Path(parentPath)
 
     compFile, photFileArray, fileList = read_data_files(parentPath)
 
@@ -59,16 +62,16 @@ def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=100000000
         # compared to this gigantic comparison star.
         rejectStar=[]
         stdCompStar, sortStars = calculate_comparison_variation(compFile, photFileArray, fileCount)
-        variabilityMax=(numpy.min(stdCompStar)*variabilityMultiplier)
+        variabilityMax=(np.min(stdCompStar)*variabilityMultiplier)
 
         # Calculate and present the sample statistics
-        stdCompMed=numpy.median(stdCompStar)
-        stdCompStd=numpy.std(stdCompStar)
+        stdCompMed=np.median(stdCompStar)
+        stdCompStd=np.std(stdCompStar)
 
         logger.debug(fileCount)
         logger.debug(stdCompStar)
-        logger.debug(numpy.median(stdCompStar))
-        logger.debug(numpy.std(stdCompStar))
+        logger.debug(np.median(stdCompStar))
+        logger.debug(np.std(stdCompStar))
 
         # Delete comparisons that have too high a variability
         starRejecter=[]
@@ -78,21 +81,21 @@ def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=100000000
                 logger.debug("Star Rejected, Variability too high!")
                 starRejecter.append(j)
 
-            if ( numpy.isnan(stdCompStar[j]) ) :
+            if ( np.isnan(stdCompStar[j]) ) :
                 logger.debug("Star Rejected, Invalid Entry!")
                 starRejecter.append(j)
         if starRejecter:
             logger.warning("Rejected {} stars".format(len(starRejecter)))
 
 
-        compFile = numpy.delete(compFile, starRejecter, axis=0)
-        sortStars = numpy.delete(sortStars, starRejecter, axis=0)
+        compFile = np.delete(compFile, starRejecter, axis=0)
+        sortStars = np.delete(sortStars, starRejecter, axis=0)
 
         # Calculate and present statistics of sample of candidate comparison stars.
-        logger.info("Median variability {:.6f}".format(numpy.median(stdCompStar)))
-        logger.info("Std variability {:.6f}".format(numpy.std(stdCompStar)))
-        logger.info("Min variability {:.6f}".format(numpy.min(stdCompStar)))
-        logger.info("Max variability {:.6f}".format(numpy.max(stdCompStar)))
+        logger.info("Median variability {:.6f}".format(np.median(stdCompStar)))
+        logger.info("Std variability {:.6f}".format(np.std(stdCompStar)))
+        logger.info("Min variability {:.6f}".format(np.min(stdCompStar)))
+        logger.info("Max variability {:.6f}".format(np.max(stdCompStar)))
         logger.info("Number of Stable Comparison Candidates {}".format(compFile.shape[0]))
         # Once we have stopped rejecting stars, this is our final candidate catalogue then we start to select the subset of this final catalogue that we actually use.
         if (starRejecter == []):
@@ -108,7 +111,7 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
 
     logger.info('List of stable comparison candidates output to stdComps.csv')
 
-    numpy.savetxt(os.path.join(parentPath, "stdComps.csv"), sortStars, delimiter=",", fmt='%0.8f')
+    np.savetxt(parentPath / "stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
 
     # The following process selects the subset of the candidates that we will use (the least variable comparisons that hopefully get the request countrate)
 
@@ -129,7 +132,7 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
         if tempCountCounter < thresholdCounts:
             if sortStars[j][2] < variabilityMax:
                 compFile.append([sortStars[j][0],sortStars[j][1]])
-                tempCountCounter=numpy.add(tempCountCounter,referenceFrame[idx][4])
+                tempCountCounter=np.add(tempCountCounter,referenceFrame[idx][4])
                 logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[j][2]))
                 logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
 
@@ -137,13 +140,13 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
     logger.debug(compFile)
 
     logger.info("Finale Ensemble Counts: " + str(tempCountCounter))
-    compFile=numpy.asarray(compFile)
+    compFile=np.asarray(compFile)
 
     logger.info(str(compFile.shape[0]) + " Stable Comparison Candidates below variability threshold output to compsUsed.csv")
     #logger.info(compFile.shape[0])
 
-    outfile = os.path.join(parentPath,"compsUsed.csv")
-    numpy.savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
+    outfile = parentPath / "compsUsed.csv"
+    np.savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
 
     return outfile, compFile.shape[0]
 
@@ -161,7 +164,7 @@ def find_reference_frame(photFileArray):
 
 def read_data_files(parentPath):
     fileList=[]
-    used_file = os.path.join(parentPath, "usedImages.txt")
+    used_file = parentPath / "usedImages.txt"
     with open(used_file, "r") as f:
         for line in f:
             fileList.append(line.strip())
@@ -170,13 +173,13 @@ def read_data_files(parentPath):
 
     photFileArray = []
     for file in fileList:
-        photFileArray.append(numpy.genfromtxt(file, dtype=float, delimiter=','))
-    photFileArray = numpy.asarray(photFileArray)
+        photFileArray.append(np.genfromtxt(file, dtype=float, delimiter=','))
+    photFileArray = np.asarray(photFileArray)
 
 
     #Grab the candidate comparison stars
-    screened_file = os.path.join(parentPath, "screenedComps.csv")
-    compFile = numpy.genfromtxt(screened_file, dtype=float, delimiter=',')
+    screened_file = parentPath / "screenedComps.csv"
+    compFile = np.genfromtxt(screened_file, dtype=float, delimiter=',')
     return compFile, photFileArray, fileList
 
 def ensemble_comparisons(photFileArray, compFile):
@@ -187,11 +190,11 @@ def ensemble_comparisons(photFileArray, compFile):
         for cf in compFile:
             matchCoord = SkyCoord(ra=cf[0]*u.degree, dec=cf[1]*u.degree)
             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-            allCounts = numpy.add(allCounts,photFile[idx][4])
+            allCounts = np.add(allCounts,photFile[idx][4])
 
 
         logger.debug("Total Counts in Image: {:.2f}".format(allCounts))
-        fileCount=numpy.append(fileCount, allCounts)
+        fileCount=np.append(fileCount, allCounts)
     return fileCount
 
 def calculate_comparison_variation(compFile, photFileArray, fileCount):
@@ -209,26 +212,26 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
             fileRaDec = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
             matchCoord = SkyCoord(ra=cf[0]*u.degree, dec=cf[1]*u.degree)
             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-            compDiffMags = numpy.append(compDiffMags,2.5 * numpy.log10(photFile[idx][4]/fileCount[q]))
-            q = numpy.add(q,1)
+            compDiffMags = np.append(compDiffMags,2.5 * np.log10(photFile[idx][4]/fileCount[q]))
+            q = np.add(q,1)
 
-        logger.debug("VAR: " +str(numpy.std(compDiffMags)))
-        stdCompStar.append(numpy.std(compDiffMags))
-        sortStars.append([cf[0],cf[1],numpy.std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+        logger.debug("VAR: " +str(np.std(compDiffMags)))
+        stdCompStar.append(np.std(compDiffMags))
+        sortStars.append([cf[0],cf[1],np.std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
     return stdCompStar, sortStars
 
 def remove_targets(parentPath, compFile, acceptDistance):
     max_sep=acceptDistance * u.arcsec
     logger.info("Removing Target Stars from potential Comparisons")
-    targetFile = numpy.genfromtxt(os.path.join(parentPath, 'targetstars.csv'), dtype=float, delimiter=',')
+    targetFile = np.genfromtxt(parentPath / 'targetstars.csv', dtype=float, delimiter=',')
     fileRaDec = SkyCoord(ra=compFile[:,0]*u.degree, dec=compFile[:,1]*u.degree)
     # Remove any nan rows from targetFile
     targetRejecter=[]
     if not (targetFile.shape[0] == 4 and targetFile.size ==4):
         for z in range(targetFile.shape[0]):
-          if numpy.isnan(targetFile[z][0]):
+          if np.isnan(targetFile[z][0]):
             targetRejecter.append(z)
-        targetFile=numpy.delete(targetFile, targetRejecter, axis=0)
+        targetFile=np.delete(targetFile, targetRejecter, axis=0)
 
     # Remove targets from consideration
     if len(targetFile)== 4:
@@ -247,7 +250,7 @@ def remove_targets(parentPath, compFile, acceptDistance):
             targetRejects.append(idx)
         if tg_file_len == 4:
             break
-    compFile=numpy.delete(compFile, idx, axis=0)
+    compFile=np.delete(compFile, idx, axis=0)
 
     # Get Average RA and Dec from file
     if compFile.shape[0] == 13:
@@ -256,9 +259,9 @@ def remove_targets(parentPath, compFile, acceptDistance):
         avgCoord=SkyCoord(ra=(compFile[0])*u.degree, dec=(compFile[1]*u.degree))
 
     else:
-        logger.debug(numpy.average(compFile[:,0]))
-        logger.debug(numpy.average(compFile[:,1]))
-        avgCoord=SkyCoord(ra=(numpy.average(compFile[:,0]))*u.degree, dec=(numpy.average(compFile[:,1]))*u.degree)
+        logger.debug(np.average(compFile[:,0]))
+        logger.debug(np.average(compFile[:,1]))
+        avgCoord=SkyCoord(ra=(np.average(compFile[:,0]))*u.degree, dec=(np.average(compFile[:,1]))*u.degree)
 
 
     # Check VSX for any known variable stars and remove them from the list
@@ -270,7 +273,7 @@ def remove_targets(parentPath, compFile, acceptDistance):
 
     logger.debug(variableResult.keys())
 
-    variableSearchResult=variableResult[['RAJ2000','DEJ2000']].as_matrix()
+    variableSearchResult=variableResult[['RAJ2000','DEJ2000']].to_numpy()
 
 
     raCat=variableSearchResult[:,0]
@@ -295,17 +298,17 @@ def remove_targets(parentPath, compFile, acceptDistance):
 
     logger.debug("Number of stars prior to VSX reject")
     logger.debug(compFile.shape[0])
-    compFile=numpy.delete(compFile, varStarReject, axis=0)
+    compFile=np.delete(compFile, varStarReject, axis=0)
     logger.debug("Number of stars post to VSX reject")
     logger.debug(compFile.shape[0])
 
 
     if (compFile.shape[0] ==1):
         compFile=[[compFile[0][0],compFile[0][1],0.01]]
-        compFile=numpy.asarray(compFile)
-        numpy.savetxt(os.path.join(parentPath,"compsUsed.csv"), compFile, delimiter=",", fmt='%0.8f')
+        compFile=np.asarray(compFile)
+        np.savetxt(parentPath / "compsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
         sortStars=[[compFile[0][0],compFile[0][1],0.01,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]]
-        sortStars=numpy.asarray(sortStars)
-        numpy.savetxt("stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
+        sortStars=np.asarray(sortStars)
+        np.savetxt("stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
         raise Exception("Looks like you have a single comparison star!")
     return compFile
