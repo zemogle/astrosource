@@ -8,7 +8,7 @@ import sys
 import os
 import logging
 
-from utils import AutovarException
+from .utils import AutovarException
 
 logger = logging.getLogger(__name__)
 

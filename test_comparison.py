@@ -1,14 +1,15 @@
 from astropy.io import fits
 import numpy
 import os
-import glob
+from pathlib import Path
+
 from .test_files import output_tests
 
 from .comparison import find_comparisons, read_data_files, find_reference_frame
 
-TEST_DATA_PATH = os.path.join(os.getcwd(),'test_files')
+TEST_DATA_PATH = Path(os.getcwd()) / 'test_files'
 
-COMP_DATA_PATH = os.path.join(TEST_DATA_PATH, 'comparison')
+COMP_DATA_PATH = TEST_DATA_PATH / 'comparison'
 
 def test_ensemble():
     fileCount = [ 2797858.97, 3020751.97, 3111426.77, 3115947.86]
@@ -29,5 +30,5 @@ def test_comparison():
     # All files are present so we are ready to continue
     outfile, num_cands = find_comparisons(COMP_DATA_PATH)
 
-    assert outfile == os.path.join(COMP_DATA_PATH,"compsUsed.csv")
+    assert outfile == COMP_DATA_PATH / "compsUsed.csv"
     assert num_cands == 11
