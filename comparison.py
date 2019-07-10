@@ -10,6 +10,8 @@ from astroquery.vo_conesearch import conesearch
 from astroquery.vo_conesearch import ConeSearch
 from astroquery.vizier import Vizier
 
+from utils import AutovarException
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -310,5 +312,5 @@ def remove_targets(parentPath, compFile, acceptDistance):
         sortStars=[[compFile[0][0],compFile[0][1],0.01,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]]
         sortStars=np.asarray(sortStars)
         np.savetxt("stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
-        raise Exception("Looks like you have a single comparison star!")
+        raise AutovarException("Looks like you have a single comparison star!")
     return compFile

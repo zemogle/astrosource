@@ -26,9 +26,11 @@ There are a few input options when running the scripts. You can either run the w
 
 `--dec` *[required parameter]* Declination of the target (in decimal)
 
+`--target-file` *[required parameter]*
+
 `--indir` [parameter] Path of directory containing LCO data files. If none is given, autovar assumes the current directory
 
-`--format` [parameter] input file format. If not `fz`, `fits`, or `fit` assumes the input files are photometry files with correct headers. If image files given, code will extra photometry from FITS extension. Defaults to `fz`. 
+`--format` [parameter] input file format. If not `fz`, `fits`, or `fit` assumes the input files are photometry files with correct headers. If image files given, code will extra photometry from FITS extension. Defaults to `fz`.
 
 `--full` [boolean flag] Run the whole code. This will run the following steps in this order `stars` > `comparison` > `calc` > `plot`
 
@@ -39,6 +41,10 @@ There are a few input options when running the scripts. You can either run the w
 `--calc` [boolean flag] Step 3: Calculate the brightness change of the target
 
 `--plot` [boolean flag] Step 4: Produce lightcurve plots
+
+`--eebls` [boolean flag] Additional step: EEBLS - box fitting to search for periodic transits
+
+`--clean` [boolean flag] Remove all files except the original data files
 
 
 ### Example Usage

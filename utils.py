@@ -1,4 +1,46 @@
 import numpy as np
+import os
+import shutil
+
+
+# def check_parent(parentPath):
+
+class AutovarException(Exception):
+    ''' Used to halt code with message '''
+    pass
+
+def cleanup(parentPath):
+    folders = ['calibcats', 'periods', 'checkplots', 'eelbs', 'outputcats','outputplots','trimcats']
+    for fd in folders:
+        if (parentPath / fd).exists():
+            shutil.rmtree(parentPath / fd)
+
+    files = ['calibCompsUsed.csv', 'calibStands.csv', 'compsUsed.csv','screenedComps.csv', \
+     'starVariability.csv', 'stdComps.csv', 'usedImages.txt', 'LightcurveStats.txt', \
+     'periodEstimates.txt','calibrationErrors.txt']
+
+    for fname in files:
+        if (parentPath / fname).exists():
+            (parentPath / fname).unlink()
+    return
+
+def folder_setup(parentPath):
+    #create directory structure for output files
+    paths = {
+    'parent'     : parentPath,
+    'outputPath' : parentPath / "outputplots",
+    'outcatPath' : parentPath / "outputcats",
+    'checkPath'  : parentPath / "checkplots"
+    }
+    if not paths['outputPath'].exists():
+        os.makedirs(paths['outputPath'])
+
+    if not paths['outcatPath'].exists():
+        os.makedirs(paths['outcatPath'])
+
+    if not paths['checkPath'].exists():
+        os.makedirs(paths['checkPath'])
+    return paths
 
 def photometry_files_to_array(parentPath):
     # Load in list of used files

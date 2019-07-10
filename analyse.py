@@ -13,7 +13,7 @@ import os
 
 import logging
 
-from utils import photometry_files_to_array
+from utils import photometry_files_to_array, AutovarException
 
 logger = logging.getLogger(__name__)
 
@@ -177,31 +177,17 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
 
     return outputVariableHolder
 
-def photometric_calculations(targets, parentPath, acceptDistance=10.0, errorReject=0.5):
-    # Initialise Directories
-    outputPath = parentPath / "outputplots"
-    outcatPath = parentPath / "outputcats"
-    checkPath = parentPath / "checkplots"
+def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.5):
 
-    #create directory structure
-    if not outputPath.exists():
-        os.makedirs(outputPath)
+    photFileArray, fileList = photometry_files_to_array(paths['parent'])
 
-    if not outcatPath.exists():
-        os.makedirs(outcatPath)
-
-    if not checkPath.exists():
-        os.makedirs(checkPath)
-
-    photFileArray, fileList = photometry_files_to_array(parentPath)
-
-    if (parentPath / 'calibCompsUsed.csv').exists():
+    if (paths['parent'] / 'calibCompsUsed.csv').exists():
         logger.debug("Calibrated")
-        compFile=np.genfromtxt(parentPath / 'calibCompsUsed.csv', dtype=float, delimiter=',')
+        compFile=np.genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
         calibFlag=1
     else:
         logger.debug("Differential")
-        compFile=np.genfromtxt(parentPath / 'compsUsed.csv', dtype=float, delimiter=',')
+        compFile=np.genfromtxt(paths['parent'] / 'compsUsed.csv', dtype=float, delimiter=',')
         calibFlag=0
 
     # Get total counts for each file
@@ -382,8 +368,8 @@ def photometric_calculations(targets, parentPath, acceptDistance=10.0, errorReje
 
         outputPhot=np.delete(outputPhot, starReject, axis=0)
         if outputPhot.shape[0] > 2:
-            np.savetxt(os.path.join(outcatPath,"doerPhot_V" +str(q+1) +".csv"), outputPhot, delimiter=",", fmt='%0.8f')
+            np.savetxt(os.path.join(paths['outcatPath'],"doerPhot_V" +str(q+1) +".csv"), outputPhot, delimiter=",", fmt='%0.8f')
             logger.debug('Saved doerPhot_V')
         else:
-            logger.critical("Photometry not possible")
+            raise AutovarException("Photometry not possible")
         return outputPhot

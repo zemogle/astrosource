@@ -8,6 +8,8 @@ import sys
 import os
 import logging
 
+from utils import AutovarException
+
 logger = logging.getLogger(__name__)
 
 def rename_data_file(prihdr):
@@ -86,8 +88,8 @@ def gather_files(indir=None, filetype="fz"):
 
     logger.debug("Filter Set: {}".format(filters))
     if len(filters) > 1:
-        raise Exception("Check your images, the script detected multiple filters in your file list. Autovar currently only does one filter at a time.")
-    return phot_list
+        raise AutovarException("Check your images, the script detected multiple filters in your file list. Autovar currently only does one filter at a time.")
+    return phot_list, list(filters)[0]
 
 def find_stars(targetStars, indir, filetype='fz', acceptDistance=1.0, minimumCounts=10000, maximumCounts=1000000, imageFracReject=0.0, starFracReject=0.1, rejectStart=7, minCompStars=1):
     """
@@ -122,7 +124,7 @@ def find_stars(targetStars, indir, filetype='fz', acceptDistance=1.0, minimumCou
             Path to newly created file containing all images which are usable for photometry
     """
 
-    fileList = gather_files(indir, filetype=filetype)
+    fileList, filterCode = gather_files(indir, filetype=filetype)
     if not fileList:
         logger.error("No files of type '.{}' found".format(filetype))
         return
@@ -141,12 +143,12 @@ def find_stars(targetStars, indir, filetype='fz', acceptDistance=1.0, minimumCou
     for file in fileList:
         photFile = np.genfromtxt(file, dtype=float, delimiter=',')
         if (( np.asarray(photFile[:,0]) > 360).sum() > 0) :
-            logger.warning("REJECT")
-            logger.warning(file)
+            logger.debug("REJECT")
+            logger.debug(file)
             fileList.remove(file)
         elif (( np.asarray(photFile[:,1]) > 90).sum() > 0) :
-            logger.warning("REJECT")
-            logger.warning(file)
+            logger.debug("REJECT")
+            logger.debug(file)
             fileList.remove(file)
         else:
             # Sort through and find the largest file and use that as the reference file
@@ -157,22 +159,22 @@ def find_stars(targetStars, indir, filetype='fz', acceptDistance=1.0, minimumCou
                     fileSizer = photFile.size
                     logger.debug("{} - {}".format(photFile.size, file))
 
-    logger.info("Setting up reference Frame")
+    logger.debug("Setting up reference Frame")
     fileRaDec = SkyCoord(ra=referenceFrame[:,0]*u.degree, dec=referenceFrame[:,1]*u.degree)
 
-    logger.info("Removing stars with low or high counts")
+    logger.debug("Removing stars with low or high counts")
     rejectStars=[]
     # Check star has adequate counts
     for j in range(referenceFrame.shape[0]):
         if ( referenceFrame[j][4] < minimumCounts or referenceFrame[j][4] > maximumCounts ):
             rejectStars.append(int(j))
-    logger.info("Number of stars prior")
-    logger.info(referenceFrame.shape[0])
+    logger.debug("Number of stars prior")
+    logger.debug(referenceFrame.shape[0])
 
     referenceFrame=np.delete(referenceFrame, rejectStars, axis=0)
 
-    logger.info("Number of stars post")
-    logger.info(referenceFrame.shape[0])
+    logger.debug("Number of stars post")
+    logger.debug(referenceFrame.shape[0])
 
     imgsize=imageFracReject * fileSizer # set threshold size
     rejStartCounter = 0
@@ -184,10 +186,10 @@ def find_stars(targetStars, indir, filetype='fz', acceptDistance=1.0, minimumCou
         photFile = np.genfromtxt(file, dtype=float, delimiter=',')
         # DUP fileRaDec = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
 
-        logger.info('Image Number: ' + str(rejStartCounter))
-        logger.info(file)
-        logger.info("Image threshold size: "+str(imgsize))
-        logger.info("Image catalogue size: "+str(photFile.size))
+        logger.debug('Image Number: ' + str(rejStartCounter))
+        logger.debug(file)
+        logger.debug("Image threshold size: "+str(imgsize))
+        logger.debug("Image catalogue size: "+str(photFile.size))
         if photFile.size > imgsize and photFile.size > 7:
             phottmparr = np.asarray(photFile)
             if (( phottmparr[:,0] > 360).sum() == 0) and ( phottmparr[0][0] != 'null') and ( phottmparr[0][0] != 0.0) :
@@ -210,37 +212,36 @@ def find_stars(targetStars, indir, filetype='fz', acceptDistance=1.0, minimumCou
 
                 if not (((len(rejectStars) / referenceFrame.shape[0]) > starFracReject) and rejStartCounter > rejectStart):
                     referenceFrame = np.delete(referenceFrame, rejectStars, axis=0)
-                    logger.info('**********************')
-                    logger.info('Stars Removed  : ' +str(len(rejectStars)))
-                    logger.info('Remaining Stars: ' +str(referenceFrame.shape[0]))
-                    logger.info('**********************')
+                    logger.debug('**********************')
+                    logger.debug('Stars Removed  : ' +str(len(rejectStars)))
+                    logger.debug('Remaining Stars: ' +str(referenceFrame.shape[0]))
+                    logger.debug('**********************')
                     usedImages.append(file)
                 else:
-                    logger.info('**********************')
-                    logger.info('Image Rejected due to too high a fraction of rejected stars')
-                    logger.info(len(rejectStars) / referenceFrame.shape[0])
-                    logger.info('**********************')
+                    logger.debug('**********************')
+                    logger.debug('Image Rejected due to too high a fraction of rejected stars')
+                    logger.debug(len(rejectStars) / referenceFrame.shape[0])
+                    logger.debug('**********************')
                     imgReject=imgReject+1
             else:
-                logger.info('**********************')
-                logger.info('All Stars Present')
-                logger.info('**********************')
+                logger.debug('**********************')
+                logger.debug('All Stars Present')
+                logger.debug('**********************')
                 usedImages.append(file)
 
             # If we have removed all stars, we have failed!
             if (referenceFrame.shape[0]==0):
-                logger.error("All Stars Removed. Try removing problematic files or raising the imageFracReject")
                 logger.error("Problem file - {}".format(file))
-                return
+                raise AutovarException("All Stars Removed. Try removing problematic files or raising the imageFracReject")
 
             if (referenceFrame.shape[0]< minCompStars):
-                logger.error("There are fewer than the requested number of Comp Stars. Try removing problematic files or raising the imageFracReject")
                 logger.error("Problem file - {}".format(file))
-                return
+                raise AutovarException("There are fewer than the requested number of Comp Stars. Try removing problematic files or raising the imageFracReject")
+
         elif photFile.size < 7:
-            print ('**********************')
-            print ("WCS Coordinates broken")
-            print ('**********************')
+            logger.error('**********************')
+            logger.error("WCS Coordinates broken")
+            logger.error('**********************')
             wcsFileReject=wcsFileReject+1
         else:
             logger.error('**********************')
@@ -256,22 +257,18 @@ def find_stars(targetStars, indir, filetype='fz', acceptDistance=1.0, minimumCou
     logger.debug("These are the identified common stars of sufficient brightness that are in every image")
     logger.debug(outputComps)
 
-    logger.info(' ')
-    logger.info('Images Rejected due to high star rejection rate: ' + str(imgReject))
-    logger.info('Images Rejected due to low file size: ' + str(loFileReject))
-    logger.info('Out of this many original images: ' + str(len(fileList)))
-    logger.info(' ')
+    logger.info('Images Rejected due to high star rejection rate: {}'.format(imgReject))
+    logger.info('Images Rejected due to low file size: {}'.format(loFileReject))
+    logger.info('Out of this many original images: {}'.format(len(fileList)))
 
     logger.info("Number of candidate Comparison Stars Detected: " + str(len(outputComps)))
-    logger.info(' ')
-    logger.info('Output sent to screenedComps.csv ready for use in CompDeviation')
+    logger.info('Output sent to screenedComps.csv ready for use in Comparison')
 
     screened_file = indir / "screenedComps.csv"
     np.savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
-    logger.info('Ready for Comparison phase')
     used_file = indir / "usedImages.txt"
     with open(used_file, "w") as f:
         for s in usedImages:
             f.write(str(s) +"\n")
 
-    return used_file
+    return usedImages
