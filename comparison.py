@@ -10,14 +10,14 @@ from astroquery.vo_conesearch import conesearch
 from astroquery.vo_conesearch import ConeSearch
 from astroquery.vizier import Vizier
 
-from .utils import AutovarException
+from utils import AutovarException
 
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=1000000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=1.0):
+def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=1000000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=5.0):
     '''
     Find stable comparison stars for the target photometry
 

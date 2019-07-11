@@ -8,7 +8,7 @@ import sys
 import os
 import logging
 
-from .utils import AutovarException
+from utils import AutovarException
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ def export_photometry_files(filelist, indir, filetype='csv'):
         phot_list.append(out)
     return phot_list
 
-def extract_photometry(infile, indir, outfile=None):
+def extract_photometry(infile, parentPath, outfile=None):
 
     hdulist = fits.open(infile)
 
@@ -70,20 +70,18 @@ def extract_photometry(infile, indir, outfile=None):
     np.savetxt(outfile, np.transpose([ra, dec, xpixel, ypixel, counts, countserr]), delimiter=',')
     return outfile
 
-def gather_files(indir=None, filetype="fz"):
+def gather_files(paths, filetype="fz"):
     # Get list of files
-    if not indir:
-        # Set default inputs directory to be relative to local path
-        indir = "inputs"
-        parentPath = Path(os.getcwd())
-        indir = parentPath / indir
 
-    filelist = glob.glob("{}/*.{}".format(indir,filetype))
+    filelist = paths['parent'].glob("*.{}".format(filetype))
     if filetype not in ['fits','fit','fz']:
         # Assume we are not dealing with image files but photometry files
         phot_list = filelist
     else:
-        phot_list = export_photometry_files(filelist, indir)
+        phot_list = export_photometry_files(filelist, paths['parent'])
+    if not phot_list:
+        raise AutovarException("No files of type '.{}' found".format(filetype))
+
     filters = set([os.path.basename(f).split('_')[1] for f in phot_list])
 
     logger.debug("Filter Set: {}".format(filters))
@@ -91,14 +89,14 @@ def gather_files(indir=None, filetype="fz"):
         raise AutovarException("Check your images, the script detected multiple filters in your file list. Autovar currently only does one filter at a time.")
     return phot_list, list(filters)[0]
 
-def find_stars(targetStars, indir, filetype='fz', acceptDistance=1.0, minimumCounts=10000, maximumCounts=1000000, imageFracReject=0.0, starFracReject=0.1, rejectStart=7, minCompStars=1):
+def find_stars(targetStars, indir, filelist, acceptDistance=1.0, minimumCounts=10000, maximumCounts=1000000, imageFracReject=0.0, starFracReject=0.1, rejectStart=7, minCompStars=1):
     """
     Finds stars useful for photometry in each photometry/data file
 
     Parameters
     ----------
     targetStars : list
-            List of target tuples in the formal (ra, dec, 0, 0). ra and dec must be in decimal
+            List of target tuples in the format (ra, dec, 0, 0). ra and dec must be in decimal
     indir : str
             Path to files
     filetype : str
@@ -124,10 +122,6 @@ def find_stars(targetStars, indir, filetype='fz', acceptDistance=1.0, minimumCou
             Path to newly created file containing all images which are usable for photometry
     """
 
-    fileList, filterCode = gather_files(indir, filetype=filetype)
-    if not fileList:
-        logger.error("No files of type '.{}' found".format(filetype))
-        return
     #Initialisation values
     usedImages=[]
     # Generate a blank targetstars.csv file
@@ -271,4 +265,4 @@ def find_stars(targetStars, indir, filetype='fz', acceptDistance=1.0, minimumCou
         for s in usedImages:
             f.write(str(s) +"\n")
 
-    return usedImages
+    return usedImages, filterCode

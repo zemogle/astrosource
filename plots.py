@@ -13,7 +13,7 @@ import os
 
 import logging
 
-from .utils import photometry_files_to_array, AutovarException
+from utils import photometry_files_to_array, AutovarException
 
 logger = logging.getLogger(__name__)
 
@@ -102,11 +102,11 @@ def make_plots(filterCode, paths):
                 lenloop=1
             else:
                 lenloop=len(calibCompFile[:,3])
-            for r in range(lenloop):
+            for q in range(lenloop):
                 if compFile.shape[0] == 5 and compFile.size != 25:
                     ensMag=pow(10,-ensembleMag*0.4)
                 else:
-                    ensMag=ensMag+(pow(10,-ensembleMag[r]*0.4))
+                    ensMag=ensMag+(pow(10,-ensembleMag[q]*0.4))
             #logger.info(ensMag)
             ensembleMag=-2.5*math.log10(ensMag)
             logger.info("Ensemble Magnitude: "+str(ensembleMag))
