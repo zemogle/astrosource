@@ -22,7 +22,15 @@ Description: # autovar
         The package can be installed with `pip`. From the root of this repo, run:
         
         ```bash
+        cd autovar
         pip install .
+        ```
+        
+        or directly with the setup script
+        
+        ```bash
+        cd autovar
+        python setup.py install
         ```
         
         ## Usage
@@ -49,6 +57,8 @@ Description: # autovar
         
         `--plot` [boolean flag] Step 4: Produce lightcurve plots
         
+        `--detrend` [boolean flag] *optional* Will detrend exoplanet data
+        
         `--eebls` [boolean flag] Additional step: EEBLS - box fitting to search for periodic transits
         
         `--clean` [boolean flag] Remove all files except the original data files
@@ -74,6 +84,12 @@ Description: # autovar
         
         ```bash
         pytest --disable-pytest-warnings
+        ```
+        
+        You may also want to install this in developer mode
+        
+        ```bash
+        python setup.py develop
         ```
         
         ## Authors

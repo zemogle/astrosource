@@ -3,12 +3,11 @@ setup.py
 autovar/__init__.py
 autovar/analyse.py
 autovar/comparison.py
+autovar/detrend.py
 autovar/eebls.py
 autovar/identify.py
 autovar/main.py
 autovar/plots.py
-autovar/test_comparison.py
-autovar/test_identify.py
 autovar/utils.py
 autovar.egg-info/PKG-INFO
 autovar.egg-info/SOURCES.txt
