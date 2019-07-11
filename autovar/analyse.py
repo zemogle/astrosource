@@ -13,7 +13,7 @@ import os
 
 import logging
 
-from .utils import photometry_files_to_array, AutovarException
+from autovar.utils import photometry_files_to_array, AutovarException
 
 logger = logging.getLogger(__name__)
 

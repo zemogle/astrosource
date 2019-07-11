@@ -3,9 +3,8 @@ import numpy
 import os
 from pathlib import Path
 
-from .test_files import output_tests
-
-from .comparison import find_comparisons, read_data_files, find_reference_frame
+from autovar.test_files import output_tests
+from autovar.comparison import find_comparisons, read_data_files, find_reference_frame
 
 TEST_DATA_PATH = Path(os.getcwd()) / 'test_files'
 

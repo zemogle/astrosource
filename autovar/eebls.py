@@ -6,8 +6,9 @@ import astropy.units as u
 from astropy.constants import G, R_sun, M_sun, R_jup, M_jup, R_earth, M_earth
 from astropy.coordinates import SkyCoord
 import pylab
-from utils import AutovarException
 import logging
+
+from autovar.utils import AutovarException
 
 logger = logging.getLogger(__name__)
 
