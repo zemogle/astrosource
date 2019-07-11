@@ -7,7 +7,7 @@ from autovar.identify import (rename_data_file, export_photometry_files,
     extract_photometry, gather_files, find_stars)
 
 
-TEST_PATH_PARENT = Path('test_files')
+TEST_PATH_PARENT = Path(os.path.dirname(__file__)) / 'test_files'
 
 TEST_PATHS = {'parent': TEST_PATH_PARENT / 'stars'}
 

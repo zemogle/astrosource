@@ -167,10 +167,8 @@ def find_reference_frame(photFileArray):
 
 def read_data_files(parentPath):
     fileList=[]
-    used_file = parentPath / "usedImages.txt"
-    with open(used_file, "r") as f:
-        for line in f:
-            fileList.append(line.strip())
+    for line in (parentPath / "usedImages.txt").read_text().strip().split('\n'):
+        fileList.append(line.strip())
 
     # LOAD Phot FILES INTO LIST
 
