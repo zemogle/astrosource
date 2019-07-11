@@ -2,9 +2,7 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 import sys
-import matplotlib
 from pathlib import Path
-matplotlib.use("TkAgg") # must be before pyplot
 
 # import matplotlib.pyplot as plt
 import pylab
