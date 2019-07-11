@@ -63,9 +63,9 @@ def main(full, stars, comparison, calc, calib, phot, plot, eebls, indir, ra, dec
             photometric_calculations(targets, paths=paths)
         if full or plot:
             make_plots(filterCode='r', paths=paths)
-        if eebls:
+        if full or eebls:
             plot_bls(paths=paths)
-        if calib:
+        if full or calib:
             calibrated_plots(filterCode='r', paths=paths)
 
     except AutovarException as e:
