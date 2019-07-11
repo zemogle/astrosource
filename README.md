@@ -79,5 +79,12 @@ To suppress the warning messages use:
 pytest --disable-pytest-warnings
 ```
 
+You may also want to install this in developer mode
+
+``bash
+python setup.py develop
+
+```
+
 ## Authors
 Written by Michael Fitzgerald. Adapted by [Edward Gomez](@zemogle)
