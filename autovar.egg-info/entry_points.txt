@@ -1,0 +1,3 @@
+[console_scripts]
+autovar = autovar.main:main
+

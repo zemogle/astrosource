@@ -8,7 +8,7 @@ import sys
 import os
 import logging
 
-from utils import AutovarException
+from autovar.utils import AutovarException
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ def extract_photometry(infile, parentPath, outfile=None):
 
     if not outfile:
         outfile = rename_data_file(hdulist[1].header)
-    outfile = indir / outfile
+    outfile = parentPath / outfile
     w = wcs.WCS(hdulist[1].header)
     data = hdulist[2].data
     xpixel = data['x']
@@ -76,7 +76,7 @@ def gather_files(paths, filetype="fz"):
     filelist = paths['parent'].glob("*.{}".format(filetype))
     if filetype not in ['fits','fit','fz']:
         # Assume we are not dealing with image files but photometry files
-        phot_list = filelist
+        phot_list = [f for f in filelist]
     else:
         phot_list = export_photometry_files(filelist, paths['parent'])
     if not phot_list:
@@ -89,7 +89,7 @@ def gather_files(paths, filetype="fz"):
         raise AutovarException("Check your images, the script detected multiple filters in your file list. Autovar currently only does one filter at a time.")
     return phot_list, list(filters)[0]
 
-def find_stars(targetStars, indir, filelist, acceptDistance=1.0, minimumCounts=10000, maximumCounts=1000000, imageFracReject=0.0, starFracReject=0.1, rejectStart=7, minCompStars=1):
+def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=10000, maximumCounts=1000000, imageFracReject=0.0, starFracReject=0.1, rejectStart=7, minCompStars=1):
     """
     Finds stars useful for photometry in each photometry/data file
 
@@ -125,7 +125,7 @@ def find_stars(targetStars, indir, filelist, acceptDistance=1.0, minimumCounts=1
     #Initialisation values
     usedImages=[]
     # Generate a blank targetstars.csv file
-    targetfile = indir / "targetstars.csv"
+    targetfile = paths['parent'] / "targetstars.csv"
     np.savetxt(targetfile, targetStars, delimiter=",", fmt='%0.8f')
 
     # LOOK FOR REJECTING NON-WCS IMAGES
@@ -134,6 +134,8 @@ def find_stars(targetStars, indir, filelist, acceptDistance=1.0, minimumCounts=1
     #q=0
     fileSizer=0
     logger.info("Finding image with most stars detected and reject ones with bad WCS")
+    referenceFrame = None
+
     for file in fileList:
         photFile = np.genfromtxt(file, dtype=float, delimiter=',')
         if (( np.asarray(photFile[:,0]) > 360).sum() > 0) :
@@ -152,6 +154,8 @@ def find_stars(targetStars, indir, filelist, acceptDistance=1.0, minimumCounts=1
                     referenceFrame = photFile
                     fileSizer = photFile.size
                     logger.debug("{} - {}".format(photFile.size, file))
+    if not referenceFrame.size:
+        raise AutovarException("No suitable reference files found")
 
     logger.debug("Setting up reference Frame")
     fileRaDec = SkyCoord(ra=referenceFrame[:,0]*u.degree, dec=referenceFrame[:,1]*u.degree)
@@ -258,11 +262,11 @@ def find_stars(targetStars, indir, filelist, acceptDistance=1.0, minimumCounts=1
     logger.info("Number of candidate Comparison Stars Detected: " + str(len(outputComps)))
     logger.info('Output sent to screenedComps.csv ready for use in Comparison')
 
-    screened_file = indir / "screenedComps.csv"
+    screened_file = paths['parent'] / "screenedComps.csv"
     np.savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
-    used_file = indir / "usedImages.txt"
+    used_file = paths['parent'] / "usedImages.txt"
     with open(used_file, "w") as f:
         for s in usedImages:
             f.write(str(s) +"\n")
 
-    return usedImages, filterCode
+    return usedImages

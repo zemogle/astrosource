@@ -53,16 +53,6 @@ def detrend_data(paths, filterCode):
         photFile[:,0]=photFile[:,0]-baseSubDate
 
 
-
-        # ax=plt.plot(photFile[:,0],photFile[:,1],'ro')
-        # plt.gca().invert_yaxis()
-        # #logger.debug(ax.lines)
-        # plt.show()
-        # del ax
-        # plt.clf()
-        # plt.cla()
-        # plt.close()
-        # plt.close("all")
         leftMost = click.prompt("Enter left side most valid date:")
         leftFlat = click.prompt("Enter left side end of flat region:")
 
@@ -97,17 +87,6 @@ def detrend_data(paths, filterCode):
         flatFile=numpy.delete(flatFile, transitReject, axis=0)
         logger.debug(flatFile.shape[0])
 
-        ax=plt.plot(flatFile[:,0],flatFile[:,1],'ro')
-        plt.gca().invert_yaxis()
-        #logger.debug(ax.lines)
-        plt.show()
-        del ax
-        plt.clf()
-        plt.cla()
-        plt.close()
-        plt.close("all")
-
-
         #
         polyFit=numpy.polyfit(flatFile[:,0],flatFile[:,1],polyFitRequest)
         logger.debug(polyFit)
@@ -120,15 +99,6 @@ def detrend_data(paths, filterCode):
             for i in range(flatFile.shape[0]):
                 flatFile[i,1]=flatFile[i,1]-(polyFit[1]+(polyFit[0]*flatFile[i,0]))
 
-        ax=plt.plot(flatFile[:,0],flatFile[:,1],'ro')
-        plt.gca().invert_yaxis()
-        #logger.debug(ax.lines)
-        plt.show()
-        del ax
-        plt.clf()
-        plt.cla()
-        plt.close()
-        plt.close("all")
 
         #Remove trend from actual data
         if polyFitRequest == 2:

@@ -12,10 +12,18 @@ conda create -n autovar python=3
 source activate autovar
 ```
 
-There are only a couple of packages you will need. These are listed in `requirements.pip`. To install them you can use:
+The package can be installed with `pip`. From the root of this repo, run:
 
 ```bash
-pip install -r requirements.pip
+cd autovar
+pip install .
+```
+
+or directly with the setup script
+
+```bash
+cd autovar
+python setup.py install
 ```
 
 ## Usage
@@ -42,6 +50,8 @@ There are a few input options when running the scripts. You can either run the w
 
 `--plot` [boolean flag] Step 4: Produce lightcurve plots
 
+`--detrend` [boolean flag] *optional* Will detrend exoplanet data
+
 `--eebls` [boolean flag] Additional step: EEBLS - box fitting to search for periodic transits
 
 `--clean` [boolean flag] Remove all files except the original data files
@@ -50,14 +60,14 @@ There are a few input options when running the scripts. You can either run the w
 ### Example Usage
 
 ```bash
-python main.py --ra 154.9083708 --dec -9.8062778 --indir /path/to/your/data --full
+autovar --ra 154.9083708 --dec -9.8062778 --indir /path/to/your/data --full
 ```
 
 All the files generated will be stored in the directory you specify in `--indir`
 
 ### Tests
 
-If you are developing this package, you will want to run the tests. You will need `pytest` installed and then, from the package directory, run:
+If you are developing this package, you will want to run the tests. You will need `pytest` installed and then, from the `autovar` directory within this repo, run:
 
 ```bash
 pytest
