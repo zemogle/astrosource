@@ -7,9 +7,9 @@ from autovar.identify import (rename_data_file, export_photometry_files,
     extract_photometry, gather_files, find_stars)
 
 
-TEST_PATH = Path(os.getcwd()) / 'test_files'
+TEST_PATH_PARENT = Path('test_files')
 
-TEST_DATA_PATH = TEST_PATH / 'stars'
+TEST_PATHS = {'parent': TEST_PATH_PARENT / 'stars'}
 
 def test_rename_object():
     header = {  "OBJECT"    : "M1",
@@ -57,21 +57,22 @@ def test_rename_nomjd():
     assert name == exp_name
 
 def test_extract_photometry(tmpdir):
-    infile =TEST_DATA_PATH / 'photometry_test.fits'
+    infile = TEST_PATHS['parent'] / 'photometry_test.fits'
     indir = tmpdir.mkdir("autovar")
     result_file = extract_photometry(infile, indir, "test.csv")
     # Test returned file is where we expect it for given filename
     assert result_file == indir.join("test.csv")
 
     result_phot = numpy.genfromtxt(result_file, dtype=float, delimiter=',')
-    test_photfile =TEST_DATA_PATH / 'photFile_test.csv'
+    test_photfile = TEST_PATHS['parent'] / 'photFile_test.csv'
     test_phot = numpy.genfromtxt(test_photfile, dtype=float, delimiter=',')
     # Test if csv file is as we expect
     assert result_phot.all() == test_phot.all()
 
 def test_gather_files():
-    phot_files, filtercode = gather_files(TEST_DATA_PATH, filetype="fits")
-    test_files = [TEST_DATA_PATH / 'XOd2_ip_22d293_2017d01d04_1a0899013_57757d0522793000_kb29.csv', TEST_DATA_PATH /  'XOd2_ip_22d284_2017d01d04_1a089113_57757d0532642000_kb29.csv']
+
+    phot_files, filtercode = gather_files(TEST_PATHS, filetype="fits")
+    test_files = [TEST_PATHS['parent'] / 'XOd2_ip_22d293_2017d01d04_1a0899013_57757d0522793000_kb29.csv', TEST_PATHS['parent'] /  'XOd2_ip_22d284_2017d01d04_1a089113_57757d0532642000_kb29.csv']
     assert phot_files.sort() == test_files.sort()
     # Clean up
     for tf in test_files:
@@ -79,19 +80,20 @@ def test_gather_files():
 
 def test_find_stars():
     target = [[117.0269708, 50.2258111, 0,0]]
-    usedImages = find_stars(target, TEST_DATA_PATH, filetype='fits')
+    phot_files, filtercode = gather_files(TEST_PATHS, filetype="fits")
+    usedImages = find_stars(target, TEST_PATHS, phot_files)
     images_list = [str(u) for u in usedImages]
     # Check the targets are in targetstars.csv
-    test_targets = (TEST_DATA_PATH / 'targetstars.csv').read_text().strip().split(',')
+    test_targets = (TEST_PATHS['parent'] / 'targetstars.csv').read_text().strip().split(',')
     assert test_targets == ['117.02697080','50.22581110','0.00000000','0.00000000']
     # Check the right files are saved
-    test_list = (TEST_DATA_PATH / 'usedImages_test.txt').read_text().strip().split('\n')
+    test_list = (TEST_PATHS['parent'] / 'usedImages_test.txt').read_text().strip().split('\n')
     assert images_list.sort() == test_list.sort()
     # Clean up
-    os.remove(os.path.join(TEST_DATA_PATH,'usedImages.txt'))
+    (TEST_PATHS['parent'] / 'usedImages.txt').unlink()
     test_files = ['XOd2_ip_22d293_2017d01d04_1a0899013_57757d0522793000_kb29.csv',
                   'XOd2_ip_22d284_2017d01d04_1a089113_57757d0532642000_kb29.csv',
                   'screenedComps.csv',
                   'targetstars.csv']
     for tf in test_files:
-        os.remove(os.path.join(TEST_DATA_PATH,tf))
+        (TEST_PATHS['parent'] / tf).unlink()

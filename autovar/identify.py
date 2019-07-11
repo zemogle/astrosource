@@ -48,7 +48,6 @@ def rename_data_file(prihdr):
 def export_photometry_files(filelist, indir, filetype='csv'):
     phot_list = []
     for f in filelist:
-        # phot_filename = "{}.{}".format(f.split('.')[0], filetype)
         out = extract_photometry(f, indir)
         phot_list.append(out)
     return phot_list
@@ -80,7 +79,7 @@ def gather_files(paths, filetype="fz"):
     else:
         phot_list = export_photometry_files(filelist, paths['parent'])
     if not phot_list:
-        raise AutovarException("No files of type '.{}' found".format(filetype))
+        raise AutovarException("No files of type '.{}' found in {}".format(filetype, paths['parent']))
 
     filters = set([os.path.basename(f).split('_')[1] for f in phot_list])
 
@@ -99,8 +98,8 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
             List of target tuples in the format (ra, dec, 0, 0). ra and dec must be in decimal
     indir : str
             Path to files
-    filetype : str
-            Indicate whether file is in `fz` or `fits` format
+    filelist : str
+            List of photometry files to try
     acceptDistance : float
             Furtherest distance in arcseconds for matches
     minimumCounts : int

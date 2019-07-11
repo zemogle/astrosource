@@ -81,9 +81,8 @@ pytest --disable-pytest-warnings
 
 You may also want to install this in developer mode
 
-``bash
+```bash
 python setup.py develop
-
 ```
 
 ## Authors
