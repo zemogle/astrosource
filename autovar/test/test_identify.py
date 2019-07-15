@@ -56,12 +56,12 @@ def test_rename_nomjd():
     exp_name = "M1_ip_20d0_2019d01d25T15d54d10d861857_1a6_UNKNOWN_kb92.csv"
     assert name == exp_name
 
-def test_extract_photometry(tmpdir):
+def test_extract_photometry(tmp_path):
+    # tmp_path is a Path object for a temporary directory
     infile = TEST_PATHS['parent'] / 'photometry_test.fits'
-    indir = tmpdir.mkdir("autovar")
-    result_file = extract_photometry(infile, indir, "test.csv")
+    result_file = extract_photometry(infile, tmp_path, "test.csv")
     # Test returned file is where we expect it for given filename
-    assert result_file == indir.join("test.csv")
+    assert result_file == tmp_path / "test.csv"
 
     result_phot = numpy.genfromtxt(result_file, dtype=float, delimiter=',')
     test_photfile = TEST_PATHS['parent'] / 'photFile_test.csv'
