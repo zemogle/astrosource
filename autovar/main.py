@@ -6,16 +6,16 @@ import logging
 from numpy import array
 
 from autovar.identify import find_stars, gather_files
-from autovar.comparison import find_comparisons
+from autovar.comparison import find_comparisons, find_comparisons_calibrated
 from autovar.analyse import calculate_curves, photometric_calculations
-from autovar.plots import make_plots, calibrated_plots
+from autovar.plots import make_plots, phased_plots
 from autovar.eebls import plot_bls
 from autovar.detrend import detrend_data
 
 from autovar.utils import get_targets, folder_setup, AutovarException, cleanup
 
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -59,20 +59,20 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir
 
         if full or stars:
             usedimages = find_stars(targets, paths, filelist)
-        if full or comparison:
+        if full or comparison and not calib:
             find_comparisons(parentPath)
+        if full or comparison and calib:
+            find_comparisons_calibrated(filtercode, paths)
         if full or calc:
             calculate_curves(targets, parentPath=parentPath)
         if full or phot:
             photometric_calculations(targets, paths=paths)
-        if full or plot and not detrend:
+        if full or plot and not detrend and not calib:
             make_plots(filterCode=filtercode, paths=paths)
         if detrend:
             detrend_data(paths, filterCode=filtercode)
         if eebls:
             plot_bls(paths=paths)
-        if calib:
-            calibrated_plots(filterCode=filtercode, paths=paths)
 
     except AutovarException as e:
         logger.critical(e)

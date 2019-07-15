@@ -36,15 +36,15 @@ def make_plots(filterCode, paths):
         for i in range(outputPhot.shape[0]):
             outputPeransoCalib.append([outputPhot[i][6],outputPhot[i][10],outputPhot[i][11]])
 
-        np.savetxt(os.path.join(paths['outcatPath'],str(r)+'_'+"diffPeranso.txt"), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
-        np.savetxt(os.path.join(paths['outcatPath'],str(r)+'_'+"diffExcel.csv"), outputPeransoCalib, delimiter=",", fmt='%0.8f')
+        np.savetxt(paths['outcatPath'] / '{}_diffPeranso.txt'.format(r), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
+        np.savetxt(paths['outcatPath'] / '{}_diffExcel.csv'.format(r), outputPeransoCalib, delimiter=",", fmt='%0.8f')
 
         # Output Differential astroImageJ file
         outputPeransoCalib=[]
         for i in range(np.asarray(outputPhot).shape[0]):
             outputPeransoCalib.append([outputPhot[i][6]-2450000.0,outputPhot[i][10],outputPhot[i][11]])
-        np.savetxt(os.path.join(paths['outcatPath'],str(r)+'_'+"diffAIJ.txt"), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
-        np.savetxt(os.path.join(paths['outcatPath'],str(r)+'_'+"diffAIJ.csv"), outputPeransoCalib, delimiter=",", fmt='%0.8f')
+        np.savetxt(paths['outcatPath'] / '{}_diffAIJ.txt'.format(r), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
+        np.savetxt(paths['outcatPath'] / '{}_diffAIJ.csv'.format(r), outputPeransoCalib, delimiter=",", fmt='%0.8f')
 
         pylab.cla()
         outplotx=np.asarray(outputPhot)[:,6]
@@ -55,8 +55,8 @@ def make_plots(filterCode, paths):
         pylab.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
         pylab.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
         pylab.grid(True)
-        pylab.savefig(os.path.join(paths['outputPath'],str(r)+'_'+'EnsembleVarDiffMag.png'))
-        pylab.savefig(os.path.join(paths['outputPath'],str(r)+'_'+'EnsembleVarDiffMag.eps'))
+        pylab.savefig(paths['outputPath'] / '{}_EnsembleVarDiffMag.png'.format(r))
+        pylab.savefig(paths['outputPath'] / '{}_EnsembleVarDiffMag.eps'.format(r))
 
         pylab.cla()
         outplotx=np.asarray(outputPhot)[:,7]
@@ -67,8 +67,8 @@ def make_plots(filterCode, paths):
         pylab.ylim(min(outploty)-0.02,max(outploty)+0.02,'k-')
         pylab.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
         pylab.grid(True)
-        pylab.savefig(os.path.join(paths['checkPath'],str(r)+'_'+'AirmassEnsVarDiffMag.png'))
-        pylab.savefig(os.path.join(paths['checkPath'],str(r)+'_'+'AirmassEnsVarDiffMag.eps'))
+        pylab.savefig(paths['checkPath'] / '{}_AirmassEnsVarDiffMag.png'.format(r))
+        pylab.savefig(paths['checkPath'] / '{}_AirmassEnsVarDiffMag.eps'.format(r))
 
         pylab.cla()
         outplotx=np.asarray(outputPhot)[:,7]
@@ -79,14 +79,15 @@ def make_plots(filterCode, paths):
         pylab.ylim(min(outploty)-1000,max(outploty)+1000,'k-')
         pylab.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
         pylab.grid(True)
-        pylab.savefig(os.path.join(paths['checkPath'],str(r)+'_'+'AirmassVarCounts.png'))
-        pylab.savefig(os.path.join(paths['checkPath'],str(r)+'_'+'AirmassVarCounts.eps'))
+        pylab.savefig(paths['checkPath'] / '{}_AirmassVarCounts.png'.format(r))
+        pylab.savefig(paths['checkPath'] / '{}_AirmassVarCounts.eps'.format(r))
 
         # Make a calibrated version
         # Need to shift the shape of the curve against the lowest error in the catalogue.
 
         if calibFlag == 1:
-            calibCompFile=np.genfromtxt('calibCompsUsed.csv', dtype=float, delimiter=',')
+            calibCompFile=np.genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
+            compFile = np.genfromtxt(paths['parent'] / 'stdComps.csv', dtype=float, delimiter=',')
             logger.info("Calibrating Photometry")
             # Load in calibrated magnitudes and add them
             #logger.info(compFile.size)
@@ -133,17 +134,17 @@ def make_plots(filterCode, paths):
             pylab.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
             pylab.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
             pylab.grid(True)
-            pylab.savefig(os.path.join(paths['outputPath'],str(r)+'_'+'EnsembleVarCalibMag.png'))
-            pylab.savefig(os.path.join(paths['outputPath'],str(r)+'_'+'EnsembleVarCalibMag.eps'))
+            pylab.savefig(paths['outputPath'] / '{}_EnsembleVarCalibMag.png'.format(r))
+            pylab.savefig(paths['outputPath'] / '{}_EnsembleVarCalibMag.eps'.format(r))
 
 
             # Output Calibed peranso file
             outputPeransoCalib=[]
-            r = file.split("_")[-1].replace(".csv","")
+            r = file.stem.split("_")[-1]
             for i in range(outputPhot.shape[0]):
                 outputPeransoCalib.append([outputPhot[i][6],outputPhot[i][10],outputPhot[i][11]])
-            np.savetxt(os.path.join(paths['outcatPath'],str(r)+'_'+"calibPeranso.txt"), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
-            np.savetxt(os.path.join(paths['outcatPath'],str(r)+'_'+"calibExcel.csv"), outputPeransoCalib, delimiter=",", fmt='%0.8f')
+            np.savetxt(paths['outcatPath'] / '{}_calibPeranso.txt'.format(r), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
+            np.savetxt(paths['outcatPath'] / '{}_calibExcel.csv'.format(r), outputPeransoCalib, delimiter=",", fmt='%0.8f')
 
             # Output astroImageJ file
             outputPeransoCalib=[]
@@ -151,11 +152,11 @@ def make_plots(filterCode, paths):
                 outputPeransoCalib.append([outputPhot[i][6]-2450000.0,outputPhot[i][10],outputPhot[i][11]])
                 #i=i+1
 
-            np.savetxt(os.path.join(paths['outcatPath'],str(r)+'_'+"calibAIJ.txt"), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
-            np.savetxt(os.path.join(paths['outcatPath'],str(r)+'_'+"calibAIJ.csv"), outputPeransoCalib, delimiter=",", fmt='%0.8f')
+            np.savetxt(paths['outcatPath'] / '{}_calibAIJ.txt'.format(r), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
+            np.savetxt(paths['outcatPath'] / '{}_calibAIJ.csv'.format(r), outputPeransoCalib, delimiter=",", fmt='%0.8f')
     return
 
-def calibrated_plots(paths, filterCode):
+def phased_plots(paths, filterCode):
 
     # Load in list of used files
     fileList=[]
@@ -210,8 +211,8 @@ def calibrated_plots(paths, filterCode):
         pylab.ylim(max(outploty)-0.04,min(outploty)+0.04,'k-')
         pylab.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
         pylab.grid(True)
-        pylab.savefig(os.path.join(outputPath,'Variable'+str(q+1)+'_' + str(filterCode) +'_Lightcurve.png'))
-        pylab.savefig(os.path.join(outputPath,'Variable'+str(q+1)+'_' + str(filterCode) +'_Lightcurve.eps'))
+        pylab.savefig(outputPath / 'Variable{}_{}_Lightcurve.png'.format(q+1,filterCode))
+        pylab.savefig(outputPath / 'Variable{}_{}_Lightcurve.eps'.format(q+1,filterCode))
 
         # Phased lightcurve
 
@@ -234,18 +235,18 @@ def calibrated_plots(paths, filterCode):
         pylab.grid(True)
         pylab.subplots_adjust(left=0.12, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
         fig.set_size_inches(6,3)
-        pylab.savefig(os.path.join(outputPath,'Variable'+str(q+1)+'_' + str(filterCode) +'_PhasedLightcurve.png'))
-        pylab.savefig(os.path.join(outputPath,'Variable'+str(q+1)+'_' + str(filterCode) +'_PhasedLightcurve.eps'))
+        pylab.savefig(outputPath / 'Variable{}_{}_PhasedLightcurve.png'.format(q+1,filterCode))
+        pylab.savefig(outputPath / 'Variable{}_{}_PhasedLightcurve.eps'.format(q+1,filterCode))
 
-        logger.info("Variable V"+str(q+1))
+        logger.info("Variable V{}_{}".format(q+1,filterCode))
         logger.info("Max Magnitude: "+ str(np.max(calibFile[:,1])))
         logger.info("Min Magnitude: "+ str(np.min(calibFile[:,1])))
         logger.info("Amplitude    : "+ str(np.max(calibFile[:,1])-np.min(calibFile[:,1])))
         logger.info("Mid Magnitude: "+ str((np.max(calibFile[:,1])+np.min(calibFile[:,1]))/2))
 
-        with open("LightcurveStats.txt", "w") as f:
+        with open(paths['parent'] / "LightcurveStats.txt", "w") as f:
             f.write("Lightcurve Statistics \n\n")
-            f.write("Variable V"+str(q+1)+"\n")
+            f.write("Variable V{}_{}\n".format(str(q+1),filterCode))
             f.write("Max Magnitude: "+ str(np.max(calibFile[:,1]))+"\n")
             f.write("Min Magnitude: "+ str(np.min(calibFile[:,1]))+"\n")
             f.write("Amplitude    : "+ str(np.max(calibFile[:,1])-np.min(calibFile[:,1]))+"\n")
