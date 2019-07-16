@@ -11,11 +11,12 @@ from autovar.analyse import calculate_curves, photometric_calculations
 from autovar.plots import make_plots, phased_plots
 from autovar.eebls import plot_bls
 from autovar.detrend import detrend_data
+from autovar.periodic import plot_with_period
 
 from autovar.utils import get_targets, folder_setup, AutovarException, cleanup
 
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -73,6 +74,8 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir
             detrend_data(paths, filterCode=filtercode)
         if eebls:
             plot_bls(paths=paths)
+        if calib:
+            plot_with_period(paths, filterCode=filtercode)
 
     except AutovarException as e:
         logger.critical(e)
