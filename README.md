@@ -40,19 +40,24 @@ There are a few input options when running the scripts. You can either run the w
 
 `--format` [parameter] input file format. If not `fz`, `fits`, or `fit` assumes the input files are photometry files with correct headers. If image files given, code will extra photometry from FITS extension. Defaults to `fz`.
 
-`--full` [boolean flag] Run the whole code. This will run the following steps in this order `stars` > `comparison` > `calc` > `plot`
-
 `--stars` [boolean flag] Step 1: Identify and match stars from each data file
 
 `--comparison` [boolean flag] Step 2: Identify non-varying stars to use for comparisons
 
 `--calc` [boolean flag] Step 3: Calculate the brightness change of the target
 
-`--plot` [boolean flag] Step 4: Produce lightcurve plots
+`--phot` [boolean flag] Step 4: Photometry calculations for either differential or calibrated
 
-`--detrend` [boolean flag] *optional* Will detrend exoplanet data
+`--plot` [boolean flag] Step 5: Produce lightcurve plots
 
-`--eebls` [boolean flag] Additional step: EEBLS - box fitting to search for periodic transits
+`--full` [boolean flag] Run the whole code. This will run the following steps in this order `stars` > `comparison` > `calc` > `phot` > `plot`
+
+### Extra options
+`--detrend` [boolean flag] Detrend exoplanet data
+
+`--eebls` [boolean flag] EEBLS - box fitting to search for periodic transits
+
+`--calib` [boolean flag] Perform calibrated
 
 `--clean` [boolean flag] Remove all files except the original data files
 

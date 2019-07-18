@@ -76,6 +76,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir
             plot_bls(paths=paths)
         if calib:
             plot_with_period(paths, filterCode=filtercode)
+        logger.info("Completed analysis")
 
     except AutovarException as e:
         logger.critical(e)
