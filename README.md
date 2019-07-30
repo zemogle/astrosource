@@ -1,4 +1,4 @@
-# autovar
+# astrosource
 Analysis script for sources with variability in their brightness
 
 ## Installation
@@ -8,21 +8,21 @@ It is strongly recommended you use python 3 and a virtual environment
 Using the [Anaconda](https://www.anaconda.com/download/) distribution of Python:
 
 ```bash
-conda create -n autovar python=3
-source activate autovar
+conda create -n astrosource python=3
+source activate astrosource
 ```
 
 The package can be installed with `pip`. From the root of this repo, run:
 
 ```bash
-cd autovar
+cd astrosource
 pip install .
 ```
 
 or directly with the setup script
 
 ```bash
-cd autovar
+cd astrosource
 python setup.py install
 ```
 
@@ -36,7 +36,7 @@ There are a few input options when running the scripts. You can either run the w
 
 `--target-file` *[required parameter]*
 
-`--indir` [parameter] Path of directory containing LCO data files. If none is given, autovar assumes the current directory
+`--indir` [parameter] Path of directory containing LCO data files. If none is given, astrosource assumes the current directory
 
 `--format` [parameter] input file format. If not `fz`, `fits`, or `fit` assumes the input files are photometry files with correct headers. If image files given, code will extra photometry from FITS extension. Defaults to `fz`.
 
@@ -65,14 +65,14 @@ There are a few input options when running the scripts. You can either run the w
 ### Example Usage
 
 ```bash
-autovar --ra 154.9083708 --dec -9.8062778 --indir /path/to/your/data --full
+astrosource --ra 154.9083708 --dec -9.8062778 --indir /path/to/your/data --full
 ```
 
 All the files generated will be stored in the directory you specify in `--indir`
 
 ### Tests
 
-If you are developing this package, you will want to run the tests. You will need `pytest` installed and then, from the `autovar` directory within this repo, run:
+If you are developing this package, you will want to run the tests. You will need `pytest` installed and then, from the `astrosource` directory within this repo, run:
 
 ```bash
 pytest
