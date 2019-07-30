@@ -8,7 +8,7 @@ from astropy.coordinates import SkyCoord
 import pylab
 import logging
 
-from autovar.utils import AutovarException
+from astrosource.utils import AstrosourceException
 
 logger = logging.getLogger(__name__)
 
@@ -41,15 +41,15 @@ def bls(t, x, qmi, qma, fmin, df, nf, nb, startPeriod, dp):
     rn = len(x)
     #! use try
     if n != rn:
-        raise AutovarException("Different size of array, t and x")
+        raise AstrosourceException("Different size of array, t and x")
     rn = float(rn) # float of n
     minbin = 5
     nbmax = 2000
     if nb > nbmax:
-        raise AutovarException("Error: NB > NBMAX!")
+        raise AstrosourceException("Error: NB > NBMAX!")
     tot = t[-1] - t[0] # total time span
     if fmin < 1.0/tot:
-        raise AutovarException("Error: fmin < 1/T")
+        raise AstrosourceException("Error: fmin < 1/T")
     # parameters in binning (after folding)
     kmi = int(qmi*nb) # nb is number of bin -> a single period
     if kmi < 1:
@@ -183,7 +183,7 @@ def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, q
         f = photFile[:,1]
         res = bls(t, f, qmi, qma, fmin, df, nf, nb, startPeriod, dp)
         if not res:
-            raise AutovarException("BLS fit failed")
+            raise AstrosourceException("BLS fit failed")
         else: # If it did not fail, then do the rest.
             logger.debug("Best SR: ", res[0], "\nIngress: ", res[1], "\nEgress: ", res[2], "\nq: ", res[3], \
         "\nDepth: ", res[4], "\nPeriod: ", res[5], "\nSDE: ", res[6])

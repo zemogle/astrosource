@@ -11,7 +11,7 @@ from astroquery.vo_conesearch import ConeSearch
 from astroquery.vizier import Vizier
 
 
-from autovar.utils import AutovarException
+from astrosource.utils import AstrosourceException
 
 import logging
 
@@ -313,7 +313,7 @@ def remove_targets(parentPath, compFile, acceptDistance):
         sortStars=[[compFile[0][0],compFile[0][1],0.01,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]]
         sortStars=np.asarray(sortStars)
         np.savetxt("stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
-        raise AutovarException("Looks like you have a single comparison star!")
+        raise AstrosourceException("Looks like you have a single comparison star!")
     return compFile
 
 def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, panStarrsInstead=False):
@@ -565,7 +565,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     if np.asarray(calibStands).shape[0] == 0:
         logger.info("We could not find a suitable match between any of your stars and the calibration catalogue")
         logger.info("You might need to reduce the low value (usually 10000) to get some dimmer stars in script 1")
-        raise AutovarException("Perhaps try 5000 then 1000. You are trying to find dim stars to calibrate to.")
+        raise AstrosourceException("Perhaps try 5000 then 1000. You are trying to find dim stars to calibrate to.")
 
     varimin=(np.min(np.asarray(calibStands)[:,2])) * variabilityMultiplier
 

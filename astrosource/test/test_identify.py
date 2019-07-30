@@ -3,7 +3,7 @@ import numpy
 import os
 from pathlib import Path
 
-from autovar.identify import (rename_data_file, export_photometry_files,
+from astrosource.identify import (rename_data_file, export_photometry_files,
     extract_photometry, gather_files, find_stars)
 
 

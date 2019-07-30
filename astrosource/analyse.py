@@ -13,7 +13,7 @@ import os
 
 import logging
 
-from autovar.utils import photometry_files_to_array, AutovarException
+from astrosource.utils import photometry_files_to_array, AstrosourceException
 
 logger = logging.getLogger(__name__)
 
@@ -373,5 +373,5 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
             np.savetxt(os.path.join(paths['outcatPath'],"doerPhot_V" +str(q+1) +".csv"), outputPhot, delimiter=",", fmt='%0.8f')
             logger.debug('Saved doerPhot_V')
         else:
-            raise AutovarException("Photometry not possible")
+            raise AstrosourceException("Photometry not possible")
         return outputPhot

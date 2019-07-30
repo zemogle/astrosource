@@ -11,7 +11,7 @@ import os
 
 import logging
 
-from autovar.utils import photometry_files_to_array, AutovarException
+from astrosource.utils import photometry_files_to_array, AstrosourceException
 
 logger = logging.getLogger(__name__)
 

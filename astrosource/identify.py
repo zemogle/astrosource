@@ -8,7 +8,7 @@ import sys
 import os
 import logging
 
-from autovar.utils import AutovarException
+from astrosource.utils import AstrosourceException
 
 logger = logging.getLogger(__name__)
 
@@ -79,13 +79,13 @@ def gather_files(paths, filetype="fz"):
     else:
         phot_list = export_photometry_files(filelist, paths['parent'])
     if not phot_list:
-        raise AutovarException("No files of type '.{}' found in {}".format(filetype, paths['parent']))
+        raise AstrosourceException("No files of type '.{}' found in {}".format(filetype, paths['parent']))
 
     filters = set([os.path.basename(f).split('_')[1] for f in phot_list])
 
     logger.debug("Filter Set: {}".format(filters))
     if len(filters) > 1:
-        raise AutovarException("Check your images, the script detected multiple filters in your file list. Autovar currently only does one filter at a time.")
+        raise AstrosourceException("Check your images, the script detected multiple filters in your file list. Astrosource currently only does one filter at a time.")
     return phot_list, list(filters)[0]
 
 def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=10000, maximumCounts=1000000, imageFracReject=0.0, starFracReject=0.1, rejectStart=7, minCompStars=1):
@@ -154,7 +154,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
                     fileSizer = photFile.size
                     logger.debug("{} - {}".format(photFile.size, file))
     if not referenceFrame.size:
-        raise AutovarException("No suitable reference files found")
+        raise AstrosourceException("No suitable reference files found")
 
     logger.debug("Setting up reference Frame")
     fileRaDec = SkyCoord(ra=referenceFrame[:,0]*u.degree, dec=referenceFrame[:,1]*u.degree)
@@ -229,11 +229,11 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
             # If we have removed all stars, we have failed!
             if (referenceFrame.shape[0]==0):
                 logger.error("Problem file - {}".format(file))
-                raise AutovarException("All Stars Removed. Try removing problematic files or raising the imageFracReject")
+                raise AstrosourceException("All Stars Removed. Try removing problematic files or raising the imageFracReject")
 
             if (referenceFrame.shape[0]< minCompStars):
                 logger.error("Problem file - {}".format(file))
-                raise AutovarException("There are fewer than the requested number of Comp Stars. Try removing problematic files or raising the imageFracReject")
+                raise AstrosourceException("There are fewer than the requested number of Comp Stars. Try removing problematic files or raising the imageFracReject")
 
         elif photFile.size < 7:
             logger.error('**********************')

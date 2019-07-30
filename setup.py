@@ -9,7 +9,7 @@ with open(path.join(here, 'requirements.pip'), encoding='utf-8') as f:
     requirements=[line.strip() for line in f.readlines()]
 
 setup(
-    name='autovar',
+    name='astrosource',
     version='1.0.0',
     description='Analysis script for sources with variability in their brightness',
     long_description=long_description,
@@ -20,7 +20,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'autovar=autovar.main:main'
+            'astrosource=astrosource.main:main'
         ]
     }
 )

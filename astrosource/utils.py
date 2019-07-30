@@ -22,7 +22,7 @@ class Mutex(click.Option):
         return super(Mutex, self).handle_parse_result(ctx, opts, args)
 
 
-class AutovarException(Exception):
+class AstrosourceException(Exception):
     ''' Used to halt code with message '''
     pass
 

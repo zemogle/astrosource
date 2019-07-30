@@ -5,15 +5,15 @@ import logging
 
 from numpy import array
 
-from autovar.identify import find_stars, gather_files
-from autovar.comparison import find_comparisons, find_comparisons_calibrated
-from autovar.analyse import calculate_curves, photometric_calculations
-from autovar.plots import make_plots, phased_plots
-from autovar.eebls import plot_bls
-from autovar.detrend import detrend_data
-from autovar.periodic import plot_with_period
+from astrosource.identify import find_stars, gather_files
+from astrosource.comparison import find_comparisons, find_comparisons_calibrated
+from astrosource.analyse import calculate_curves, photometric_calculations
+from astrosource.plots import make_plots, phased_plots
+from astrosource.eebls import plot_bls
+from astrosource.detrend import detrend_data
+from astrosource.periodic import plot_with_period
 
-from autovar.utils import get_targets, folder_setup, AutovarException, cleanup
+from astrosource.utils import get_targets, folder_setup, AstrosourceException, cleanup
 
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
@@ -78,7 +78,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir
             plot_with_period(paths, filterCode=filtercode)
         logger.info("Completed analysis")
 
-    except AutovarException as e:
+    except AstrosourceException as e:
         logger.critical(e)
 
 if __name__ == '__main__':

@@ -3,7 +3,7 @@ import numpy
 import os
 from pathlib import Path
 
-from autovar.comparison import find_comparisons, read_data_files, find_reference_frame
+from astrosource.comparison import find_comparisons, read_data_files, find_reference_frame
 
 
 TEST_PATH_PARENT = Path(os.path.dirname(__file__)) / 'test_files'
