@@ -15,6 +15,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     author='Michael Fitzgerald and Edward Gomez',
+    url="https://github.com/zemogle/astrosource",
     install_requires=requirements,
     packages=find_packages(),
     include_package_data=True,
@@ -22,5 +23,10 @@ setup(
         'console_scripts': [
             'astrosource=astrosource.main:main'
         ]
-    }
+    },
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
 )

@@ -1,5 +1,5 @@
 # astrosource
-Analysis script for sources with variability in their brightness
+Analysis script for sources with variability in their brightness. The package was formerly called `autovar` but this clashes with an existing Python package.
 
 ## Installation
 
@@ -12,7 +12,15 @@ conda create -n astrosource python=3
 source activate astrosource
 ```
 
-The package can be installed with `pip`. From the root of this repo, run:
+The package is available on PyPi and can be installed with `pip`.
+
+```bash
+pip install astrosource
+```
+
+### Install development version
+
+If you need to install the development branch, download from [GitHub](https://github.com/zemogle/astrosource) and from the root of the repo, run:
 
 ```bash
 cd astrosource
@@ -91,4 +99,4 @@ python setup.py develop
 ```
 
 ## Authors
-Written by Michael Fitzgerald. Adapted by [Edward Gomez](@zemogle)
+Written by Michael Fitzgerald and [Edward Gomez](@zemogle)
