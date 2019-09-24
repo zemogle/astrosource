@@ -19,7 +19,7 @@ It is strongly recommended you use python 3 and a virtual environment
 Using the `Anaconda <https://www.anaconda.com/download/>`_ distribution of Python: ::
 
     conda create -n astrosource python=3
-    source activate astrosource
+    conda activate astrosource
 
 The package is available on PyPi and can be installed with ``pip``. ::
 
@@ -31,8 +31,8 @@ Install Development version
 
 Clone this repo and install the package with ``pip``: ::
 
-   git clone https://github.com/joesingo/tom_education
-   pip install -e tom_education
+   git clone https://github.com/zemogle/astrosource
+   pip install -e astrosource
 
 Documentation
 -------------
