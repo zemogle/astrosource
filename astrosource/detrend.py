@@ -4,7 +4,6 @@ Detrend: this approach is only appropriate for analysing exoplanet data
 
 import numpy
 from astropy import units as u
-import scipy
 from astropy.coordinates import SkyCoord
 import glob
 import sys

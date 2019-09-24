@@ -198,6 +198,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
                 for j in range(referenceFrame.shape[0]):
                     photRAandDec = SkyCoord(ra = photFile[:,0]*u.degree, dec = photFile[:,1]*u.degree)
                     testStar = SkyCoord(ra = referenceFrame[j][0]*u.degree, dec = referenceFrame[j][1]*u.degree)
+                    # This is the only line in the whole package which requires scipy
                     idx, d2d, d3d = testStar.match_to_catalog_sky(photRAandDec)
                     if (d2d.arcsecond > acceptDistance):
                         #"No Match! Nothing within range."
