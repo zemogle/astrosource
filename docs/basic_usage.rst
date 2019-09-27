@@ -75,7 +75,7 @@ Outputs
 
 By default AstroSource provides ``.csv``, ``.eps``, and ``.png`` files for brightness variation of each target with time. These files are put inside the data directory provided by ``--indir`` input. The ``.csv`` files are provides in 3 different formats, appropriate for Excel/Python, `AstroImageJ <https://www.astro.louisville.edu/software/astroimagej/>`_, and `Peranso <http://www.cbabelgium.com/peranso/>`_.
 
-::
+.. code-block:: text
 
   indir
   ├── outputcats
@@ -87,7 +87,6 @@ By default AstroSource provides ``.csv``, ``.eps``, and ``.png`` files for brigh
   └─── outputplots
     ├── V1_EnsembleVarDiffMag.eps
     └── V1_EnsembleVarDiffMag.png
-
 
 Examples
 --------
