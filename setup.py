@@ -1,32 +1,31 @@
-from setuptools import setup, find_packages
-from os import path
+#!/usr/bin/env python
 
-here = path.abspath(path.dirname(__file__))
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+import builtins
 
-with open(path.join(here, 'requirements.pip'), encoding='utf-8') as f:
-    requirements=[line.strip() for line in f.readlines()]
+# Ensure that astropy-helpers is available
+import ah_bootstrap  # noqa
 
-setup(
-    name='astrosource',
-    version='1.0.1',
-    description='Analysis script for sources with variability in their brightness',
-    long_description=long_description,
-    long_description_content_type='text/markdown',
-    author='Michael Fitzgerald and Edward Gomez',
-    url="https://github.com/zemogle/astrosource",
-    install_requires=requirements,
-    packages=find_packages(),
-    include_package_data=True,
-    entry_points={
-        'console_scripts': [
-            'astrosource=astrosource.main:main'
-        ]
-    },
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-    ],
-)
+from setuptools import setup
+from setuptools.config import read_configuration
+
+from astropy_helpers.setup_helpers import register_commands, get_package_info
+from astropy_helpers.version_helpers import generate_version_py
+
+# Store the package name in a built-in variable so it's easy
+# to get from other parts of the setup infrastructure
+builtins._ASTROPY_PACKAGE_NAME_ = read_configuration('setup.cfg')['metadata']['name']
+
+# Create a dictionary with setup command overrides. Note that this gets
+# information about the package (name and version) from the setup.cfg file.
+cmdclass = register_commands()
+
+# Freeze build information in version.py. Note that this gets information
+# about the package (name and version) from the setup.cfg file.
+version = generate_version_py()
+
+# Get configuration information from all of the various subpackages.
+# See the docstring for setup_helpers.update_package_files for more
+# details.
+package_info = get_package_info()
+
+setup(version=version, cmdclass=cmdclass, **package_info)
