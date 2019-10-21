@@ -6,8 +6,9 @@ from pathlib import Path
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from astroquery.vo_conesearch import conesearch
+from astroquery.sdss import SDSS
 from astroquery.vo_conesearch import ConeSearch
+from astroquery.vo_conesearch.exceptions import VOSError
 from astroquery.vizier import Vizier
 
 
@@ -388,16 +389,17 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     elif filterCode=='up' or filterCode=='gp' or filterCode=='rp' or filterCode=='ip' or filterCode=='zs':
         # Are there entries in SDSS?
         sdssResult=SDSS.query_region(avgCoord, '0.33 deg')
-        #print(sdssResult)
         sdssFind=1
-
         # If not in SDSS, try Skymapper
         if sdssResult==None:
             sdssFind=0
             logger.debug("Not found in SDSS, must be in the South.")
             #logger.debug(ConeSearch.URL)
-            ConeSearch.URL='http://skymapper.anu.edu.au/sm-cone/aus/query?'
-            sdssResult=ConeSearch.query_region(avgCoord, '0.33 deg')
+            ConeSearch.URL='http://skymapper.anu.edu.au/sm-cone/public/query?'
+            try:
+                sdssResult=ConeSearch.query_region(avgCoord, '0.33 deg')
+            except VOSError:
+                raise AstrosourceException("Could not find RA {} Dec {} in SDSS or SkyMapper".format(avgCoord.ra.value,avgCoord.dec.value))
 
             logger.debug(sdssResult)
 

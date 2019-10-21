@@ -64,7 +64,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir
             find_comparisons(parentPath)
         if full or comparison and calib:
             # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
-            if filtercode=='B' or filterCode=='V' or filtercode=='up' or filtercode=='gp' or filtercode=='rp' or filtercode=='ip' or filtercode=='zs':
+            if filtercode=='B' or filtercode=='V' or filtercode=='up' or filtercode=='gp' or filtercode=='rp' or filtercode=='ip' or filtercode=='zs':
                 find_comparisons_calibrated(filtercode, paths)
             else:
                 find_comparisons(parentPath)
