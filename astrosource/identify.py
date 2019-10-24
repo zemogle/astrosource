@@ -10,7 +10,7 @@ import logging
 
 from astrosource.utils import AstrosourceException
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('astrosource')
 
 def rename_data_file(prihdr):
 
@@ -54,20 +54,20 @@ def export_photometry_files(filelist, indir, filetype='csv'):
 
 def extract_photometry(infile, parentPath, outfile=None):
 
-    hdulist = fits.open(infile)
+    with fits.open(infile) as hdulist:
 
-    if not outfile:
-        outfile = rename_data_file(hdulist[1].header)
-    outfile = parentPath / outfile
-    w = wcs.WCS(hdulist[1].header)
-    data = hdulist[2].data
-    xpixel = data['x']
-    ypixel = data['y']
-    ra, dec = w.wcs_pix2world(xpixel, ypixel, 1)
-    counts = data['flux']
-    countserr = data['fluxerr']
-    np.savetxt(outfile, np.transpose([ra, dec, xpixel, ypixel, counts, countserr]), delimiter=',')
-    return outfile
+        if not outfile:
+            outfile = rename_data_file(hdulist[1].header)
+        outfile = parentPath / outfile
+        w = wcs.WCS(hdulist[1].header)
+        data = hdulist[2].data
+        xpixel = data['x']
+        ypixel = data['y']
+        ra, dec = w.wcs_pix2world(xpixel, ypixel, 1)
+        counts = data['flux']
+        countserr = data['fluxerr']
+        np.savetxt(outfile, np.transpose([ra, dec, xpixel, ypixel, counts, countserr]), delimiter=',')
+        return outfile
 
 def gather_files(paths, filetype="fz"):
     # Get list of files

@@ -9,7 +9,7 @@ import logging
 
 from astrosource.utils import photometry_files_to_array, AstrosourceException
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('astrosource')
 
 #########################################
 

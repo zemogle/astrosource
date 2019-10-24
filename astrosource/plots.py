@@ -4,8 +4,7 @@ from astropy.coordinates import SkyCoord
 import sys
 from pathlib import Path
 
-# import matplotlib.pyplot as plt
-import pylab
+import matplotlib.pyplot as plt
 import math
 import os
 
@@ -13,7 +12,7 @@ import logging
 
 from astrosource.utils import photometry_files_to_array, AstrosourceException
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('astrosource')
 
 def make_plots(filterCode, paths):
 
@@ -46,41 +45,41 @@ def make_plots(filterCode, paths):
         np.savetxt(paths['outcatPath'] / '{}_diffAIJ.txt'.format(r), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
         np.savetxt(paths['outcatPath'] / '{}_diffAIJ.csv'.format(r), outputPeransoCalib, delimiter=",", fmt='%0.8f')
 
-        pylab.cla()
+        plt.cla()
         outplotx=np.asarray(outputPhot)[:,6]
         outploty=np.asarray(outputPhot)[:,10]
-        pylab.xlabel('BJD')
-        pylab.ylabel('Differential ' +filterCode+' Mag')
-        pylab.plot(outplotx,outploty,'bo')
-        pylab.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
-        pylab.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
-        pylab.grid(True)
-        pylab.savefig(paths['outputPath'] / '{}_EnsembleVarDiffMag.png'.format(r))
-        pylab.savefig(paths['outputPath'] / '{}_EnsembleVarDiffMag.eps'.format(r))
+        plt.xlabel('BJD')
+        plt.ylabel('Differential ' +filterCode+' Mag')
+        plt.plot(outplotx,outploty,'bo')
+        plt.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
+        plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
+        plt.grid(True)
+        plt.savefig(paths['outputPath'] / '{}_EnsembleVarDiffMag.png'.format(r))
+        plt.savefig(paths['outputPath'] / '{}_EnsembleVarDiffMag.eps'.format(r))
 
-        pylab.cla()
+        plt.cla()
         outplotx=np.asarray(outputPhot)[:,7]
         outploty=np.asarray(outputPhot)[:,10]
-        pylab.xlabel('Airmass')
-        pylab.ylabel('Differential ' +filterCode+' Mag')
-        pylab.plot(outplotx,outploty,'bo')
-        pylab.ylim(min(outploty)-0.02,max(outploty)+0.02,'k-')
-        pylab.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
-        pylab.grid(True)
-        pylab.savefig(paths['checkPath'] / '{}_AirmassEnsVarDiffMag.png'.format(r))
-        pylab.savefig(paths['checkPath'] / '{}_AirmassEnsVarDiffMag.eps'.format(r))
+        plt.xlabel('Airmass')
+        plt.ylabel('Differential ' +filterCode+' Mag')
+        plt.plot(outplotx,outploty,'bo')
+        plt.ylim(min(outploty)-0.02,max(outploty)+0.02,'k-')
+        plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
+        plt.grid(True)
+        plt.savefig(paths['checkPath'] / '{}_AirmassEnsVarDiffMag.png'.format(r))
+        plt.savefig(paths['checkPath'] / '{}_AirmassEnsVarDiffMag.eps'.format(r))
 
-        pylab.cla()
+        plt.cla()
         outplotx=np.asarray(outputPhot)[:,7]
         outploty=np.asarray(outputPhot)[:,8]
-        pylab.xlabel('Airmass')
-        pylab.ylabel('Variable Counts')
-        pylab.plot(outplotx,outploty,'bo')
-        pylab.ylim(min(outploty)-1000,max(outploty)+1000,'k-')
-        pylab.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
-        pylab.grid(True)
-        pylab.savefig(paths['checkPath'] / '{}_AirmassVarCounts.png'.format(r))
-        pylab.savefig(paths['checkPath'] / '{}_AirmassVarCounts.eps'.format(r))
+        plt.xlabel('Airmass')
+        plt.ylabel('Variable Counts')
+        plt.plot(outplotx,outploty,'bo')
+        plt.ylim(min(outploty)-1000,max(outploty)+1000,'k-')
+        plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
+        plt.grid(True)
+        plt.savefig(paths['checkPath'] / '{}_AirmassVarCounts.png'.format(r))
+        plt.savefig(paths['checkPath'] / '{}_AirmassVarCounts.eps'.format(r))
 
         # Make a calibrated version
         # Need to shift the shape of the curve against the lowest error in the catalogue.
@@ -125,17 +124,17 @@ def make_plots(filterCode, paths):
                 #outputPhot[i][11]=pow((pow(outputPhot[i][11],2)+pow(ensembleMagError,2)),0.5)
 
 
-            pylab.cla()
+            plt.cla()
             outplotx=np.asarray(outputPhot)[:,6]
             outploty=np.asarray(outputPhot)[:,10]
-            pylab.xlabel('BJD')
-            pylab.ylabel('Calibrated ' +filterCode+' Mag')
-            pylab.plot(outplotx,outploty,'bo')
-            pylab.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
-            pylab.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
-            pylab.grid(True)
-            pylab.savefig(paths['outputPath'] / '{}_EnsembleVarCalibMag.png'.format(r))
-            pylab.savefig(paths['outputPath'] / '{}_EnsembleVarCalibMag.eps'.format(r))
+            plt.xlabel('BJD')
+            plt.ylabel('Calibrated ' +filterCode+' Mag')
+            plt.plot(outplotx,outploty,'bo')
+            plt.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
+            plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
+            plt.grid(True)
+            plt.savefig(paths['outputPath'] / '{}_EnsembleVarCalibMag.png'.format(r))
+            plt.savefig(paths['outputPath'] / '{}_EnsembleVarCalibMag.eps'.format(r))
 
 
             # Output Calibed peranso file
@@ -199,44 +198,44 @@ def phased_plots(paths, filterCode):
 
         # Variable lightcurve
 
-        pylab.cla()
+        plt.cla()
         outplotx=calibFile[:,0]
         outploty=calibFile[:,1]
         logger.debug(outplotx)
         logger.debug(outploty)
-        pylab.xlabel('BJD')
-        pylab.ylabel('Apparent {} Magnitude'.format(filterCode))
-        pylab.plot(outplotx,outploty,'bo')
-        #pylab.plot(linex,liney)
-        pylab.ylim(max(outploty)-0.04,min(outploty)+0.04,'k-')
-        pylab.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
-        pylab.grid(True)
-        pylab.savefig(outputPath / 'Variable{}_{}_Lightcurve.png'.format(q+1,filterCode))
-        pylab.savefig(outputPath / 'Variable{}_{}_Lightcurve.eps'.format(q+1,filterCode))
+        plt.xlabel('BJD')
+        plt.ylabel('Apparent {} Magnitude'.format(filterCode))
+        plt.plot(outplotx,outploty,'bo')
+        #plt.plot(linex,liney)
+        plt.ylim(max(outploty)-0.04,min(outploty)+0.04,'k-')
+        plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
+        plt.grid(True)
+        plt.savefig(outputPath / 'Variable{}_{}_Lightcurve.png'.format(q+1,filterCode))
+        plt.savefig(outputPath / 'Variable{}_{}_Lightcurve.eps'.format(q+1,filterCode))
 
         # Phased lightcurve
 
-        pylab.cla()
+        plt.cla()
         fig = matplotlib.pyplot.gcf()
         outplotx=((calibFile[:,0]/period)+phaseShift)%1
         outploty=calibFile[:,1]
         outplotxrepeat=outplotx+1
         logger.debug(outplotx)
         logger.debug(outploty)
-        pylab.xlabel('Phase')
-        pylab.ylabel('Apparent ' + str(filterCode) + ' Magnitude')
-        pylab.plot(outplotx,outploty,'bo')
-        pylab.plot(outplotxrepeat,outploty,'ro')
-        #pylab.plot(linex,liney)
-        pylab.ylim(max(outploty)+0.04,min(outploty)-0.04,'k-')
-        pylab.xlim(-0.01,2.01)
-        pylab.errorbar(outplotx, outploty, yerr=3*calibFile[:,2], fmt='-o', linestyle='None')
-        pylab.errorbar(outplotxrepeat, outploty, yerr=3*calibFile[:,2], fmt='-o', linestyle='None')
-        pylab.grid(True)
-        pylab.subplots_adjust(left=0.12, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+        plt.xlabel('Phase')
+        plt.ylabel('Apparent ' + str(filterCode) + ' Magnitude')
+        plt.plot(outplotx,outploty,'bo')
+        plt.plot(outplotxrepeat,outploty,'ro')
+        #plt.plot(linex,liney)
+        plt.ylim(max(outploty)+0.04,min(outploty)-0.04,'k-')
+        plt.xlim(-0.01,2.01)
+        plt.errorbar(outplotx, outploty, yerr=3*calibFile[:,2], fmt='-o', linestyle='None')
+        plt.errorbar(outplotxrepeat, outploty, yerr=3*calibFile[:,2], fmt='-o', linestyle='None')
+        plt.grid(True)
+        plt.subplots_adjust(left=0.12, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
         fig.set_size_inches(6,3)
-        pylab.savefig(outputPath / 'Variable{}_{}_PhasedLightcurve.png'.format(q+1,filterCode))
-        pylab.savefig(outputPath / 'Variable{}_{}_PhasedLightcurve.eps'.format(q+1,filterCode))
+        plt.savefig(outputPath / 'Variable{}_{}_PhasedLightcurve.png'.format(q+1,filterCode))
+        plt.savefig(outputPath / 'Variable{}_{}_PhasedLightcurve.eps'.format(q+1,filterCode))
 
         logger.info("Variable V{}_{}".format(q+1,filterCode))
         logger.info("Max Magnitude: "+ str(np.max(calibFile[:,1])))

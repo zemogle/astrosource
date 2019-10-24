@@ -7,7 +7,6 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 import glob
 import sys
-import pylab
 import math
 import os
 import platform
@@ -16,7 +15,7 @@ import click
 
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('astrosource')
 
 def detrend_data(paths, filterCode):
     polyFitRequest=1 # Currently only works with one or two coefficients
@@ -137,21 +136,21 @@ def detrend_data(paths, filterCode):
         numpy.savetxt(paths['outcatPath'] / 'V{}_diffAIJ.csv'.format(str(r+1)), outputPeransoCalib, delimiter=",", fmt='%0.8f')
 
         # Output replot
-        pylab.cla()
+        plt.cla()
         outplotx=photFile[:,0]
         outploty=photFile[:,1]
-        pylab.xlabel('BJD')
-        pylab.ylabel('Differential ' +filterCode+' Mag')
-        pylab.plot(outplotx,outploty,'bo')
-        pylab.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
-        pylab.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
-        pylab.grid(True)
-        pylab.savefig(paths['outputPath'] / 'V{}_EnsembleVarDiffMag.png'.format(str(r+1)))
-        pylab.savefig(paths['outputPath'] / 'V{}_EnsembleVarDiffMag.eps'.format(str(r+1)))
-        pylab.cla()
-        pylab.clf()
-        pylab.close()
-        pylab.close("all")
+        plt.xlabel('BJD')
+        plt.ylabel('Differential ' +filterCode+' Mag')
+        plt.plot(outplotx,outploty,'bo')
+        plt.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
+        plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
+        plt.grid(True)
+        plt.savefig(paths['outputPath'] / 'V{}_EnsembleVarDiffMag.png'.format(str(r+1)))
+        plt.savefig(paths['outputPath'] / 'V{}_EnsembleVarDiffMag.eps'.format(str(r+1)))
+        plt.cla()
+        plt.clf()
+        plt.close()
+        plt.close("all")
 
 
         if exists:

@@ -16,7 +16,7 @@ from astrosource.utils import AstrosourceException
 
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('astrosource')
 
 
 def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=1000000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=5.0):

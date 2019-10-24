@@ -15,7 +15,7 @@ import logging
 
 from astrosource.utils import photometry_files_to_array, AstrosourceException
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('astrosource')
 
 
 def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath = None):

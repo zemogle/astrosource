@@ -16,9 +16,10 @@ from astrosource.periodic import plot_with_period
 from astrosource.utils import get_targets, folder_setup, AstrosourceException, cleanup
 
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
-
+logger = logging.getLogger('astrosource')
+logger.setLevel(logging.INFO)
+fmt = logging.Formatter('%(levelname)s: %(message)s')
+logger.setFormatter(fmt)
 
 @click.command()
 @click.option('--full', is_flag=True)
@@ -62,7 +63,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir
             usedimages = find_stars(targets, paths, filelist)
         if full or comparison and not calib:
             find_comparisons(parentPath)
-        if full or comparison and calib:
+        elif full or comparison and calib:
             # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
             if filtercode=='B' or filtercode=='V' or filtercode=='up' or filtercode=='gp' or filtercode=='rp' or filtercode=='ip' or filtercode=='zs':
                 find_comparisons_calibrated(filtercode, paths)

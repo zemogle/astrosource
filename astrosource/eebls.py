@@ -10,7 +10,7 @@ import logging
 
 from astrosource.utils import AstrosourceException
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('astrosource')
 
 def bls(t, x, qmi, qma, fmin, df, nf, nb, startPeriod, dp):
     """First trial, BLS algorithm, only minor modification from author's code
