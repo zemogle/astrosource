@@ -1,4 +1,4 @@
-import numpy as np
+from numpy import genfromtxt, delete, asarray, savetxt, transpose
 from astropy import units as u
 from astropy import wcs
 from astropy.coordinates import SkyCoord
@@ -66,8 +66,8 @@ def extract_photometry(infile, parentPath, outfile=None):
         ra, dec = w.wcs_pix2world(xpixel, ypixel, 1)
         counts = data['flux']
         countserr = data['fluxerr']
-        np.savetxt(outfile, np.transpose([ra, dec, xpixel, ypixel, counts, countserr]), delimiter=',')
-        return outfile
+        savetxt(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr]), delimiter=',')
+    return outfile
 
 def gather_files(paths, filetype="fz"):
     # Get list of files
@@ -125,7 +125,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     usedImages=[]
     # Generate a blank targetstars.csv file
     targetfile = paths['parent'] / "targetstars.csv"
-    np.savetxt(targetfile, targetStars, delimiter=",", fmt='%0.8f')
+    savetxt(targetfile, targetStars, delimiter=",", fmt='%0.8f')
 
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
@@ -136,19 +136,19 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     referenceFrame = None
 
     for file in fileList:
-        photFile = np.genfromtxt(file, dtype=float, delimiter=',')
-        if (( np.asarray(photFile[:,0]) > 360).sum() > 0) :
+        photFile = genfromtxt(file, dtype=float, delimiter=',')
+        if (( asarray(photFile[:,0]) > 360).sum() > 0) :
             logger.debug("REJECT")
             logger.debug(file)
             fileList.remove(file)
-        elif (( np.asarray(photFile[:,1]) > 90).sum() > 0) :
+        elif (( asarray(photFile[:,1]) > 90).sum() > 0) :
             logger.debug("REJECT")
             logger.debug(file)
             fileList.remove(file)
         else:
             # Sort through and find the largest file and use that as the reference file
             if photFile.size > fileSizer:
-                phottmparr = np.asarray(photFile)
+                phottmparr = asarray(photFile)
                 if (( phottmparr[:,0] > 360).sum() == 0) and ( phottmparr[0][0] != 'null') and ( phottmparr[0][0] != 0.0) :
                     referenceFrame = photFile
                     fileSizer = photFile.size
@@ -168,7 +168,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     logger.debug("Number of stars prior")
     logger.debug(referenceFrame.shape[0])
 
-    referenceFrame=np.delete(referenceFrame, rejectStars, axis=0)
+    referenceFrame=delete(referenceFrame, rejectStars, axis=0)
 
     logger.debug("Number of stars post")
     logger.debug(referenceFrame.shape[0])
@@ -180,7 +180,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     wcsFileReject=0
     for file in fileList:
         rejStartCounter = rejStartCounter +1
-        photFile = np.genfromtxt(file, dtype=float, delimiter=',')
+        photFile = genfromtxt(file, dtype=float, delimiter=',')
         # DUP fileRaDec = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
 
         logger.debug('Image Number: ' + str(rejStartCounter))
@@ -188,7 +188,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
         logger.debug("Image threshold size: "+str(imgsize))
         logger.debug("Image catalogue size: "+str(photFile.size))
         if photFile.size > imgsize and photFile.size > 7:
-            phottmparr = np.asarray(photFile)
+            phottmparr = asarray(photFile)
             if (( phottmparr[:,0] > 360).sum() == 0) and ( phottmparr[0][0] != 'null') and ( phottmparr[0][0] != 0.0) :
 
                 # Checking existance of stars in all photometry files
@@ -209,7 +209,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
             if rejectStars != []:
 
                 if not (((len(rejectStars) / referenceFrame.shape[0]) > starFracReject) and rejStartCounter > rejectStart):
-                    referenceFrame = np.delete(referenceFrame, rejectStars, axis=0)
+                    referenceFrame = delete(referenceFrame, rejectStars, axis=0)
                     logger.debug('**********************')
                     logger.debug('Stars Removed  : ' +str(len(rejectStars)))
                     logger.debug('Remaining Stars: ' +str(referenceFrame.shape[0]))
@@ -263,7 +263,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     logger.info('Output sent to screenedComps.csv ready for use in Comparison')
 
     screened_file = paths['parent'] / "screenedComps.csv"
-    np.savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
+    savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
     used_file = paths['parent'] / "usedImages.txt"
     with open(used_file, "w") as f:
         for s in usedImages:

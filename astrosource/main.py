@@ -2,6 +2,7 @@ from pathlib import Path
 import click
 import sys
 import logging
+from colorlog import ColoredFormatter
 
 from numpy import array
 
@@ -15,11 +16,17 @@ from astrosource.periodic import plot_with_period
 
 from astrosource.utils import get_targets, folder_setup, AstrosourceException, cleanup
 
-
+LOG_LEVEL = logging.WARNING
+LOGFORMAT = "  %(log_color)s%(levelname)-8s%(reset)s | %(log_color)s%(message)s%(reset)s"
+logging.root.setLevel(LOG_LEVEL)
+formatter = ColoredFormatter(LOGFORMAT)
+stream = logging.StreamHandler()
+stream.setLevel(LOG_LEVEL)
+stream.setFormatter(formatter)
 logger = logging.getLogger('astrosource')
-logger.setLevel(logging.INFO)
-fmt = logging.Formatter('%(levelname)s: %(message)s')
-logger.setFormatter(fmt)
+logger.setLevel(LOG_LEVEL)
+logger.addHandler(stream)
+
 
 @click.command()
 @click.option('--full', is_flag=True)
@@ -81,10 +88,11 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir
             plot_bls(paths=paths)
         if calib:
             plot_with_period(paths, filterCode=filtercode)
-        logger.info("Completed analysis")
+        logger.warning("Completed analysis")
 
     except AstrosourceException as e:
         logger.critical(e)
+    return
 
 if __name__ == '__main__':
     main()

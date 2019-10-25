@@ -3,8 +3,9 @@ import sys
 import os
 from pathlib import Path
 
-import numpy as np
-from astropy import units as u
+from numpy import min, max, median, std, isnan, delete, genfromtxt, savetxt, \
+    asarray, add, append, log10, average, array
+from astropy.units import degree, arcsecond
 from astropy.coordinates import SkyCoord
 from astroquery.sdss import SDSS
 from astroquery.vo_conesearch import ConeSearch
@@ -66,16 +67,16 @@ def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=100000000
         # compared to this gigantic comparison star.
         rejectStar=[]
         stdCompStar, sortStars = calculate_comparison_variation(compFile, photFileArray, fileCount)
-        variabilityMax=(np.min(stdCompStar)*variabilityMultiplier)
+        variabilityMax=(min(stdCompStar)*variabilityMultiplier)
 
         # Calculate and present the sample statistics
-        stdCompMed=np.median(stdCompStar)
-        stdCompStd=np.std(stdCompStar)
+        stdCompMed=median(stdCompStar)
+        stdCompStd=std(stdCompStar)
 
         logger.debug(fileCount)
         logger.debug(stdCompStar)
-        logger.debug(np.median(stdCompStar))
-        logger.debug(np.std(stdCompStar))
+        logger.debug(median(stdCompStar))
+        logger.debug(std(stdCompStar))
 
         # Delete comparisons that have too high a variability
         starRejecter=[]
@@ -85,21 +86,21 @@ def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=100000000
                 logger.debug("Star Rejected, Variability too high!")
                 starRejecter.append(j)
 
-            if ( np.isnan(stdCompStar[j]) ) :
+            if ( isnan(stdCompStar[j]) ) :
                 logger.debug("Star Rejected, Invalid Entry!")
                 starRejecter.append(j)
         if starRejecter:
             logger.warning("Rejected {} stars".format(len(starRejecter)))
 
 
-        compFile = np.delete(compFile, starRejecter, axis=0)
-        sortStars = np.delete(sortStars, starRejecter, axis=0)
+        compFile = delete(compFile, starRejecter, axis=0)
+        sortStars = delete(sortStars, starRejecter, axis=0)
 
         # Calculate and present statistics of sample of candidate comparison stars.
-        logger.info("Median variability {:.6f}".format(np.median(stdCompStar)))
-        logger.info("Std variability {:.6f}".format(np.std(stdCompStar)))
-        logger.info("Min variability {:.6f}".format(np.min(stdCompStar)))
-        logger.info("Max variability {:.6f}".format(np.max(stdCompStar)))
+        logger.info("Median variability {:.6f}".format(median(stdCompStar)))
+        logger.info("Std variability {:.6f}".format(std(stdCompStar)))
+        logger.info("Min variability {:.6f}".format(min(stdCompStar)))
+        logger.info("Max variability {:.6f}".format(max(stdCompStar)))
         logger.info("Number of Stable Comparison Candidates {}".format(compFile.shape[0]))
         # Once we have stopped rejecting stars, this is our final candidate catalogue then we start to select the subset of this final catalogue that we actually use.
         if (starRejecter == []):
@@ -115,7 +116,7 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
 
     logger.info('List of stable comparison candidates output to stdComps.csv')
 
-    np.savetxt(parentPath / "stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
 
     # The following process selects the subset of the candidates that we will use (the least variable comparisons that hopefully get the request countrate)
 
@@ -131,28 +132,28 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
     tempCountCounter=0.0
     finalCountCounter=0.0
     for j in range(sortStars.shape[0]):
-        matchCoord=SkyCoord(ra=sortStars[j][0]*u.degree, dec=sortStars[j][1]*u.degree)
+        matchCoord=SkyCoord(ra=sortStars[j][0]*degree, dec=sortStars[j][1]*degree)
         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-        tempCountCounter=np.add(tempCountCounter,referenceFrame[idx][4])
+        tempCountCounter=add(tempCountCounter,referenceFrame[idx][4])
 
         if tempCountCounter < thresholdCounts:
             if sortStars[j][2] < variabilityMax:
                 compFile.append([sortStars[j][0],sortStars[j][1],sortStars[j][2]])
                 logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[j][2]))
                 logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
-                finalCountCounter=np.add(finalCountCounter,referenceFrame[idx][4])
+                finalCountCounter=add(finalCountCounter,referenceFrame[idx][4])
 
     logger.debug("Selected stars listed below:")
     logger.debug(compFile)
 
     logger.info("Finale Ensemble Counts: " + str(finalCountCounter))
-    compFile=np.asarray(compFile)
+    compFile=asarray(compFile)
 
     logger.info(str(compFile.shape[0]) + " Stable Comparison Candidates below variability threshold output to compsUsed.csv")
     #logger.info(compFile.shape[0])
 
     outfile = parentPath / "compsUsed.csv"
-    np.savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
+    savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
 
     return outfile, compFile.shape[0]
 
@@ -165,7 +166,7 @@ def find_reference_frame(photFileArray):
             logger.debug(photFile.size)
             fileSizer = photFile.size
     logger.info("Setting up reference Frame")
-    fileRaDec = SkyCoord(ra=referenceFrame[:,0]*u.degree, dec=referenceFrame[:,1]*u.degree)
+    fileRaDec = SkyCoord(ra=referenceFrame[:,0]*degree, dec=referenceFrame[:,1]*degree)
     return referenceFrame, fileRaDec
 
 def read_data_files(parentPath):
@@ -177,28 +178,28 @@ def read_data_files(parentPath):
 
     photFileArray = []
     for file in fileList:
-        photFileArray.append(np.genfromtxt(file, dtype=float, delimiter=','))
-    photFileArray = np.asarray(photFileArray)
+        photFileArray.append(genfromtxt(file, dtype=float, delimiter=','))
+    photFileArray = asarray(photFileArray)
 
 
     #Grab the candidate comparison stars
     screened_file = parentPath / "screenedComps.csv"
-    compFile = np.genfromtxt(screened_file, dtype=float, delimiter=',')
+    compFile = genfromtxt(screened_file, dtype=float, delimiter=',')
     return compFile, photFileArray, fileList
 
 def ensemble_comparisons(photFileArray, compFile):
     fileCount=[]
     for photFile in photFileArray:
         allCounts=0.0
-        fileRaDec = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
+        fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
         for cf in compFile:
-            matchCoord = SkyCoord(ra=cf[0]*u.degree, dec=cf[1]*u.degree)
+            matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-            allCounts = np.add(allCounts,photFile[idx][4])
+            allCounts = add(allCounts,photFile[idx][4])
 
 
         logger.debug("Total Counts in Image: {:.2f}".format(allCounts))
-        fileCount=np.append(fileCount, allCounts)
+        fileCount=append(fileCount, allCounts)
     return fileCount
 
 def calculate_comparison_variation(compFile, photFileArray, fileCount):
@@ -213,29 +214,29 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
         logger.debug("DEC: " + str(cf[1]))
         for imgs in range(photFileArray.shape[0]):
             photFile = photFileArray[imgs]
-            fileRaDec = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
-            matchCoord = SkyCoord(ra=cf[0]*u.degree, dec=cf[1]*u.degree)
+            fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
+            matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-            compDiffMags = np.append(compDiffMags,2.5 * np.log10(photFile[idx][4]/fileCount[q]))
-            q = np.add(q,1)
+            compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
+            q = add(q,1)
 
-        logger.debug("VAR: " +str(np.std(compDiffMags)))
-        stdCompStar.append(np.std(compDiffMags))
-        sortStars.append([cf[0],cf[1],np.std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+        logger.debug("VAR: " +str(std(compDiffMags)))
+        stdCompStar.append(std(compDiffMags))
+        sortStars.append([cf[0],cf[1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
     return stdCompStar, sortStars
 
 def remove_targets(parentPath, compFile, acceptDistance):
-    max_sep=acceptDistance * u.arcsec
+    max_sep=acceptDistance * arcsecond
     logger.info("Removing Target Stars from potential Comparisons")
-    targetFile = np.genfromtxt(parentPath / 'targetstars.csv', dtype=float, delimiter=',')
-    fileRaDec = SkyCoord(ra=compFile[:,0]*u.degree, dec=compFile[:,1]*u.degree)
+    targetFile = genfromtxt(parentPath / 'targetstars.csv', dtype=float, delimiter=',')
+    fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
     # Remove any nan rows from targetFile
     targetRejecter=[]
     if not (targetFile.shape[0] == 4 and targetFile.size ==4):
         for z in range(targetFile.shape[0]):
-          if np.isnan(targetFile[z][0]):
+          if isnan(targetFile[z][0]):
             targetRejecter.append(z)
-        targetFile=np.delete(targetFile, targetRejecter, axis=0)
+        targetFile=delete(targetFile, targetRejecter, axis=0)
 
     # Remove targets from consideration
     if len(targetFile)== 4:
@@ -246,26 +247,26 @@ def remove_targets(parentPath, compFile, acceptDistance):
     tg_file_len = len(targetFile)
     for tf in targetFile:
         if tg_file_len == 4:
-            varCoord = SkyCoord(targetFile[0],(targetFile[1]), frame='icrs', unit=u.deg)
+            varCoord = SkyCoord(targetFile[0],(targetFile[1]), frame='icrs', unit=degree)
         else:
-            varCoord = SkyCoord(tf[0],(tf[1]), frame='icrs', unit=u.deg) # Need to remove target stars from consideration
+            varCoord = SkyCoord(tf[0],(tf[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
         idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
         if d2d.arcsecond < acceptDistance:
             targetRejects.append(idx)
         if tg_file_len == 4:
             break
-    compFile=np.delete(compFile, idx, axis=0)
+    compFile=delete(compFile, idx, axis=0)
 
     # Get Average RA and Dec from file
     if compFile.shape[0] == 13:
         logger.debug(compFile[0])
         logger.debug(compFile[1])
-        avgCoord=SkyCoord(ra=(compFile[0])*u.degree, dec=(compFile[1]*u.degree))
+        avgCoord=SkyCoord(ra=(compFile[0])*degree, dec=(compFile[1]*degree))
 
     else:
-        logger.debug(np.average(compFile[:,0]))
-        logger.debug(np.average(compFile[:,1]))
-        avgCoord=SkyCoord(ra=(np.average(compFile[:,0]))*u.degree, dec=(np.average(compFile[:,1]))*u.degree)
+        logger.debug(average(compFile[:,0]))
+        logger.debug(average(compFile[:,1]))
+        avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
 
 
     # Check VSX for any known variable stars and remove them from the list
@@ -273,27 +274,22 @@ def remove_targets(parentPath, compFile, acceptDistance):
 
     logger.debug(variableResult)
 
-    variableResult=variableResult.to_pandas()
-
     logger.debug(variableResult.keys())
 
-    variableSearchResult=variableResult[['RAJ2000','DEJ2000']].to_numpy()
-
-
-    raCat=variableSearchResult[:,0]
+    raCat=array(variableResult['RAJ2000'].data)
     logger.debug(raCat)
-    decCat=variableSearchResult[:,1]
+    decCat=array(variableResult['DEJ2000'].data)
     logger.debug(decCat)
 
     varStarReject=[]
     for t in range(raCat.size):
       logger.debug(raCat[t])
-      compCoord=SkyCoord(ra=raCat[t]*u.degree, dec=decCat[t]*u.degree)
+      compCoord=SkyCoord(ra=raCat[t]*degree, dec=decCat[t]*degree)
       logger.debug(compCoord)
-      catCoords=SkyCoord(ra=compFile[:,0]*u.degree, dec=compFile[:,1]*u.degree)
+      catCoords=SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
       idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
       logger.debug(d2dcomp)
-      if d2dcomp *u.arcsecond < max_sep*u.arcsecond:
+      if d2dcomp *arcsecond < max_sep*arcsecond:
         logger.debug("match!")
         varStarReject.append(t)
       else:
@@ -302,18 +298,18 @@ def remove_targets(parentPath, compFile, acceptDistance):
 
     logger.debug("Number of stars prior to VSX reject")
     logger.debug(compFile.shape[0])
-    compFile=np.delete(compFile, varStarReject, axis=0)
+    compFile=delete(compFile, varStarReject, axis=0)
     logger.debug("Number of stars post to VSX reject")
     logger.debug(compFile.shape[0])
 
 
     if (compFile.shape[0] ==1):
         compFile=[[compFile[0][0],compFile[0][1],0.01]]
-        compFile=np.asarray(compFile)
-        np.savetxt(parentPath / "compsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
+        compFile=asarray(compFile)
+        savetxt(parentPath / "compsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
         sortStars=[[compFile[0][0],compFile[0][1],0.01,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]]
-        sortStars=np.asarray(sortStars)
-        np.savetxt("stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
+        sortStars=asarray(sortStars)
+        savetxt("stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
         raise AstrosourceException("Looks like you have a single comparison star!")
     return compFile
 
@@ -325,7 +321,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         os.makedirs(calibPath)
 
     Vizier.ROW_LIMIT = -1
-    max_sep=1.0 * u.arcsec
+    max_sep=1.0 * arcsecond
 
     # Get List of Files Used
     fileList=[]
@@ -335,24 +331,24 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     logger.debug("Filter Set: " + filterCode)
 
     # Load compsused
-    compFile = np.genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
+    compFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
     logger.debug(compFile.shape[0])
 
     if compFile.shape[0] == 13:
-        compCoords=SkyCoord(ra=compFile[0]*u.degree, dec=compFile[1]*u.degree)
+        compCoords=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
     else:
-        compCoords=SkyCoord(ra=compFile[:,0]*u.degree, dec=compFile[:,1]*u.degree)
+        compCoords=SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
 
     # Get Average RA and Dec from file
     if compFile.shape[0] == 13:
         logger.debug(compFile[0])
         logger.debug(compFile[1])
-        avgCoord=SkyCoord(ra=(compFile[0])*u.degree, dec=(compFile[1]*u.degree))
+        avgCoord=SkyCoord(ra=(compFile[0])*degree, dec=(compFile[1]*degree))
 
     else:
-        logger.debug(np.average(compFile[:,0]))
-        logger.debug(np.average(compFile[:,1]))
-        avgCoord=SkyCoord(ra=(np.average(compFile[:,0]))*u.degree, dec=(np.average(compFile[:,1]))*u.degree)
+        logger.debug(average(compFile[:,0]))
+        logger.debug(average(compFile[:,1]))
+        avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
 
     # get results from internetz
 
@@ -361,28 +357,23 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         apassResult=Vizier.query_region(avgCoord, '0.33 deg', catalog='APASS')['II/336/apass9']
 
         logger.debug(apassResult)
-        apassResult=apassResult.to_pandas()
 
         logger.debug(apassResult.keys())
 
-        apassSearchResult=apassResult[['RAJ2000','DEJ2000','Bmag','e_Bmag','Vmag','e_Vmag']].as_matrix()
-
-        logger.debug(apassSearchResult)
-
-        raCat=apassSearchResult[:,0]
+        raCat=array(apassResult['RAJ2000'].data)
         logger.debug(raCat)
-        decCat=apassSearchResult[:,1]
+        decCat=array(apassResult['DEJ2000'].data)
         logger.debug(decCat)
         if filterCode=='B':
-            magCat=apassSearchResult[:,2]
+            magCat=array(apassResult['Bmag'].data)
             logger.debug(magCat)
-            emagCat=apassSearchResult[:,3]
+            emagCat=array(apassResult['e_Bmag'].data)
             logger.debug(emagCat)
 
         if filterCode=='V':
-            magCat=apassSearchResult[:,4]
+            magCat=array(apassResult['Vmag'].data)
             logger.debug(magCat)
-            emagCat=apassSearchResult[:,5]
+            emagCat=array(apassResult['e_Vmag'].data)
             logger.debug(emagCat)
 
 
@@ -403,42 +394,34 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
 
             logger.debug(sdssResult)
 
-            searchResult=sdssResult.to_table().to_pandas()
-
-            logger.debug(searchResult)
-
-            sdssSearchResult=searchResult[['raj2000','dej2000','u_psf','e_u_psf','g_psf','e_g_psf','r_psf','e_r_psf','i_psf','e_i_psf','z_psf','e_z_psf']].as_matrix()
-
-            logger.debug(sdssSearchResult[:,0])
-
-            raCat=sdssSearchResult[:,0]
+            raCat=array(sdssResult['raj2000'].data)
             logger.debug(raCat)
-            decCat=sdssSearchResult[:,1]
+            decCat=array(sdssResult['dej2000'].data)
             logger.debug(decCat)
             if filterCode=='up':
-                magCat=sdssSearchResult[:,2]
+                magCat=array(sdssResult['u_psf'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,3]
+                emagCat=array(sdssResult['e_u_psf'].data)
                 logger.debug(emagCat)
             if filterCode=='gp':
-                magCat=sdssSearchResult[:,4]
+                magCat=array(sdssResult['g_psf'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,5]
+                emagCat=array(sdssResult['e_g_psf'].data)
                 logger.debug(emagCat)
             if filterCode=='rp':
-                magCat=sdssSearchResult[:,6]
+                magCat=array(sdssResult['r_psf'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,7]
+                emagCat=array(sdssResult['e_r_psf'].data)
                 logger.debug(emagCat)
             if filterCode=='ip':
-                magCat=sdssSearchResult[:,8]
+                magCat=array(sdssResult['i_psf'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,9]
+                emagCat=array(sdssResult['e_i_psf'].data)
                 logger.debug(emagCat)
             if filterCode=='zs':
-                magCat=sdssSearchResult[:,10]
+                magCat=array(sdssResult['z_psf'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,11]
+                emagCat=array(sdssResult['e_z_psf'].data)
                 logger.debug(emagCat)
 
         elif panStarrsInstead and filterCode!='up':
@@ -448,43 +431,34 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
             logger.debug(sdssResult)
             logger.debug(sdssResult.keys())
 
-
-            searchResult=sdssResult.to_pandas()
-
-            logger.debug(searchResult)
-
-            sdssSearchResult=searchResult[['RAJ2000','DEJ2000','gmag','e_gmag','gmag','e_gmag','rmag','e_rmag','imag','e_imag','zmag','e_zmag']].as_matrix()
-
-            logger.debug(sdssSearchResult[:,0])
-
-            raCat=sdssSearchResult[:,0]
+            raCat=array(sdssResult['RAJ2000'].data)
             logger.debug(raCat)
-            decCat=sdssSearchResult[:,1]
+            decCat=array(sdssResult['DEJ2000'].data)
             logger.debug(decCat)
             if filterCode=='up':
-                magCat=sdssSearchResult[:,2]
+                magCat=array(sdssResult['umag'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,3]
+                emagCat=array(sdssResult['e_umag'].data)
                 logger.debug(emagCat)
             if filterCode=='gp':
-                magCat=sdssSearchResult[:,4]
+                magCat=array(sdssResult['gmag'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,5]
+                emagCat=array(sdssResult['e_gmag'].data)
                 logger.debug(emagCat)
             if filterCode=='rp':
-                magCat=sdssSearchResult[:,6]
+                magCat=array(sdssResult['rmag'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,7]
+                emagCat=array(sdssResult['e_rmag'].data)
                 logger.debug(emagCat)
             if filterCode=='ip':
-                magCat=sdssSearchResult[:,8]
+                magCat=array(sdssResult['imag'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,9]
+                emagCat=array(sdssResult['e_imag'].data)
                 logger.debug(emagCat)
             if filterCode=='zs':
-                magCat=sdssSearchResult[:,10]
+                magCat=array(sdssResult['zmag'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,11]
+                emagCat=array(sdssResult['e_zmag'].data)
                 logger.debug(emagCat)
 
 
@@ -494,46 +468,38 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
             logger.debug(sdssResult)
             logger.debug(sdssResult.keys())
 
-            searchResult=sdssResult.to_pandas()
-
-            logger.debug(searchResult)
-
-            sdssSearchResult=searchResult[['RA_ICRS','DE_ICRS','umag','e_umag','gmag','e_gmag','rmag','e_rmag','imag','e_imag','zmag','e_zmag']].as_matrix()
-
-            logger.debug(sdssSearchResult[:,0])
-
-            raCat=sdssSearchResult[:,0]
+            raCat=array(sdssResult['RAJ2000'].data)
             logger.debug(raCat)
-            decCat=sdssSearchResult[:,1]
+            decCat=array(sdssResult['DEJ2000'].data)
             logger.debug(decCat)
             if filterCode=='up':
-                magCat=sdssSearchResult[:,2]
+                magCat=array(sdssResult['umag'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,3]
+                emagCat=array(sdssResult['e_umag'].data)
                 logger.debug(emagCat)
             if filterCode=='gp':
-                magCat=sdssSearchResult[:,4]
+                magCat=array(sdssResult['gmag'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,5]
+                emagCat=array(sdssResult['e_gmag'].data)
                 logger.debug(emagCat)
             if filterCode=='rp':
-                magCat=sdssSearchResult[:,6]
+                magCat=array(sdssResult['rmag'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,7]
+                emagCat=array(sdssResult['e_rmag'].data)
                 logger.debug(emagCat)
             if filterCode=='ip':
-                magCat=sdssSearchResult[:,8]
+                magCat=array(sdssResult['imag'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,9]
+                emagCat=array(sdssResult['e_imag'].data)
                 logger.debug(emagCat)
             if filterCode=='zs':
-                magCat=sdssSearchResult[:,10]
+                magCat=array(sdssResult['zmag'].data)
                 logger.debug(magCat)
-                emagCat=sdssSearchResult[:,11]
+                emagCat=array(sdssResult['e_zmag'].data)
                 logger.debug(emagCat)
 
     #Setup standard catalogue coordinates
-    catCoords=SkyCoord(ra=raCat*u.degree, dec=decCat*u.degree)
+    catCoords=SkyCoord(ra=raCat*degree, dec=decCat*degree)
 
 
     #Get calib mags for least variable IDENTIFIED stars.... not the actual stars in compUsed!! Brighter, less variable stars may be too bright for calibration!
@@ -545,13 +511,13 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         lenloop=len(compFile[:,0])
     for q in range(lenloop):
         if compFile.shape[0] ==13:
-            compCoord=SkyCoord(ra=compFile[0]*u.degree, dec=compFile[1]*u.degree)
+            compCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
         else:
-            compCoord=SkyCoord(ra=compFile[q][0]*u.degree, dec=compFile[q][1]*u.degree)
+            compCoord=SkyCoord(ra=compFile[q][0]*degree, dec=compFile[q][1]*degree)
         idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
 
-        if d2dcomp *u.arcsecond < max_sep*u.arcsecond:
-            if not np.isnan(magCat[idxcomp]):
+        if d2dcomp *arcsecond < max_sep*arcsecond:
+            if not isnan(magCat[idxcomp]):
                 #logger.debug(idxcomp)
                 #logger.debug(d2dcomp)
                 #logger.debug(magCat[idxcomp])
@@ -563,31 +529,31 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
                     calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],magCat[idxcomp],emagCat[idxcomp]])
 
     # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
-    #logger.debug(np.asarray(calibStands).shape[0])
-    if np.asarray(calibStands).shape[0] == 0:
+    #logger.debug(asarray(calibStands).shape[0])
+    if asarray(calibStands).shape[0] == 0:
         logger.info("We could not find a suitable match between any of your stars and the calibration catalogue")
         logger.info("You might need to reduce the low value (usually 10000) to get some dimmer stars in script 1")
         raise AstrosourceException("Perhaps try 5000 then 1000. You are trying to find dim stars to calibrate to.")
 
-    varimin=(np.min(np.asarray(calibStands)[:,2])) * variabilityMultiplier
+    varimin=(min(asarray(calibStands)[:,2])) * variabilityMultiplier
 
     logger.debug("varimin")
-    #logger.debug(np.asarray(calibStands)[:,2])
+    #logger.debug(asarray(calibStands)[:,2])
     logger.debug(varimin)
 
     calibStandsReject=[]
-    for q in range(len(np.asarray(calibStands)[:,0])):
+    for q in range(len(asarray(calibStands)[:,0])):
         if calibStands[q][2] > varimin:
             calibStandsReject.append(q)
             #logger.debug(calibStands[q][2])
 
-    calibStands=np.delete(calibStands, calibStandsReject, axis=0)
+    calibStands=delete(calibStands, calibStandsReject, axis=0)
 
-    calibStand=np.asarray(calibStands)
+    calibStand=asarray(calibStands)
 
-    np.savetxt(parentPath / "calibStands.csv", calibStands , delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "calibStands.csv", calibStands , delimiter=",", fmt='%0.8f')
     # Lets use this set to calibrate each datafile and pull out the calibrated compsused magnitudes
-    compUsedFile = np.genfromtxt(parentPath / 'compsUsed.csv', dtype=float, delimiter=',')
+    compUsedFile = genfromtxt(parentPath / 'compsUsed.csv', dtype=float, delimiter=',')
 
     calibCompUsed=[]
 
@@ -597,24 +563,24 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         logger.debug(file)
 
         #Get the phot file into memory
-        photFile = np.genfromtxt(parentPath / file, dtype=float, delimiter=',')
-        photCoords=SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
+        photFile = genfromtxt(parentPath / file, dtype=float, delimiter=',')
+        photCoords=SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
 
         #Convert the phot file into instrumental magnitudes
         for r in range(len(photFile[:,0])):
             photFile[r,5]=1.0857 * (photFile[r,5]/photFile[r,4])
-            photFile[r,4]=-2.5*np.log10(photFile[r,4])
+            photFile[r,4]=-2.5*log10(photFile[r,4])
 
         #Pull out the CalibStands out of each file
         tempDiff=[]
         for q in range(len(calibStands[:,0])):
-            calibCoord=SkyCoord(ra=calibStand[q][0]*u.degree,dec=calibStand[q][1]*u.degree)
+            calibCoord=SkyCoord(ra=calibStand[q][0]*degree,dec=calibStand[q][1]*degree)
             idx,d2d,d3d=calibCoord.match_to_catalog_sky(photCoords)
             tempDiff.append(calibStand[q,3]-photFile[idx,4])
 
         #logger.debug(tempDiff)
-        tempZP= (np.median(tempDiff))
-        #logger.debug(np.std(tempDiff))
+        tempZP= (median(tempDiff))
+        #logger.debug(std(tempDiff))
 
         #Shift the magnitudes in the phot file by the zeropoint
         for r in range(len(photFile[:,0])):
@@ -622,7 +588,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
 
         file = Path(file)
         #Save the calibrated photfiles to the calib directory
-        np.savetxt(calibPath / "{}.calibrated.{}".format(file.stem, file.suffix), photFile, delimiter=",", fmt='%0.8f')
+        savetxt(calibPath / "{}.calibrated.{}".format(file.stem, file.suffix), photFile, delimiter=",", fmt='%0.8f')
 
         #Look within photfile for ACTUAL usedcomps.csv and pull them out
         lineCompUsed=[]
@@ -634,9 +600,9 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         #logger.debug(compUsedFile.size)
         for r in range(lenloop):
             if compUsedFile.shape[0] ==3 and compUsedFile.size ==3:
-                compUsedCoord=SkyCoord(ra=compUsedFile[0]*u.degree,dec=compUsedFile[1]*u.degree)
+                compUsedCoord=SkyCoord(ra=compUsedFile[0]*degree,dec=compUsedFile[1]*degree)
             else:
-                compUsedCoord=SkyCoord(ra=compUsedFile[r][0]*u.degree,dec=compUsedFile[r][1]*u.degree)
+                compUsedCoord=SkyCoord(ra=compUsedFile[r][0]*degree,dec=compUsedFile[r][1]*degree)
             idx,d2d,d3d=compUsedCoord.match_to_catalog_sky(photCoords)
             lineCompUsed.append(photFile[idx,4])
 
@@ -647,7 +613,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     # Finalise calibcompsusedfile
     #logger.debug(calibCompUsed)
 
-    calibCompUsed=np.asarray(calibCompUsed)
+    calibCompUsed=asarray(calibCompUsed)
     #logger.debug(calibCompUsed[0,:])
 
     finalCompUsedFile=[]
@@ -655,37 +621,37 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     for r in range(len(calibCompUsed[0,:])):
         #Calculate magnitude and stdev
         #logger.debug(calibCompUsed[:,r])
-        #logger.debug(np.median(calibCompUsed[:,r]))
-        #logger.debug(np.std(calibCompUsed[:,r]))
-        #sumStd=sumStd+np.std(calibCompUsed[:,r])
-        sumStd.append(np.std(calibCompUsed[:,r]))
+        #logger.debug(median(calibCompUsed[:,r]))
+        #logger.debug(std(calibCompUsed[:,r]))
+        #sumStd=sumStd+std(calibCompUsed[:,r])
+        sumStd.append(std(calibCompUsed[:,r]))
         #logger.debug(calibCompUsed[:,r])
-        #logger.debug(np.std(calibCompUsed[:,r]))
+        #logger.debug(std(calibCompUsed[:,r]))
         if compUsedFile.shape[0] ==3  and compUsedFile.size ==3:
-            finalCompUsedFile.append([compUsedFile[0],compUsedFile[1],compUsedFile[2],np.median(calibCompUsed[:,r]),np.asarray(calibStands[0])[4]])
+            finalCompUsedFile.append([compUsedFile[0],compUsedFile[1],compUsedFile[2],median(calibCompUsed[:,r]),asarray(calibStands[0])[4]])
         else:
-            finalCompUsedFile.append([compUsedFile[r][0],compUsedFile[r][1],compUsedFile[r][2],np.median(calibCompUsed[:,r]),np.std(calibCompUsed[:,r])])
+            finalCompUsedFile.append([compUsedFile[r][0],compUsedFile[r][1],compUsedFile[r][2],median(calibCompUsed[:,r]),std(calibCompUsed[:,r])])
 
     #logger.debug(finalCompUsedFile)
     logger.debug(" ")
-    sumStd=np.asarray(sumStd)
+    sumStd=asarray(sumStd)
 
-    errCalib = np.median(sumStd) / pow((len(calibCompUsed[0,:])), 0.5)
+    errCalib = median(sumStd) / pow((len(calibCompUsed[0,:])), 0.5)
 
     #logger.debug(len(calibCompUsed[0,:]))
     if len(calibCompUsed[0,:]) == 1:
         logger.debug("As you only have one comparison, the uncertainty in the calibration is unclear")
         logger.debug("But we can take the catalogue value, although we should say this is a lower uncertainty")
-        logger.debug("Error/Uncertainty in Calibration: " +str(np.asarray(calibStands[0])[4]))
+        logger.debug("Error/Uncertainty in Calibration: " +str(asarray(calibStands[0])[4]))
     else:
-        logger.debug("Median Standard Deviation of any one star: " + str(np.median(sumStd)))
+        logger.debug("Median Standard Deviation of any one star: " + str(median(sumStd)))
         logger.debug("Standard Error/Uncertainty in Calibration: " +str(errCalib))
 
     with open(parentPath / "calibrationErrors.txt", "w") as f:
-        f.write("Median Standard Deviation of any one star: " + str(np.median(sumStd)) +"\n")
+        f.write("Median Standard Deviation of any one star: " + str(median(sumStd)) +"\n")
         f.write("Standard Error/Uncertainty in Calibration: " +str(errCalib))
 
     #logger.debug(finalCompUsedFile)
-    compFile = np.asarray(finalCompUsedFile)
-    np.savetxt(parentPath / "calibCompsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
+    compFile = asarray(finalCompUsedFile)
+    savetxt(parentPath / "calibCompsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
     return compFile
