@@ -181,7 +181,6 @@ def read_data_files(parentPath):
         photFileArray.append(genfromtxt(file, dtype=float, delimiter=','))
     photFileArray = asarray(photFileArray)
 
-
     #Grab the candidate comparison stars
     screened_file = parentPath / "screenedComps.csv"
     compFile = genfromtxt(screened_file, dtype=float, delimiter=',')
@@ -196,7 +195,6 @@ def ensemble_comparisons(photFileArray, compFile):
             matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
             allCounts = add(allCounts,photFile[idx][4])
-
 
         logger.debug("Total Counts in Image: {:.2f}".format(allCounts))
         fileCount=append(fileCount, allCounts)

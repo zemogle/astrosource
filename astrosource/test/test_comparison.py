@@ -2,8 +2,13 @@ from astropy.io import fits
 import numpy
 import os
 from pathlib import Path
+from mock import patch
 
-from astrosource.comparison import find_comparisons, read_data_files, find_reference_frame
+from astrosource.comparison import find_comparisons, read_data_files, find_reference_frame, \
+    remove_targets, find_comparisons_calibrated
+
+from astrosource.test.mocks import mock_vizier_query_region_vsx, mock_vizier_query_region_apass_b,\
+    mock_vizier_query_region_apass_v
 
 
 TEST_PATH_PARENT = Path(os.path.dirname(__file__)) / 'test_files'
@@ -40,3 +45,22 @@ def test_comparison():
 
     assert outfile == TEST_PATHS['parent'] / "compsUsed.csv"
     assert num_cands == 11
+
+@patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_vsx)
+def test_remove_targets_calibrated():
+    parentPath = TEST_PATHS['parent']
+    compFile, photFileArray, fileList = read_data_files(parentPath)
+    assert compFile.shape == (60,2)
+    compFile_out = remove_targets(parentPath, compFile, acceptDistance=5.0)
+    # 3 stars are removed because they are variable
+    assert compFile_out.shape == (57,2)
+
+@patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_apass_b)
+def test_find_comparisons_calibrated_b():
+    compFile = find_comparisons_calibrated('B', paths=TEST_PATHS)
+    assert compFile.shape == (11,5)
+
+@patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_apass_v)
+def test_find_comparisons_calibrated_v():
+    compFile = find_comparisons_calibrated('V', paths=TEST_PATHS)
+    assert compFile.shape == (11,5)
