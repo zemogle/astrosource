@@ -1,4 +1,4 @@
-from numpy import genfromtxt, delete, asarray, savetxt, transpose
+from numpy import genfromtxt, delete, asarray, save, savetxt, transpose
 from astropy import units as u
 from astropy import wcs
 from astropy.coordinates import SkyCoord
@@ -41,7 +41,7 @@ def rename_data_file(prihdr):
         mjdObs = 'UNKNOWN'
     else:
         mjdObs = '{0:.10f}'.format(prihdr['MJD-OBS']).replace('.','d')
-    newName="{}_{}_{}_{}_{}_{}_{}.csv".format(objectTemp, filterOne, expTime, dateObs, airMass,mjdObs, instruMe)
+    newName="{}_{}_{}_{}_{}_{}_{}.npy".format(objectTemp, filterOne, expTime, dateObs, airMass,mjdObs, instruMe)
 
     return newName
 
@@ -66,8 +66,12 @@ def extract_photometry(infile, parentPath, outfile=None):
         ra, dec = w.wcs_pix2world(xpixel, ypixel, 1)
         counts = data['flux']
         countserr = data['fluxerr']
-        savetxt(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr]), delimiter=',')
+        # savetxt(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr]), delimiter=',')
+        save(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr]))
     return outfile
+
+def convert_photometry_files(filelist):
+    return [f for f in filelist]
 
 def gather_files(paths, filetype="fz"):
     # Get list of files
@@ -75,7 +79,7 @@ def gather_files(paths, filetype="fz"):
     filelist = paths['parent'].glob("*.{}".format(filetype))
     if filetype not in ['fits','fit','fz']:
         # Assume we are not dealing with image files but photometry files
-        phot_list = [f for f in filelist]
+        phot_list = convert_photometry_files(filelist)
     else:
         phot_list = export_photometry_files(filelist, paths['parent'])
     if not phot_list:
@@ -136,7 +140,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     referenceFrame = None
 
     for file in fileList:
-        photFile = genfromtxt(file, dtype=float, delimiter=',')
+        photFile = load(file)
         if (( asarray(photFile[:,0]) > 360).sum() > 0) :
             logger.debug("REJECT")
             logger.debug(file)

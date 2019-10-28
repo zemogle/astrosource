@@ -2,8 +2,9 @@ import glob
 import sys
 import os
 from pathlib import Path
+from collections import namedtuple
 
-from numpy import min, max, median, std, isnan, delete, genfromtxt, savetxt, \
+from numpy import min, max, median, std, isnan, delete, genfromtxt, savetxt, load, \
     asarray, add, append, log10, average, array
 from astropy.units import degree, arcsecond
 from astropy.coordinates import SkyCoord
@@ -178,7 +179,7 @@ def read_data_files(parentPath):
 
     photFileArray = []
     for file in fileList:
-        photFileArray.append(genfromtxt(file, dtype=float, delimiter=','))
+        photFileArray.append(load(file))
     photFileArray = asarray(photFileArray)
 
     #Grab the candidate comparison stars
@@ -311,7 +312,51 @@ def remove_targets(parentPath, compFile, acceptDistance):
         raise AstrosourceException("Looks like you have a single comparison star!")
     return compFile
 
+
+def catalogue_call(avgCoord, opt, cat_name):
+    data = namedtuple(typename='data',field_names=['ra','dec','mag','emag'])
+
+    if cat_name == 'APASS':
+        resp = Vizier.query_region(avgCoord, '0.33 deg', catalog='APASS')['II/336/apass9']
+    elif cat_name == 'SDSS':
+        resp = SDSS.query_region(avgCoord, '0.33 deg')
+        if not resp:
+            ConeSearch.URL='http://skymapper.anu.edu.au/sm-cone/public/query?'
+            try:
+                resp = ConeSearch.query_region(avgCoord, '0.33 deg')
+            except VOSError:
+                raise AstrosourceException("Could not find RA {} Dec {} in SDSS or SkyMapper".format(avgCoord.ra.value,avgCoord.dec.value))
+    elif cat_name == 'PanSTARRS':
+        resp = Vizier.query_region(avgCoord, '0.33 deg', catalog='PanStarrs')['II/349/ps1']
+
+
+    if cat_name in ['APASS','PanSTARRS']:
+        data.ra = array(resp['RAJ2000'].data)
+        data.dec = array(resp['DEJ2000'].data)
+    else:
+        data.ra = array(resp['raj2000'].data)
+        data.dec = array(resp['dej2000'].data)
+
+    # extract RA, Dec, Mag and error as arrays
+    data.mag = array(resp[opt['filter']].data)
+    data.emag = array(resp[opt['error']].data)
+    return data
+
 def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, panStarrsInstead=False):
+    FILTERS = {
+                'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag'}},
+                'V' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag'}},
+                'up' : {'SDSS' : {'filter' : 'u_psf', 'error' : 'e_u_psf'},
+                        'PanSTARRS': {'filter' : 'umag', 'error' : 'e_umag'}},
+                'gp' : {'SDSS' : {'filter' : 'g_psf', 'error' : 'e_g_psf'},
+                        'PanSTARRS': {'filter' : 'gmag', 'error' : 'e_gmag'}},
+                'rp' : {'SDSS' : {'filter' : 'r_psf', 'error' : 'e_r_psf'},
+                        'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag'}},
+                'ip' : {'SDSS' : {'filter' : 'i_psf', 'error' : 'e_i_psf'},
+                        'PanSTARRS': {'filter' : 'imag', 'error' : 'e_imag'}},
+                'zs' : {'SDSS' : {'filter' : 'z_psf', 'error' : 'e_z_psf'},
+                        'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag'}},
+                }
 
     parentPath = paths['parent']
     calibPath = parentPath / "calibcats"
@@ -350,154 +395,21 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
 
     # get results from internetz
 
-    if filterCode=='B' or filterCode=='V':
-        #collect APASS results
-        apassResult=Vizier.query_region(avgCoord, '0.33 deg', catalog='APASS')['II/336/apass9']
-
-        logger.debug(apassResult)
-
-        logger.debug(apassResult.keys())
-
-        raCat=array(apassResult['RAJ2000'].data)
-        logger.debug(raCat)
-        decCat=array(apassResult['DEJ2000'].data)
-        logger.debug(decCat)
-        if filterCode=='B':
-            magCat=array(apassResult['Bmag'].data)
-            logger.debug(magCat)
-            emagCat=array(apassResult['e_Bmag'].data)
-            logger.debug(emagCat)
-
-        if filterCode=='V':
-            magCat=array(apassResult['Vmag'].data)
-            logger.debug(magCat)
-            emagCat=array(apassResult['e_Vmag'].data)
-            logger.debug(emagCat)
-
-
-    elif filterCode=='up' or filterCode=='gp' or filterCode=='rp' or filterCode=='ip' or filterCode=='zs':
-        # Are there entries in SDSS?
-        sdssResult=SDSS.query_region(avgCoord, '0.33 deg')
-        sdssFind=1
-        # If not in SDSS, try Skymapper
-        if sdssResult==None:
-            sdssFind=0
-            logger.debug("Not found in SDSS, must be in the South.")
-            #logger.debug(ConeSearch.URL)
-            ConeSearch.URL='http://skymapper.anu.edu.au/sm-cone/public/query?'
-            try:
-                sdssResult=ConeSearch.query_region(avgCoord, '0.33 deg')
-            except VOSError:
-                raise AstrosourceException("Could not find RA {} Dec {} in SDSS or SkyMapper".format(avgCoord.ra.value,avgCoord.dec.value))
-
-            logger.debug(sdssResult)
-
-            raCat=array(sdssResult['raj2000'].data)
-            logger.debug(raCat)
-            decCat=array(sdssResult['dej2000'].data)
-            logger.debug(decCat)
-            if filterCode=='up':
-                magCat=array(sdssResult['u_psf'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_u_psf'].data)
-                logger.debug(emagCat)
-            if filterCode=='gp':
-                magCat=array(sdssResult['g_psf'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_g_psf'].data)
-                logger.debug(emagCat)
-            if filterCode=='rp':
-                magCat=array(sdssResult['r_psf'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_r_psf'].data)
-                logger.debug(emagCat)
-            if filterCode=='ip':
-                magCat=array(sdssResult['i_psf'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_i_psf'].data)
-                logger.debug(emagCat)
-            if filterCode=='zs':
-                magCat=array(sdssResult['z_psf'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_z_psf'].data)
-                logger.debug(emagCat)
-
-        elif panStarrsInstead and filterCode!='up':
-            logger.debug("Panstarrs!")
-
-            sdssResult=Vizier.query_region(avgCoord, '0.33 deg', catalog='PanStarrs')['II/349/ps1']
-            logger.debug(sdssResult)
-            logger.debug(sdssResult.keys())
-
-            raCat=array(sdssResult['RAJ2000'].data)
-            logger.debug(raCat)
-            decCat=array(sdssResult['DEJ2000'].data)
-            logger.debug(decCat)
-            if filterCode=='up':
-                magCat=array(sdssResult['umag'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_umag'].data)
-                logger.debug(emagCat)
-            if filterCode=='gp':
-                magCat=array(sdssResult['gmag'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_gmag'].data)
-                logger.debug(emagCat)
-            if filterCode=='rp':
-                magCat=array(sdssResult['rmag'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_rmag'].data)
-                logger.debug(emagCat)
-            if filterCode=='ip':
-                magCat=array(sdssResult['imag'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_imag'].data)
-                logger.debug(emagCat)
-            if filterCode=='zs':
-                magCat=array(sdssResult['zmag'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_zmag'].data)
-                logger.debug(emagCat)
-
-
+    try:
+        catalogues = FILTERS[filterCode]
+        if panStarrsInstead and filterCode!='up':
+            cat_name = 'PanSTARRS'
         else:
-            logger.debug("goodo lets do the sdss stuff then.")
-            sdssResult=Vizier.query_region(avgCoord, '0.33 deg', catalog='SDSS')['V/147/sdss12']
-            logger.debug(sdssResult)
-            logger.debug(sdssResult.keys())
+            catalogues.pop('PanSTARRS', None)
+            cat_name = list(catalogues.keys())[0]
+        opt = catalogues[cat_name]
+    except IndexError:
+        raise AstrosourceException('Unavailable filter')
 
-            raCat=array(sdssResult['RAJ2000'].data)
-            logger.debug(raCat)
-            decCat=array(sdssResult['DEJ2000'].data)
-            logger.debug(decCat)
-            if filterCode=='up':
-                magCat=array(sdssResult['umag'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_umag'].data)
-                logger.debug(emagCat)
-            if filterCode=='gp':
-                magCat=array(sdssResult['gmag'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_gmag'].data)
-                logger.debug(emagCat)
-            if filterCode=='rp':
-                magCat=array(sdssResult['rmag'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_rmag'].data)
-                logger.debug(emagCat)
-            if filterCode=='ip':
-                magCat=array(sdssResult['imag'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_imag'].data)
-                logger.debug(emagCat)
-            if filterCode=='zs':
-                magCat=array(sdssResult['zmag'].data)
-                logger.debug(magCat)
-                emagCat=array(sdssResult['e_zmag'].data)
-                logger.debug(emagCat)
+    coords = catalogue_call(avgCoord, opt, cat_name)
 
     #Setup standard catalogue coordinates
-    catCoords=SkyCoord(ra=raCat*degree, dec=decCat*degree)
+    catCoords=SkyCoord(ra=coords.ra*degree, dec=coords.dec*degree)
 
 
     #Get calib mags for least variable IDENTIFIED stars.... not the actual stars in compUsed!! Brighter, less variable stars may be too bright for calibration!
@@ -515,16 +427,16 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
 
         if d2dcomp *arcsecond < max_sep*arcsecond:
-            if not isnan(magCat[idxcomp]):
+            if not isnan(coords.mag[idxcomp]):
                 #logger.debug(idxcomp)
                 #logger.debug(d2dcomp)
                 #logger.debug(magCat[idxcomp])
                 #logger.debug(emagCat[idxcomp])
 
                 if compFile.shape[0] ==13:
-                    calibStands.append([compFile[0],compFile[1],compFile[2],magCat[idxcomp],emagCat[idxcomp]])
+                    calibStands.append([compFile[0],compFile[1],compFile[2],coords.mag[idxcomp],coords.emag[idxcomp]])
                 else:
-                    calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],magCat[idxcomp],emagCat[idxcomp]])
+                    calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],coords.mag[idxcomp],coords.emag[idxcomp]])
 
     # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
     #logger.debug(asarray(calibStands).shape[0])
@@ -561,7 +473,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         logger.debug(file)
 
         #Get the phot file into memory
-        photFile = genfromtxt(parentPath / file, dtype=float, delimiter=',')
+        photFile = load(parentPath / file)
         photCoords=SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
 
         #Convert the phot file into instrumental magnitudes
@@ -618,13 +530,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     sumStd=[]
     for r in range(len(calibCompUsed[0,:])):
         #Calculate magnitude and stdev
-        #logger.debug(calibCompUsed[:,r])
-        #logger.debug(median(calibCompUsed[:,r]))
-        #logger.debug(std(calibCompUsed[:,r]))
-        #sumStd=sumStd+std(calibCompUsed[:,r])
         sumStd.append(std(calibCompUsed[:,r]))
-        #logger.debug(calibCompUsed[:,r])
-        #logger.debug(std(calibCompUsed[:,r]))
         if compUsedFile.shape[0] ==3  and compUsedFile.size ==3:
             finalCompUsedFile.append([compUsedFile[0],compUsedFile[1],compUsedFile[2],median(calibCompUsed[:,r]),asarray(calibStands[0])[4]])
         else:
