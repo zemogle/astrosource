@@ -23,7 +23,7 @@ def test_rename_object():
                 'MJD-OBS'   : 58508.3265502,
                 }
     name = rename_data_file(header)
-    exp_name = "M1_ip_20d0_2019d01d25T15d54d10d861857_1a6_58508d3265502000_kb92.csv"
+    exp_name = "M1_ip_20d0_2019d01d25T15d54d10d861857_1a6_58508d3265502000_kb92.npy"
     assert name == exp_name
 
 def test_rename_noobject():
@@ -38,7 +38,7 @@ def test_rename_noobject():
                 'MJD-OBS'   : 58508.3265502,
                 }
     name = rename_data_file(header)
-    exp_name = "UNKNOWN_ip_20d0_2019d01d25T15d54d10d861857_1a6_58508d3265502000_kb92.csv"
+    exp_name = "UNKNOWN_ip_20d0_2019d01d25T15d54d10d861857_1a6_58508d3265502000_kb92.npy"
     assert name == exp_name
 
 def test_rename_nomjd():
@@ -53,17 +53,17 @@ def test_rename_nomjd():
                 'MJD-OBS'   :'UNKNOWN',
                 }
     name = rename_data_file(header)
-    exp_name = "M1_ip_20d0_2019d01d25T15d54d10d861857_1a6_UNKNOWN_kb92.csv"
+    exp_name = "M1_ip_20d0_2019d01d25T15d54d10d861857_1a6_UNKNOWN_kb92.npy"
     assert name == exp_name
 
 def test_extract_photometry(tmp_path):
     # tmp_path is a Path object for a temporary directory
     infile = TEST_PATHS['parent'] / 'photometry_test.fits'
-    result_file = extract_photometry(infile, tmp_path, "test.csv")
+    result_file = extract_photometry(infile, tmp_path, "test.npy")
     # Test returned file is where we expect it for given filename
-    assert result_file == tmp_path / "test.csv"
+    assert result_file == tmp_path / "test.npy"
 
-    result_phot = numpy.genfromtxt(result_file, dtype=float, delimiter=',')
+    result_phot = numpy.load(result_file)
     test_photfile = TEST_PATHS['parent'] / 'photFile_test.csv'
     test_phot = numpy.genfromtxt(test_photfile, dtype=float, delimiter=',')
     # Test if csv file is as we expect
@@ -72,7 +72,7 @@ def test_extract_photometry(tmp_path):
 def test_gather_files():
 
     phot_files, filtercode = gather_files(TEST_PATHS, filetype="fits")
-    test_files = [TEST_PATHS['parent'] / 'XOd2_ip_22d293_2017d01d04_1a0899013_57757d0522793000_kb29.csv', TEST_PATHS['parent'] /  'XOd2_ip_22d284_2017d01d04_1a089113_57757d0532642000_kb29.csv']
+    test_files = [TEST_PATHS['parent'] / 'XOd2_ip_22d293_2017d01d04_1a0899013_57757d0522793000_kb29.npy', TEST_PATHS['parent'] /  'XOd2_ip_22d284_2017d01d04_1a089113_57757d0532642000_kb29.npy']
     assert phot_files.sort() == test_files.sort()
     # Clean up
     for tf in test_files:
@@ -81,6 +81,7 @@ def test_gather_files():
 def test_find_stars():
     target = [[117.0269708, 50.2258111, 0,0]]
     phot_files, filtercode = gather_files(TEST_PATHS, filetype="fits")
+    print(phot_files)
     usedImages = find_stars(target, TEST_PATHS, phot_files)
     images_list = [str(u) for u in usedImages]
     # Check the targets are in targetstars.csv
@@ -91,8 +92,8 @@ def test_find_stars():
     assert images_list.sort() == test_list.sort()
     # Clean up
     (TEST_PATHS['parent'] / 'usedImages.txt').unlink()
-    test_files = ['XOd2_ip_22d293_2017d01d04_1a0899013_57757d0522793000_kb29.csv',
-                  'XOd2_ip_22d284_2017d01d04_1a089113_57757d0532642000_kb29.csv',
+    test_files = ['XOd2_ip_22d293_2017d01d04_1a0899013_57757d0522793000_kb29.npy',
+                  'XOd2_ip_22d284_2017d01d04_1a089113_57757d0532642000_kb29.npy',
                   'screenedComps.csv',
                   'targetstars.csv']
     for tf in test_files:

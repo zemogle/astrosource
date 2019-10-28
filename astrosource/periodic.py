@@ -1,4 +1,4 @@
-from numpy import asarray, savetxt, std, max, min, genfromtxt
+from numpy import asarray, savetxt, std, max, min, genfromtxt, load
 import sys
 import os
 import platform
@@ -246,7 +246,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
       variableName=file.stem.split('_')[0]
       #logger.debug(str(outcatPath).replace('//',''))
       logger.debug("Variable Name: {}".format(variableName))
-      varData=genfromtxt(file, dtype=float, delimiter=',')
+      varData=load(file)
       calibFile = file.parent / "{}{}".format(file.stem.replace('diff','calib'), file.suffix)
       if calibFile.exists():
         calibData=genfromtxt(calibFile, dtype=float, delimiter=',')

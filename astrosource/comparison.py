@@ -473,6 +473,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         logger.debug(file)
 
         #Get the phot file into memory
+        print(parentPath / file)
         photFile = load(parentPath / file)
         photCoords=SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
 

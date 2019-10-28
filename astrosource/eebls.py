@@ -1,7 +1,7 @@
 import sys
 import os
 import matplotlib.pyplot as plt
-from numpy import median, zeros, nan, nanmedian, sqrt, mean, std, genfromtxt, linspace, \
+from numpy import median, zeros, nan, nanmedian, sqrt, mean, std, load, linspace, \
     zeros_like, divide
 from astropy.constants import G, R_sun, M_sun, R_jup, M_jup, R_earth, M_earth
 from astropy.coordinates import SkyCoord
@@ -175,7 +175,7 @@ def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, q
     df = (fmax-fmin)/nf
     dp = (endPeriod-startPeriod)/nf
     for file in fileList:
-        photFile = genfromtxt(file, dtype=float, delimiter=',')
+        photFile = load(file)
         logger.debug('**********************')
         logger.debug('Testing: ' + str(file))
         t = photFile[:,0]

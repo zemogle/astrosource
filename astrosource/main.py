@@ -16,7 +16,7 @@ from astrosource.periodic import plot_with_period
 
 from astrosource.utils import get_targets, folder_setup, AstrosourceException, cleanup
 
-LOG_LEVEL = logging.WARNING
+LOG_LEVEL = logging.DEBUG
 LOGFORMAT = "  %(log_color)s%(levelname)-8s%(reset)s | %(log_color)s%(message)s%(reset)s"
 logging.root.setLevel(LOG_LEVEL)
 formatter = ColoredFormatter(LOGFORMAT)

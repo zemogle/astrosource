@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from mock import patch
 
+from astrosource.identify import convert_photometry_files
 from astrosource.comparison import find_comparisons, read_data_files, find_reference_frame, \
     remove_targets, find_comparisons_calibrated
 
@@ -21,6 +22,7 @@ def test_setup():
     if used_files.exists():
         used_files.unlink()
     files = TEST_PATHS['parent'].glob('*.psx')
+    files = convert_photometry_files(files)
     with used_files.open(mode='w') as fid:
         for f in files:
             fid.write("{}\n".format(f))

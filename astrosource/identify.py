@@ -1,9 +1,10 @@
-from numpy import genfromtxt, delete, asarray, save, savetxt, transpose
+from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose
 from astropy import units as u
 from astropy import wcs
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 import glob
+from pathlib import Path
 import sys
 import os
 import logging
@@ -71,7 +72,13 @@ def extract_photometry(infile, parentPath, outfile=None):
     return outfile
 
 def convert_photometry_files(filelist):
-    return [f for f in filelist]
+    new_files = []
+    for fn in filelist:
+        photFile = genfromtxt(fn, dtype=float, delimiter=',')
+        filename = Path(fn).with_suffix('.npy')
+        save(filename, photFile)
+        new_files.append(str(filename))
+    return new_files
 
 def gather_files(paths, filetype="fz"):
     # Get list of files
@@ -184,7 +191,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     wcsFileReject=0
     for file in fileList:
         rejStartCounter = rejStartCounter +1
-        photFile = genfromtxt(file, dtype=float, delimiter=',')
+        photFile = load(file)
         # DUP fileRaDec = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
 
         logger.debug('Image Number: ' + str(rejStartCounter))

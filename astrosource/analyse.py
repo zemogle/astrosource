@@ -1,4 +1,4 @@
-from numpy import genfromtxt, savetxt, delete, asarray, multiply, log10, divide, \
+from numpy import genfromtxt, savetxt, load, delete, asarray, multiply, log10, divide, \
     less, append, add, std, average, median, inf, nan, isnan, nanstd, nanmean
 from astropy.units import degree
 from astropy.coordinates import SkyCoord
@@ -51,7 +51,7 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
     # LOAD Phot FILES INTO LIST
     photFileArray=[]
     for file in fileList:
-        photFileArray.append(genfromtxt(file, dtype=float, delimiter=','))
+        photFileArray.append(load(file))
     photFileArray=asarray(photFileArray)
 
     # LOAD IN COMPARISON FILE

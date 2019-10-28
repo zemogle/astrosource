@@ -2,7 +2,7 @@
 Detrend: this approach is only appropriate for analysing exoplanet data
 '''
 
-from numpy import genfromtxt, savetxt, delete, asarray, polyfit
+from numpy import genfromtxt, savetxt, load, delete, asarray, polyfit
 from astropy.coordinates import SkyCoord
 import glob
 import sys
@@ -31,7 +31,7 @@ def detrend_data(paths, filterCode):
     r=0
     #logger.debug(fileList)
     for file in fileList:
-        photFile = genfromtxt(file, dtype=float, delimiter=',')
+        photFile = load(file)
         exists=os.path.isfile(str(file).replace('diff','calib'))
         if exists:
             calibFile = genfromtxt(str(file).replace('diff','calib'), dtype=float, delimiter=',')

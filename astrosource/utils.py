@@ -1,4 +1,4 @@
-from numpy import asarray, genfromtxt, isnan, delete
+from numpy import asarray, genfromtxt, load, isnan, delete
 from os import getcwd, makedirs
 import shutil
 import click
@@ -70,7 +70,7 @@ def photometry_files_to_array(parentPath):
     # LOAD Phot FILES INTO LIST
     photFileArray=[]
     for file in fileList:
-        loadPhot=genfromtxt(file, dtype=float, delimiter=',')
+        loadPhot=load(file)
         if loadPhot.shape[1] > 6:
             loadPhot=delete(loadPhot,6,1)
             loadPhot=delete(loadPhot,6,1)
