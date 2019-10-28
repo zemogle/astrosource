@@ -1,5 +1,5 @@
-import numpy as np
-import os
+from numpy import asarray, genfromtxt, isnan, delete
+from os import getcwd, makedirs
 import shutil
 import click
 
@@ -46,7 +46,7 @@ def folder_setup(parentPath=None):
     #create directory structure for output files
     if not parentPath:
         # Set default inputs directory to be relative to local path
-        parentPath = Path(os.getcwd())
+        parentPath = Path(getcwd())
     paths = {
         'parent'     : parentPath,
         'outputPath' : parentPath / "outputplots",
@@ -56,7 +56,7 @@ def folder_setup(parentPath=None):
     }
     for k, path in paths.items():
         if not path.exists():
-            os.makedirs(path)
+            makedirs(path)
 
     return paths
 
@@ -70,22 +70,22 @@ def photometry_files_to_array(parentPath):
     # LOAD Phot FILES INTO LIST
     photFileArray=[]
     for file in fileList:
-        loadPhot=np.genfromtxt(file, dtype=float, delimiter=',')
+        loadPhot=genfromtxt(file, dtype=float, delimiter=',')
         if loadPhot.shape[1] > 6:
-            loadPhot=np.delete(loadPhot,6,1)
-            loadPhot=np.delete(loadPhot,6,1)
+            loadPhot=delete(loadPhot,6,1)
+            loadPhot=delete(loadPhot,6,1)
         photFileArray.append(loadPhot)
-    photFileArray=np.asarray(photFileArray)
+    photFileArray=asarray(photFileArray)
 
     return photFileArray, fileList
 
 def get_targets(targetfile):
-    targets = np.genfromtxt(targetfile, dtype=float, delimiter=',')
+    targets = genfromtxt(targetfile, dtype=float, delimiter=',')
     # Remove any nan rows from targets
     targetRejecter=[]
     if not (targets.shape[0] == 4 and targets.size ==4):
         for z in range(targets.shape[0]):
-          if np.isnan(targets[z][0]):
+          if isnan(targets[z][0]):
             targetRejecter.append(z)
-        targets=np.delete(targets, targetRejecter, axis=0)
+        targets=delete(targets, targetRejecter, axis=0)
     return targets

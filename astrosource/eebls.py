@@ -1,16 +1,15 @@
 import sys
 import os
 import matplotlib.pyplot as plt
-import numpy as np
-import astropy.units as u
+from numpy import median, zeros, nan, nanmedian, sqrt, mean, std, genfromtxt, linspace, \
+    zeros_like, divide
 from astropy.constants import G, R_sun, M_sun, R_jup, M_jup, R_earth, M_earth
 from astropy.coordinates import SkyCoord
-import pylab
 import logging
 
 from astrosource.utils import AstrosourceException
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('astrosource')
 
 def bls(t, x, qmi, qma, fmin, df, nf, nb, startPeriod, dp):
     """First trial, BLS algorithm, only minor modification from author's code
@@ -64,10 +63,10 @@ def bls(t, x, qmi, qma, fmin, df, nf, nb, startPeriod, dp):
     # Data centering
     t1 = t[0]
     u = t - t1
-    s = np.median(x) # ! Modified
+    s = median(x) # ! Modified
     v = x - s
     bpow = 0.0
-    p = np.zeros(nf)
+    p = zeros(nf)
     # setup array for power vs period plot
     powerPeriod=[]
     # Start period search
@@ -78,11 +77,11 @@ def bls(t, x, qmi, qma, fmin, df, nf, nb, startPeriod, dp):
         p0 = startPeriod + dp*jf
         f0 = 1.0/p0
         # Compute folded time series with p0 period
-        ibi = np.zeros(nbkma)
-        y = np.zeros(nbkma)
+        ibi = zeros(nbkma)
+        y = zeros(nbkma)
         # Median version
-        yMedian = np.zeros(shape=(nf,n))
-        yMedian.fill(np.nan)
+        yMedian = zeros(shape=(nf,n))
+        yMedian.fill(nan)
         for i in range(n):
             ph = u[i]*f0 # instead of t mod P, he use t*f then calculate the phase (less computation)
             ph = ph - int(ph)
@@ -94,7 +93,7 @@ def bls(t, x, qmi, qma, fmin, df, nf, nb, startPeriod, dp):
         for i in range(nb+1):
             #logger.debug(i)
             ibi[i]=1
-            y[i]=np.nanmedian(yMedian[i,:])
+            y[i]=nanmedian(yMedian[i,:])
         # Extend the arrays  ibi()  and  y() beyond nb by wrapping
         for j in range(nb1, nbkma):
             jnb = j - nb
@@ -122,7 +121,7 @@ def bls(t, x, qmi, qma, fmin, df, nf, nb, startPeriod, dp):
                     jn2 = j
                     rn3 = rn1
                     s3 = s
-        power = np.sqrt(power)
+        power = sqrt(power)
         p[jf] = power
         powerPeriod.append([p0,power])
         if power > bpow:
@@ -139,7 +138,7 @@ def bls(t, x, qmi, qma, fmin, df, nf, nb, startPeriod, dp):
                 depth = high - low
                 bper = p0
 
-    sde = (bpow - np.mean(p))/np.std(p) # signal detection efficiency
+    sde = (bpow - mean(p))/std(p) # signal detection efficiency
     return bpow, in1, in2, qtran, depth, bper, sde, p, high, low, powerPeriod
 
 def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, qma=0.1):
@@ -176,7 +175,7 @@ def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, q
     df = (fmax-fmin)/nf
     dp = (endPeriod-startPeriod)/nf
     for file in fileList:
-        photFile = np.genfromtxt(file, dtype=float, delimiter=',')
+        photFile = genfromtxt(file, dtype=float, delimiter=',')
         logger.debug('**********************')
         logger.debug('Testing: ' + str(file))
         t = photFile[:,0]
@@ -189,14 +188,14 @@ def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, q
         "\nDepth: ", res[4], "\nPeriod: ", res[5], "\nSDE: ", res[6])
             t1 = t[0]
             u = t - t1
-            s = np.mean(f)
+            s = mean(f)
             v = f - s
             f0 = 1.0/res[5] #  freq = 1/T
             nbin = nb # number of bin
             n = len(t)
-            ibi = np.zeros(nbin)
-            y = np.zeros(nbin)
-            phase = np.linspace(0.0, 1.0, nbin)
+            ibi = zeros(nbin)
+            y = zeros(nbin)
+            phase = linspace(0.0, 1.0, nbin)
             for i in range(n):
                 ph = u[i]*f0
                 ph = ph - int(ph)
@@ -206,7 +205,7 @@ def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, q
 
             plt.figure(figsize=(15,6))
 
-            powerPeriod=np.asarray(res[10])
+            powerPeriod=asarray(res[10])
             plt.subplot(1, 2, 1)
             plt.plot(powerPeriod[:,0], powerPeriod[:,1], 'r.')
 
@@ -215,8 +214,8 @@ def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, q
             plt.ylabel(r"Likelihood")
 
             plt.subplot(1, 2, 2)
-            plt.plot(phase, np.divide(y, ibi, out=np.zeros_like(y), where=ibi!=0), 'r.')
-            fite = np.zeros(nbin) + res[8] # H
+            plt.plot(phase, divide(y, ibi, out=zeros_like(y), where=ibi!=0), 'r.')
+            fite = zeros(nbin) + res[8] # H
             fite[res[1]:res[2]+1] = res[9] # L
             plt.plot(phase, fite)
             plt.gca().invert_yaxis()

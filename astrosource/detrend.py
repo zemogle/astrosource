@@ -2,12 +2,10 @@
 Detrend: this approach is only appropriate for analysing exoplanet data
 '''
 
-import numpy
-from astropy import units as u
+from numpy import genfromtxt, savetxt, delete, asarray, polyfit
 from astropy.coordinates import SkyCoord
 import glob
 import sys
-import pylab
 import math
 import os
 import platform
@@ -16,7 +14,7 @@ import click
 
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('astrosource')
 
 def detrend_data(paths, filterCode):
     polyFitRequest=1 # Currently only works with one or two coefficients
@@ -33,10 +31,10 @@ def detrend_data(paths, filterCode):
     r=0
     #logger.debug(fileList)
     for file in fileList:
-        photFile = numpy.genfromtxt(file, dtype=float, delimiter=',')
+        photFile = genfromtxt(file, dtype=float, delimiter=',')
         exists=os.path.isfile(str(file).replace('diff','calib'))
         if exists:
-            calibFile = numpy.genfromtxt(str(file).replace('diff','calib'), dtype=float, delimiter=',')
+            calibFile = genfromtxt(str(file).replace('diff','calib'), dtype=float, delimiter=',')
             logger.debug("Calibration difference")
             logger.debug(-(photFile[:,1]-calibFile[:,1])[0])
             calibDiff=-((photFile[:,1]-calibFile[:,1])[0])
@@ -68,13 +66,13 @@ def detrend_data(paths, filterCode):
                 logger.debug(photFile[i,1])
                 logger.debug("REJECT")
         logger.debug(photFile.shape[0])
-        photFile=numpy.delete(photFile, clipReject, axis=0)
+        photFile=delete(photFile, clipReject, axis=0)
         logger.debug(photFile.shape[0])
 
 
         # Get an array holding only the flat bits
         transitReject=[]
-        flatFile=numpy.asarray(photFile)
+        flatFile=asarray(photFile)
         for i in range(flatFile.shape[0]):
             if (flatFile[i,0] > float(leftMost) and flatFile[i,0] < float(leftFlat)) or (flatFile[i,0] > float(rightFlat) and flatFile[i,0] < float(rightMost)):
                 logger.debug("Keep")
@@ -83,11 +81,11 @@ def detrend_data(paths, filterCode):
                 logger.debug(flatFile[i,0])
                 logger.debug("REJECT")
         logger.debug(flatFile.shape[0])
-        flatFile=numpy.delete(flatFile, transitReject, axis=0)
+        flatFile=delete(flatFile, transitReject, axis=0)
         logger.debug(flatFile.shape[0])
 
         #
-        polyFit=numpy.polyfit(flatFile[:,0],flatFile[:,1],polyFitRequest)
+        polyFit=polyfit(flatFile[:,0],flatFile[:,1],polyFitRequest)
         logger.debug(polyFit)
 
         #Remove trend from flat bits
@@ -123,35 +121,35 @@ def detrend_data(paths, filterCode):
         # plt.close("all")
 
         # Output trimmed files
-        numpy.savetxt(paths['outcatPath'] / 'V{}_diffPeranso.txt'.format(str(r+1)), photFile, delimiter=" ", fmt='%0.8f')
-        numpy.savetxt(paths['outcatPath'] / 'V{}_diffExcel.csv'.format(str(r+1)), photFile, delimiter=",", fmt='%0.8f')
+        savetxt(paths['outcatPath'] / 'V{}_diffPeranso.txt'.format(str(r+1)), photFile, delimiter=" ", fmt='%0.8f')
+        savetxt(paths['outcatPath'] / 'V{}_diffExcel.csv'.format(str(r+1)), photFile, delimiter=",", fmt='%0.8f')
 
         # Output astroImageJ file
         outputPeransoCalib=[]
         #i=0
-        for i in range(numpy.asarray(photFile).shape[0]):
+        for i in range(asarray(photFile).shape[0]):
             outputPeransoCalib.append([photFile[i][0]-2450000.0,photFile[i][1],photFile[i][2]])
             #i=i+1
 
-        numpy.savetxt(paths['outcatPath'] / 'V{}_diffAIJ.txt'.format(str(r+1)), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
-        numpy.savetxt(paths['outcatPath'] / 'V{}_diffAIJ.csv'.format(str(r+1)), outputPeransoCalib, delimiter=",", fmt='%0.8f')
+        savetxt(paths['outcatPath'] / 'V{}_diffAIJ.txt'.format(str(r+1)), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
+        savetxt(paths['outcatPath'] / 'V{}_diffAIJ.csv'.format(str(r+1)), outputPeransoCalib, delimiter=",", fmt='%0.8f')
 
         # Output replot
-        pylab.cla()
+        plt.cla()
         outplotx=photFile[:,0]
         outploty=photFile[:,1]
-        pylab.xlabel('BJD')
-        pylab.ylabel('Differential ' +filterCode+' Mag')
-        pylab.plot(outplotx,outploty,'bo')
-        pylab.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
-        pylab.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
-        pylab.grid(True)
-        pylab.savefig(paths['outputPath'] / 'V{}_EnsembleVarDiffMag.png'.format(str(r+1)))
-        pylab.savefig(paths['outputPath'] / 'V{}_EnsembleVarDiffMag.eps'.format(str(r+1)))
-        pylab.cla()
-        pylab.clf()
-        pylab.close()
-        pylab.close("all")
+        plt.xlabel('BJD')
+        plt.ylabel('Differential ' +filterCode+' Mag')
+        plt.plot(outplotx,outploty,'bo')
+        plt.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
+        plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
+        plt.grid(True)
+        plt.savefig(paths['outputPath'] / 'V{}_EnsembleVarDiffMag.png'.format(str(r+1)))
+        plt.savefig(paths['outputPath'] / 'V{}_EnsembleVarDiffMag.eps'.format(str(r+1)))
+        plt.cla()
+        plt.clf()
+        plt.close()
+        plt.close("all")
 
 
         if exists:
@@ -162,22 +160,22 @@ def detrend_data(paths, filterCode):
                     logger.debug(calibFile[i,1])
                     logger.debug("REJECT")
             logger.debug(calibFile.shape[0])
-            calibFile=numpy.delete(calibFile, measureReject, axis=0)
+            calibFile=delete(calibFile, measureReject, axis=0)
             logger.debug(calibFile.shape[0])
 
             # Output trimmed files
-            numpy.savetxt(paths['outcatPath'] / 'V{}_calibPeranso.txt'.format(str(r+1)), calibFile, delimiter=" ", fmt='%0.8f')
-            numpy.savetxt(paths['outcatPath'] / 'V{}_calibExcel.csv'.format(str(r+1)), calibFile, delimiter=",", fmt='%0.8f')
+            savetxt(paths['outcatPath'] / 'V{}_calibPeranso.txt'.format(str(r+1)), calibFile, delimiter=" ", fmt='%0.8f')
+            savetxt(paths['outcatPath'] / 'V{}_calibExcel.csv'.format(str(r+1)), calibFile, delimiter=",", fmt='%0.8f')
 
             # Output astroImageJ file
             outputPeransoCalib=[]
             #i=0
-            for i in range(numpy.asarray(calibFile).shape[0]):
+            for i in range(asarray(calibFile).shape[0]):
                 outputPeransoCalib.append([calibFile[i][0]-2450000.0,calibFile[i][1],calibFile[i][2]])
                 #i=i+1
 
-            numpy.savetxt(paths['outcatPath'] / 'V{}_calibAIJ.txt'.format(str(r+1)), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
-            numpy.savetxt(paths['outcatPath'] / 'V{}_calibAIJ.csv'.format(str(r+1)), outputPeransoCalib, delimiter=",", fmt='%0.8f')
+            savetxt(paths['outcatPath'] / 'V{}_calibAIJ.txt'.format(str(r+1)), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
+            savetxt(paths['outcatPath'] / 'V{}_calibAIJ.csv'.format(str(r+1)), outputPeransoCalib, delimiter=",", fmt='%0.8f')
             #r=r+1
 
         r=r+1

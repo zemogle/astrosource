@@ -1,4 +1,4 @@
-import numpy as np
+from numpy import asarray, savetxt, std, max, min, genfromtxt
 import sys
 import os
 import platform
@@ -9,12 +9,12 @@ import logging
 
 from astrosource.utils import photometry_files_to_array, AstrosourceException
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('astrosource')
 
 #########################################
 
 def sortByPhase (phases, fluxes):
-    phaseIndices = np.asarray(phases).argsort()
+    phaseIndices = asarray(phases).argsort()
     sortedPhases = []
     sortedFluxes = []
     for i in range(0,len(phases)):
@@ -92,7 +92,7 @@ def sum_stdevs (sortedPhases, sortedNormalizedFluxes, numBins):
       if (j >= minIndex and j < maxIndex):
         fluxes_inrange.append(sortedNormalizedFluxes[j])
 
-    stdev_of_bin_i = np.std(fluxes_inrange)
+    stdev_of_bin_i = std(fluxes_inrange)
     stdevSum = stdevSum + stdev_of_bin_i
 
     return(stdevSum)
@@ -122,8 +122,8 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
         stdev_results.append(stdev_sum)
         periodTrialMatrix.append([periodguess,distance_sum,stdev_sum])
 
-    periodTrialMatrix=np.asarray(periodTrialMatrix)
-    np.savetxt(os.path.join(periodPath,str(variableName)+'_'+"Trials.csv"), periodTrialMatrix, delimiter=",", fmt='%0.8f')
+    periodTrialMatrix=asarray(periodTrialMatrix)
+    savetxt(os.path.join(periodPath,str(variableName)+'_'+"Trials.csv"), periodTrialMatrix, delimiter=",", fmt='%0.8f')
 
     (distance_minperiod, distance_min) = find_minimum(distance_results, periodguess_array)
     (stdev_minperiod, stdev_min) = find_minimum(stdev_results, periodguess_array)
@@ -137,10 +137,9 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
 
     # Estimating the error
     # stdev method
-    #logger.debug(np.min(stdev_results))
-    #logger.debug(np.max(stdev_results))
+
     # Get deviation to the left
-    totalRange=np.max(stdev_results) - np.min(stdev_results)
+    totalRange=max(stdev_results) - min(stdev_results)
     for q in range(len(periodguess_array)):
         if periodguess_array[q]==pdm["stdev_minperiod"]:
           beginIndex=q
@@ -188,10 +187,10 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
 
     # Estimating the error
     # stdev method
-    #logger.debug(np.min(stdev_results))
-    #logger.debug(np.max(stdev_results))
+    #logger.debug(min(stdev_results))
+    #logger.debug(max(stdev_results))
     # Get deviation to the left
-    totalRange=np.max(distance_results) - np.min(distance_results)
+    totalRange=max(distance_results) - min(distance_results)
     for q in range(len(periodguess_array)):
         if periodguess_array[q]==pdm["distance_minperiod"]:
           beginIndex=q
@@ -247,10 +246,10 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
       variableName=file.stem.split('_')[0]
       #logger.debug(str(outcatPath).replace('//',''))
       logger.debug("Variable Name: {}".format(variableName))
-      varData=np.genfromtxt(file, dtype=float, delimiter=',')
+      varData=genfromtxt(file, dtype=float, delimiter=',')
       calibFile = file.parent / "{}{}".format(file.stem.replace('diff','calib'), file.suffix)
       if calibFile.exists():
-        calibData=np.genfromtxt(calibFile, dtype=float, delimiter=',')
+        calibData=genfromtxt(calibFile, dtype=float, delimiter=',')
 
       #logger.debug(minDate)
 
@@ -305,20 +304,20 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
       tempPeriodCatOut=[]
       for g in range(len(phaseTest)):
         tempPeriodCatOut.append([phaseTest[g],varData[g,1]])
-      tempPeriodCatOut=np.asarray(tempPeriodCatOut)
-      np.savetxt(os.path.join(periodPath,str(variableName)+'_'+"StringTrial.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+      tempPeriodCatOut=asarray(tempPeriodCatOut)
+      savetxt(os.path.join(periodPath,str(variableName)+'_'+"StringTrial.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
       tempPeriodCatOut=[]
       for g in range(len(calibData[:,0])):
         tempPeriodCatOut.append([(calibData[g,0]/(pdm["distance_minperiod"]) % 1), calibData[g,1], calibData[g,2]])
-      tempPeriodCatOut=np.asarray(tempPeriodCatOut)
-      np.savetxt(os.path.join(periodPath,str(variableName)+'_'+"String_PhasedCalibMags.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+      tempPeriodCatOut=asarray(tempPeriodCatOut)
+      savetxt(os.path.join(periodPath,str(variableName)+'_'+"String_PhasedCalibMags.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
       tempPeriodCatOut=[]
       for g in range(len(varData[:,0])):
         tempPeriodCatOut.append([(varData[g,0]/(pdm["distance_minperiod"]) % 1), varData[g,1], varData[g,2]])
-      tempPeriodCatOut=np.asarray(tempPeriodCatOut)
-      np.savetxt(os.path.join(periodPath,str(variableName)+'_'+"String_PhasedDiffMags.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+      tempPeriodCatOut=asarray(tempPeriodCatOut)
+      savetxt(os.path.join(periodPath,str(variableName)+'_'+"String_PhasedDiffMags.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
 
       logger.debug("PDM Method Estimate (days): "+ str(pdm["stdev_minperiod"]))
@@ -368,17 +367,17 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
       tempPeriodCatOut=[]
       for g in range(len(phaseTest)):
         tempPeriodCatOut.append([phaseTest[g],varData[g,1]])
-      tempPeriodCatOut=np.asarray(tempPeriodCatOut)
-      np.savetxt(os.path.join(periodPath,str(variableName)+'_'+"PDMTrial.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+      tempPeriodCatOut=asarray(tempPeriodCatOut)
+      savetxt(os.path.join(periodPath,str(variableName)+'_'+"PDMTrial.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
       tempPeriodCatOut=[]
       for g in range(len(calibData[:,0])):
         tempPeriodCatOut.append([(calibData[g,0]/(pdm["stdev_minperiod"])) % 1, calibData[g,1], calibData[g,2]])
-      tempPeriodCatOut=np.asarray(tempPeriodCatOut)
-      np.savetxt(os.path.join(periodPath,str(variableName)+'_'+"PDM_PhasedCalibMags.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+      tempPeriodCatOut=asarray(tempPeriodCatOut)
+      savetxt(os.path.join(periodPath,str(variableName)+'_'+"PDM_PhasedCalibMags.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
       tempPeriodCatOut=[]
       for g in range(len(varData[:,0])):
         tempPeriodCatOut.append([(varData[g,0]/(pdm["stdev_minperiod"])) % 1, varData[g,1], varData[g,2]])
-      tempPeriodCatOut=np.asarray(tempPeriodCatOut)
-      np.savetxt(os.path.join(periodPath,str(variableName)+'_'+"PDM_PhaseddiffMags.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+      tempPeriodCatOut=asarray(tempPeriodCatOut)
+      savetxt(os.path.join(periodPath,str(variableName)+'_'+"PDM_PhaseddiffMags.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')

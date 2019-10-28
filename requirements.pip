@@ -5,4 +5,4 @@ numpy
 pytest
 astroquery
 scipy
-pandas
+colorlog
