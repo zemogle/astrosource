@@ -42,7 +42,7 @@ def rename_data_file(prihdr):
         mjdObs = 'UNKNOWN'
     else:
         mjdObs = '{0:.10f}'.format(prihdr['MJD-OBS']).replace('.','d')
-    newName="{}_{}_{}_{}_{}_{}_{}.npy".format(objectTemp, filterOne, mhdObs, expTime, dateObs, airMass,mjdObs, instruMe)
+    newName="{}_{}_{}_{}_{}_{}_{}.npy".format(objectTemp, filterOne, mjdObs,  dateObs, airMass, expTime, instruMe)
 
     return newName
 
