@@ -45,7 +45,7 @@ def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=100000000
     outfile : str
 
     '''
-
+    sys.stdout.write("Find stable comparison stars for differential photometry\n")
     # Get list of phot files
     if not parentPath:
         parentPath = Path(os.getcwd())
@@ -343,6 +343,8 @@ def catalogue_call(avgCoord, opt, cat_name):
     return data
 
 def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, panStarrsInstead=False):
+    sys.stdout.write("Find stable comparison stars for calibrated photometry\n")
+
     FILTERS = {
                 'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag'}},
                 'V' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag'}},

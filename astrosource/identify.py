@@ -42,7 +42,7 @@ def rename_data_file(prihdr):
         mjdObs = 'UNKNOWN'
     else:
         mjdObs = '{0:.10f}'.format(prihdr['MJD-OBS']).replace('.','d')
-    newName="{}_{}_{}_{}_{}_{}_{}.npy".format(objectTemp, filterOne, expTime, dateObs, airMass,mjdObs, instruMe)
+    newName="{}_{}_{}_{}_{}_{}_{}.npy".format(objectTemp, filterOne, mhdObs, expTime, dateObs, airMass,mjdObs, instruMe)
 
     return newName
 
@@ -131,7 +131,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     used_file : str
             Path to newly created file containing all images which are usable for photometry
     """
-
+    sys.stdout.write("Finding comparison stars for photometry calculations\n")
     #Initialisation values
     usedImages=[]
     # Generate a blank targetstars.csv file
@@ -193,7 +193,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
         rejStartCounter = rejStartCounter +1
         photFile = load(file)
         # DUP fileRaDec = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
-
+        sys.stdout.write(".")
         logger.debug('Image Number: ' + str(rejStartCounter))
         logger.debug(file)
         logger.debug("Image threshold size: "+str(imgsize))
@@ -280,4 +280,5 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
         for s in usedImages:
             f.write(str(s) +"\n")
 
+    sys.stdout.write('\n')
     return usedImages

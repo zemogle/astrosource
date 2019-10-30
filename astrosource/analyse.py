@@ -181,6 +181,7 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
     return outputVariableHolder
 
 def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.5):
+    sys.stdout.write('Starting photometric calculations\n')
 
     photFileArray, fileList = photometry_files_to_array(paths['parent'])
 
@@ -259,6 +260,7 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
         compList=[]
         allcountscount=0
         for imgs in range(photFileArray.shape[0]):
+            sys.stdout.write('.')
             compList=[]
             fileRaDec = SkyCoord(ra=photFileArray[imgs][:,0]*degree, dec=photFileArray[imgs][:,1]*degree)
             idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
@@ -361,7 +363,7 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
             if outputPhot[j][10] > avgVar+(4*stdVar) or outputPhot[j][10] < avgVar-(4*stdVar) :
                 starReject.append(j)
                 stdevReject=stdevReject+1
-
+        sys.stdout.write('\n')
         logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
         logger.info("Rejected Error Measurements: : {}".format(starErrorRejCount))
         logger.info("Rejected Distance Measurements: : {}".format(starDistanceRejCount))

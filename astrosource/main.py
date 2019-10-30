@@ -16,7 +16,7 @@ from astrosource.periodic import plot_with_period
 
 from astrosource.utils import get_targets, folder_setup, AstrosourceException, cleanup
 
-LOG_LEVEL = logging.DEBUG
+LOG_LEVEL = logging.CRITICAL
 LOGFORMAT = "  %(log_color)s%(levelname)-8s%(reset)s | %(log_color)s%(message)s%(reset)s"
 logging.root.setLevel(LOG_LEVEL)
 formatter = ColoredFormatter(LOGFORMAT)
@@ -72,7 +72,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir
             find_comparisons(parentPath)
         elif full or comparison and calib:
             # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
-            if filtercode=='B' or filtercode=='V' or filtercode=='up' or filtercode=='gp' or filtercode=='rp' or filtercode=='ip' or filtercode=='zs':
+            if filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
                 find_comparisons_calibrated(filtercode, paths)
             else:
                 find_comparisons(parentPath)
@@ -80,15 +80,14 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir
             calculate_curves(targets, parentPath=parentPath)
         if full or phot:
             photometric_calculations(targets, paths=paths)
-        if full or plot and not detrend and not calib:
+        if full or plot and not detrend:
             make_plots(filterCode=filtercode, paths=paths)
         if detrend:
             detrend_data(paths, filterCode=filtercode)
+            plot_with_period(paths, filterCode=filtercode)
         if eebls:
             plot_bls(paths=paths)
-        if calib:
-            plot_with_period(paths, filterCode=filtercode)
-        logger.warning("Completed analysis")
+        sys.stdout.write("AstroSource analysis complete\n")
 
     except AstrosourceException as e:
         logger.critical(e)
