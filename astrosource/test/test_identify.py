@@ -23,7 +23,7 @@ def test_rename_object():
                 'MJD-OBS'   : 58508.3265502,
                 }
     name = rename_data_file(header)
-    exp_name = "M1_ip_20d0_2019d01d25T15d54d10d861857_1a6_58508d3265502000_kb92.npy"
+    exp_name = "M1_ip_58508d3265502000_2019d01d25T15d54d10d861857_1a6_20d0_kb92.npy"
     assert name == exp_name
 
 def test_rename_noobject():
@@ -38,7 +38,7 @@ def test_rename_noobject():
                 'MJD-OBS'   : 58508.3265502,
                 }
     name = rename_data_file(header)
-    exp_name = "UNKNOWN_ip_20d0_2019d01d25T15d54d10d861857_1a6_58508d3265502000_kb92.npy"
+    exp_name = "UNKNOWN_ip_58508d3265502000_2019d01d25T15d54d10d861857_1a6_20d0_kb92.npy"
     assert name == exp_name
 
 def test_rename_nomjd():
@@ -53,7 +53,7 @@ def test_rename_nomjd():
                 'MJD-OBS'   :'UNKNOWN',
                 }
     name = rename_data_file(header)
-    exp_name = "M1_ip_20d0_2019d01d25T15d54d10d861857_1a6_UNKNOWN_kb92.npy"
+    exp_name = "M1_ip_UNKNOWN_2019d01d25T15d54d10d861857_1a6_20d0_kb92.npy"
     assert name == exp_name
 
 def test_extract_photometry(tmp_path):
@@ -72,7 +72,7 @@ def test_extract_photometry(tmp_path):
 def test_gather_files():
 
     phot_files, filtercode = gather_files(TEST_PATHS, filetype="fits")
-    test_files = [TEST_PATHS['parent'] / 'XOd2_ip_22d293_2017d01d04_1a0899013_57757d0522793000_kb29.npy', TEST_PATHS['parent'] /  'XOd2_ip_22d284_2017d01d04_1a089113_57757d0532642000_kb29.npy']
+    test_files = [TEST_PATHS['parent'] / 'XOd2_ip_57757d0522793000_2017d01d04_1a0899013_22d293_kb29.npy', TEST_PATHS['parent'] /  'XOd2_ip_57757d0532642000_2017d01d04_1a089113_22d284_kb29.npy']
     assert phot_files.sort() == test_files.sort()
     # Clean up
     for tf in test_files:
@@ -92,8 +92,8 @@ def test_find_stars():
     assert images_list.sort() == test_list.sort()
     # Clean up
     (TEST_PATHS['parent'] / 'usedImages.txt').unlink()
-    test_files = ['XOd2_ip_22d293_2017d01d04_1a0899013_57757d0522793000_kb29.npy',
-                  'XOd2_ip_22d284_2017d01d04_1a089113_57757d0532642000_kb29.npy',
+    test_files = ['XOd2_ip_57757d0522793000_2017d01d04_1a0899013_22d293_kb29.npy',
+                  'XOd2_ip_57757d0532642000_2017d01d04_1a089113_22d284_kb29.npy',
                   'screenedComps.csv',
                   'targetstars.csv']
     for tf in test_files:

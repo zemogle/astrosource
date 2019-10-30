@@ -275,7 +275,7 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
                     #templist is a temporary holder of the resulting file.
                     tempList=photFileArray[imgs][idx,:]
                     googFile = Path(fileList[imgs]).name
-                    tempList=append(tempList, float(googFile.split("_")[5].replace("d",".")))
+                    tempList=append(tempList, float(googFile.split("_")[2].replace("d",".")))
                     tempList=append(tempList, float(googFile.split("_")[4].replace("a",".")))
                     tempList=append(tempList, allCountsArray[allcountscount][0])
                     tempList=append(tempList, allCountsArray[allcountscount][1])
