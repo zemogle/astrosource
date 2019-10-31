@@ -5,6 +5,7 @@ import logging
 from colorlog import ColoredFormatter
 
 from numpy import array
+from astropy.utils.exceptions import AstropyWarning, AstropyDeprecationWarning
 
 from astrosource.identify import find_stars, gather_files
 from astrosource.comparison import find_comparisons, find_comparisons_calibrated
@@ -26,7 +27,6 @@ stream.setFormatter(formatter)
 logger = logging.getLogger('astrosource')
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(stream)
-
 
 @click.command()
 @click.option('--full', is_flag=True)
@@ -87,7 +87,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir
             plot_with_period(paths, filterCode=filtercode)
         if eebls:
             plot_bls(paths=paths)
-        sys.stdout.write("AstroSource analysis complete\n")
+        sys.stdout.write("✅ AstroSource analysis complete\n")
 
     except AstrosourceException as e:
         logger.critical(e)

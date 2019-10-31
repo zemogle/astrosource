@@ -75,7 +75,6 @@ def photometry_files_to_array(parentPath):
             loadPhot=delete(loadPhot,6,1)
             loadPhot=delete(loadPhot,6,1)
         photFileArray.append(loadPhot)
-    photFileArray=asarray(photFileArray)
 
     return photFileArray, fileList
 

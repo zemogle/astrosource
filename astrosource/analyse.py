@@ -181,9 +181,9 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
     return outputVariableHolder
 
 def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.5):
-    sys.stdout.write('Starting photometric calculations\n')
+    sys.stdout.write('🖥 Starting photometric calculations\n')
 
-    photFileArray, fileList = photometry_files_to_array(paths['parent'])
+    photFileArray,fileList = photometry_files_to_array(paths['parent'])
 
     if (paths['parent'] / 'calibCompsUsed.csv').exists():
         logger.debug("Calibrated")
@@ -198,12 +198,11 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
     fileCount=[]
     compArray=[]
     allCountsArray=[]
-    for imgs in range(photFileArray.shape[0]):
+    for ifile, photFile in enumerate(photFileArray):
         allCounts=0.0
         allCountsErr=0.0
-        photFile = photFileArray[imgs]
         fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-        logger.debug("Calculating total Comparison counts for : {}".format(fileList[imgs]))
+        logger.debug(f"Calculating total Comparison counts for : {ifile}")
         #logger.debug(compFile.shape[0])
 
         if compFile.shape[0]== 5 and compFile.size ==5:
@@ -259,21 +258,21 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
         compArray=[]
         compList=[]
         allcountscount=0
-        for imgs in range(photFileArray.shape[0]):
+        for imgs, photFile in enumerate(photFileArray):
             sys.stdout.write('.')
             compList=[]
-            fileRaDec = SkyCoord(ra=photFileArray[imgs][:,0]*degree, dec=photFileArray[imgs][:,1]*degree)
+            fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
             idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
             starRejected=0
             if (less(d2d.arcsecond, acceptDistance)):
-                magErrVar = 1.0857 * (photFileArray[imgs][idx][5]/photFileArray[imgs][idx][4])
+                magErrVar = 1.0857 * (photFile[idx][5]/photFile[idx][4])
                 if magErrVar < errorReject:
 
                     magErrEns = 1.0857 * (allCountsErr/allCounts)
                     magErrTotal = pow( pow(magErrVar,2) + pow(magErrEns,2),0.5)
 
                     #templist is a temporary holder of the resulting file.
-                    tempList=photFileArray[imgs][idx,:]
+                    tempList=photFile[idx,:]
                     googFile = Path(fileList[imgs]).name
                     tempList=append(tempList, float(googFile.split("_")[2].replace("d",".")))
                     tempList=append(tempList, float(googFile.split("_")[4].replace("a",".")))
@@ -281,10 +280,10 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
                     tempList=append(tempList, allCountsArray[allcountscount][1])
 
                     #Differential Magnitude
-                    tempList=append(tempList, 2.5 * log10(allCountsArray[allcountscount][0]/photFileArray[imgs][idx][4]))
+                    tempList=append(tempList, 2.5 * log10(allCountsArray[allcountscount][0]/photFile[idx][4]))
                     tempList=append(tempList, magErrTotal)
-                    tempList=append(tempList, photFileArray[imgs][idx][4])
-                    tempList=append(tempList, photFileArray[imgs][idx][5])
+                    tempList=append(tempList, photFile[idx][4])
+                    tempList=append(tempList, photFile[idx][5])
 
 
 
@@ -300,7 +299,7 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
                         else:
                             matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
                         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-                        tempList=append(tempList, photFileArray[imgs][idx][4])
+                        tempList=append(tempList, photFile[idx][4])
 
                     outputPhot.append(tempList)
                     fileCount.append(allCounts)

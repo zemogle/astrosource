@@ -42,7 +42,7 @@ def rename_data_file(prihdr):
         mjdObs = 'UNKNOWN'
     else:
         mjdObs = '{0:.10f}'.format(prihdr['MJD-OBS']).replace('.','d')
-    newName="{}_{}_{}_{}_{}_{}_{}.npy".format(objectTemp, filterOne, mjdObs,  dateObs, airMass, expTime, instruMe)
+    newName=f"{objectTemp}_{filterOne}_{mjdObs}_{dateObs}_{airMass}_{expTime}_{instruMe}.npy"
 
     return newName
 
@@ -82,7 +82,7 @@ def convert_photometry_files(filelist):
 
 def gather_files(paths, filetype="fz"):
     # Get list of files
-
+    sys.stdout.write('💾 Inspecting input files\n')
     filelist = paths['parent'].glob("*.{}".format(filetype))
     if filetype not in ['fits','fit','fz']:
         # Assume we are not dealing with image files but photometry files
@@ -131,7 +131,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     used_file : str
             Path to newly created file containing all images which are usable for photometry
     """
-    sys.stdout.write("Finding comparison stars for photometry calculations\n")
+    sys.stdout.write("🌟 Identify comparison stars for photometry calculations\n")
     #Initialisation values
     usedImages=[]
     # Generate a blank targetstars.csv file
@@ -159,8 +159,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
         else:
             # Sort through and find the largest file and use that as the reference file
             if photFile.size > fileSizer:
-                phottmparr = asarray(photFile)
-                if (( phottmparr[:,0] > 360).sum() == 0) and ( phottmparr[0][0] != 'null') and ( phottmparr[0][0] != 0.0) :
+                if (( photFile[:,0] > 360).sum() == 0) and ( photFile[0][0] != 'null') and ( photFile[0][0] != 0.0) :
                     referenceFrame = photFile
                     fileSizer = photFile.size
                     logger.debug("{} - {}".format(photFile.size, file))
@@ -193,7 +192,6 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
         rejStartCounter = rejStartCounter +1
         photFile = load(file)
         # DUP fileRaDec = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
-        sys.stdout.write(".")
         logger.debug('Image Number: ' + str(rejStartCounter))
         logger.debug(file)
         logger.debug("Image threshold size: "+str(imgsize))
@@ -257,6 +255,8 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
             logger.error("CONTAINS TOO FEW STARS")
             logger.error('**********************')
             loFileReject=loFileReject+1
+        sys.stdout.write('.')
+        sys.stdout.flush()
 
     # Construct the output file containing candidate comparison stars
     outputComps=[]

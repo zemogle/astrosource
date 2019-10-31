@@ -45,7 +45,8 @@ def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=100000000
     outfile : str
 
     '''
-    sys.stdout.write("Find stable comparison stars for differential photometry\n")
+    sys.stdout.write("⭐️ Find stable comparison stars for differential photometry\n")
+    sys.stdout.flush()
     # Get list of phot files
     if not parentPath:
         parentPath = Path(os.getcwd())
@@ -90,6 +91,8 @@ def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=100000000
             if ( isnan(stdCompStar[j]) ) :
                 logger.debug("Star Rejected, Invalid Entry!")
                 starRejecter.append(j)
+            sys.stdout.write('.')
+            sys.stdout.flush()
         if starRejecter:
             logger.warning("Rejected {} stars".format(len(starRejecter)))
 
@@ -108,7 +111,10 @@ def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=100000000
             break
         else:
             logger.warning("Trying again")
+            sys.stdout.write('💫')
+            sys.stdout.flush()
 
+    sys.stdout.write('\n')
     logger.info('Statistical stability reached.')
     outfile, num_comparisons = final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCounts, variabilityMax)
     return outfile, num_comparisons
@@ -238,7 +244,7 @@ def remove_targets(parentPath, compFile, acceptDistance):
         targetFile=delete(targetFile, targetRejecter, axis=0)
 
     # Remove targets from consideration
-    if len(targetFile)== 4:
+    if targetFile.shape[0] == 4:
         loopLength=1
     else:
         loopLength=targetFile.shape[0]
@@ -343,7 +349,7 @@ def catalogue_call(avgCoord, opt, cat_name):
     return data
 
 def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, panStarrsInstead=False):
-    sys.stdout.write("Find stable comparison stars for calibrated photometry\n")
+    sys.stdout.write("⭐️ Find stable comparison stars for calibrated photometry\n")
 
     FILTERS = {
                 'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag'}},
@@ -471,7 +477,6 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
 
     logger.debug("CALIBRATING EACH FILE")
     for file in fileList:
-
         logger.debug(file)
 
         #Get the phot file into memory
@@ -521,7 +526,8 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
 
         #logger.debug(lineCompUsed)
         calibCompUsed.append(lineCompUsed)
-
+        sys.stdout.write('.')
+        sys.stdout.flush()
 
     # Finalise calibcompsusedfile
     #logger.debug(calibCompUsed)
@@ -561,4 +567,5 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     #logger.debug(finalCompUsedFile)
     compFile = asarray(finalCompUsedFile)
     savetxt(parentPath / "calibCompsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
+    sys.stdout.write('\n')
     return compFile
