@@ -67,7 +67,7 @@ There are a few input options when running the scripts. You can either run the w
 
 `--calib` [boolean flag] Perform calibrated
 
-`--clean` [boolean flag] Remove all files except the original data files
+`--clean` [boolean flag] Remove all files except the original data files, and photometry files
 
 
 ### Example Usage
