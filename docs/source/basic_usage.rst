@@ -67,13 +67,15 @@ The above options will perform an basic analysis of the provided time-series fil
   EEBLS - box fitting to search for periodic transits
 **calib** `boolean flag`
   Perform calibrated photometry to get data in absolute magnitudes
+**imgreject** `float`
+  Image fraction rejection allowance. Defaults to `0.0`. Increasing this will allow AstroSource to reject some of your data files if there are not enough comparison stars.
 **clean** `boolean flag`
   Remove all files except the original data files
 
 Outputs
 -------
 
-By default AstroSource provides ``.csv``, ``.eps``, and ``.png`` files for brightness variation of each target with time. These files are put inside the data directory provided by ``--indir`` input. The ``.csv`` files are provides in 3 different formats, appropriate for Excel/Python, `AstroImageJ <https://www.astro.louisville.edu/software/astroimagej/>`_, and `Peranso <http://www.cbabelgium.com/peranso/>`_.
+By default AstroSource provides ``.csv``, ``.npy``, ``.eps``, and ``.png`` files for brightness variation of each target with time. These files are put inside the data directory provided by ``--indir`` input. The ``.csv`` files are provides in 3 different formats, appropriate for Excel/Python, `AstroImageJ <https://www.astro.louisville.edu/software/astroimagej/>`_, and `Peranso <http://www.cbabelgium.com/peranso/>`_. Additionally the photometry files are exported as NumPy array files, for speed of access by other parts of AstroSource.
 
 ::
 
@@ -96,7 +98,7 @@ If you have a directory ``/home/user/mydata`` which contains FITS files for an e
 
 .. code-block:: bash
 
-  $ astrosource --ra 10.3272222 --dec -9.8063889 --indir /home/user/mydata
+  $ astrosource --ra 10.3272222 --dec -9.8063889 --indir /home/user/mydata --full
 
 This will create directories under ``/home/user/mydata`` containing the plots ``outputplots`` and data ``outputcats``. The data you get back will be **differential** photometry only.
 
@@ -104,6 +106,6 @@ If you would like calibrated (i.e. data in absolute magnitudes) use the ``--cali
 
 .. code-block:: bash
 
-  $ astrosource --ra 10.3272222 --dec -9.8063889 --indir /home/user/mydata --calib
+  $ astrosource --ra 10.3272222 --dec -9.8063889 --indir /home/user/mydata --calib --full
 
 In ``outputcats`` and ``outputplots`` you will get some extra files with **calib** in the names.

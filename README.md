@@ -67,6 +67,8 @@ There are a few input options when running the scripts. You can either run the w
 
 `--calib` [boolean flag] Perform calibrated
 
+`--imgreject` [float] Image fraction rejection allowance. Defaults to `0.0`. Increasing this will allow AstroSource to reject some of your data files if there are not enough comparison stars.
+
 `--clean` [boolean flag] Remove all files except the original data files, and photometry files
 
 

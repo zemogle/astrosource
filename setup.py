@@ -10,7 +10,7 @@ with open(path.join(here, 'requirements.pip'), encoding='utf-8') as f:
 
 setup(
     name='astrosource',
-    version='1.1.0',
+    version='1.1.1',
     description='Analysis script for sources with variability in their brightness',
     long_description=long_description,
     long_description_content_type='text/markdown',
