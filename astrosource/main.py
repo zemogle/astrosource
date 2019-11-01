@@ -43,8 +43,9 @@ logger.addHandler(stream)
 @click.option('--dec', type=float)
 @click.option('--target-file', default=None, type=str)
 @click.option('--format', default='fz', type=str)
+@click.option('--imgreject','-ir', type=float, default=0.0)
 @click.option('--clean', is_flag=True)
-def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir, ra, dec, target_file, format, clean):
+def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir, ra, dec, target_file, format, imgreject, clean):
     try:
         parentPath = Path(indir)
         if clean:
@@ -67,7 +68,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir
         # sys.tracebacklimit = 0
 
         if full or stars:
-            usedimages = find_stars(targets, paths, filelist)
+            usedimages = find_stars(targets, paths, filelist, imageFracReject=imgreject)
         if full or comparison and not calib:
             find_comparisons(parentPath)
         elif full or comparison and calib:

@@ -239,11 +239,11 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
             # If we have removed all stars, we have failed!
             if (referenceFrame.shape[0]==0):
                 logger.error("Problem file - {}".format(file))
-                raise AstrosourceException("All Stars Removed. Try removing problematic files or raising the imageFracReject")
+                raise AstrosourceException("All Stars Removed. Try removing problematic files or raising --imgreject value")
 
             if (referenceFrame.shape[0]< minCompStars):
                 logger.error("Problem file - {}".format(file))
-                raise AstrosourceException("There are fewer than the requested number of Comp Stars. Try removing problematic files or raising the imageFracReject")
+                raise AstrosourceException("There are fewer than the requested number of Comp Stars. Try removing problematic files or raising --imgreject value")
 
         elif photFile.size < 7:
             logger.error('**********************')
