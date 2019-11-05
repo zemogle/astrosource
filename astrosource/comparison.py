@@ -345,7 +345,7 @@ def catalogue_call(avgCoord, opt, cat_name):
     return data
 
 def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, panStarrsInstead=False):
-    sys.stdout.write("⭐️ Find stable comparison stars for calibrated photometry\n")
+    sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
 
     FILTERS = {
                 'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag'}},
@@ -476,7 +476,6 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         logger.debug(file)
 
         #Get the phot file into memory
-        print(parentPath / file)
         photFile = load(parentPath / file)
         photCoords=SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
 

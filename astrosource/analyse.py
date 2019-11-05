@@ -52,7 +52,9 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
     photFileArray=[]
     for file in fileList:
         photFileArray.append(load(file))
-    photFileArray=asarray(photFileArray)
+
+    if not photFileArray:
+        raise AstrosourceException("No input files")
 
     # LOAD IN COMPARISON FILE
     preFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
@@ -65,8 +67,7 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
     # Sort through and find the largest file and use that as the reference file
     fileSizer=0
     logger.debug("Finding image with most stars detected")
-    for imgs in range(photFileArray.shape[0]):
-        photFile = photFileArray[imgs]
+    for photFile in photFileArray:
         if photFile.size > fileSizer:
             referenceFrame=photFile
             logger.debug(photFile.size)
@@ -82,18 +83,15 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
     compArray=[]
     allCountsArray=[]
 
-    for imgs in range(photFileArray.shape[0]):
+    for photFile in photFileArray:
         allCounts=0.0
         allCountsErr=0.0
-        photFile = photFileArray[imgs]
         fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
         #Array of comp measurements
         logger.debug("***************************************")
-        logger.debug("Calculating total Comparison counts for")
-        logger.debug(fileList[imgs])
 
         logger.debug(compFile.shape)
-        #logger.debug"Calculating total counts"
+        logger.debug("Calculating total counts")
         for j in range(compFile.shape[0]):
             if compFile.size == 2 or (compFile.shape[0]== 3 and compFile.size ==3) or (compFile.shape[0]== 5 and compFile.size ==5):
                 matchCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
@@ -140,9 +138,8 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
 
         allcountscount=0
 
-        for imgs in range(photFileArray.shape[0]):
+        for photFile in photFileArray:
             compList=[]
-            photFile = photFileArray[imgs]
 
             fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
 
