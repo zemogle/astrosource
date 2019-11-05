@@ -38,6 +38,7 @@ logger.addHandler(stream)
 @click.option('--plot', is_flag=True)
 @click.option('--detrend', is_flag=True)
 @click.option('--eebls', is_flag=True)
+@click.option('--period', is_flag=True)
 @click.option('--indir', default=None, type=str, required=True)
 @click.option('--ra', type=float)
 @click.option('--dec', type=float)
@@ -45,7 +46,7 @@ logger.addHandler(stream)
 @click.option('--format', default='fz', type=str)
 @click.option('--imgreject','-ir', type=float, default=0.0)
 @click.option('--clean', is_flag=True)
-def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir, ra, dec, target_file, format, imgreject, clean):
+def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, clean):
     try:
         parentPath = Path(indir)
         if clean:
@@ -70,7 +71,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir
         if full or stars:
             usedimages = find_stars(targets, paths, filelist, imageFracReject=imgreject)
         if full or comparison and not calib:
-            find_comparisons(parentPath)
+            find_comparisons(parentPath, filelist)
         elif full or comparison and calib:
             # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
             if filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
@@ -85,6 +86,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, indir
             make_plots(filterCode=filtercode, paths=paths)
         if detrend:
             detrend_data(paths, filterCode=filtercode)
+        if period:
             plot_with_period(paths, filterCode=filtercode)
         if eebls:
             plot_bls(paths=paths)

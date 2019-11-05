@@ -21,7 +21,7 @@ import logging
 logger = logging.getLogger('astrosource')
 
 
-def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=1000000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=5.0):
+def find_comparisons(parentPath=None, fileList=None, stdMultiplier=3, thresholdCounts=1000000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=5.0):
     '''
     Find stable comparison stars for the target photometry
 
@@ -53,7 +53,7 @@ def find_comparisons(parentPath=None, stdMultiplier=3, thresholdCounts=100000000
     if type(parentPath) == 'str':
         parentPath = Path(parentPath)
 
-    compFile, photFileArray, fileList = read_data_files(parentPath)
+    compFile, photFileArray = read_data_files(parentPath, fileList)
 
     if removeTargets == 1:
         targetFile = remove_targets(parentPath, compFile, acceptDistance)
@@ -176,11 +176,7 @@ def find_reference_frame(photFileArray):
     fileRaDec = SkyCoord(ra=referenceFrame[:,0]*degree, dec=referenceFrame[:,1]*degree)
     return referenceFrame, fileRaDec
 
-def read_data_files(parentPath):
-    fileList=[]
-    for line in (parentPath / "usedImages.txt").read_text().strip().split('\n'):
-        fileList.append(line.strip())
-
+def read_data_files(parentPath, fileList):
     # LOAD Phot FILES INTO LIST
 
     photFileArray = []
@@ -191,7 +187,7 @@ def read_data_files(parentPath):
     #Grab the candidate comparison stars
     screened_file = parentPath / "screenedComps.csv"
     compFile = genfromtxt(screened_file, dtype=float, delimiter=',')
-    return compFile, photFileArray, fileList
+    return compFile, photFileArray
 
 def ensemble_comparisons(photFileArray, compFile):
     fileCount=[]
