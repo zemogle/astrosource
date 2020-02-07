@@ -71,7 +71,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
         if full or stars:
             usedimages = find_stars(targets, paths, filelist, imageFracReject=imgreject)
         if full or comparison:
-            find_comparisons(parentPath, filelist)
+            find_comparisons(parentPath, usedimages)
             if calib and (filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']):
                 # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
                 if filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:

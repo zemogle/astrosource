@@ -12,6 +12,9 @@ from astrosource.utils import photometry_files_to_array, AstrosourceException
 
 logger = logging.getLogger('astrosource')
 
+def photometry_output(filterCode, paths):
+    return
+
 def make_plots(filterCode, paths):
 
     if (paths['parent'] / 'calibCompsUsed.csv').exists():

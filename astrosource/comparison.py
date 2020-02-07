@@ -21,7 +21,7 @@ import logging
 logger = logging.getLogger('astrosource')
 
 
-def find_comparisons(parentPath=None, fileList=None, stdMultiplier=3, thresholdCounts=1000000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=5.0):
+def find_comparisons(parentPath=None, fileList=None, stdMultiplier=3., thresholdCounts=1000000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=5.0):
     '''
     Find stable comparison stars for the target photometry
 
@@ -77,8 +77,8 @@ def find_comparisons(parentPath=None, fileList=None, stdMultiplier=3, thresholdC
 
         logger.debug(fileCount)
         logger.debug(stdCompStar)
-        logger.debug(median(stdCompStar))
-        logger.debug(std(stdCompStar))
+        logger.debug(f"Median of comparisons = {stdCompMed}")
+        logger.debug(f"STD of comparisons = {stdCompStd}")
 
         # Delete comparisons that have too high a variability
         starRejecter=[]
