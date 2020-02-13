@@ -397,20 +397,15 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         logger.debug(average(compFile[:,1]))
         avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
 
-    # get results from internetz
+    # Look up in online catalogues
+    for cat_name, opt in catalogues.items():
+        try:
+            coords = catalogue_call(avgCoord, opt, cat_name)
+        except AstrosourceException:
+            pass
 
-    try:
-        catalogues = FILTERS[filterCode]
-        if panStarrsInstead and filterCode!='up':
-            cat_name = 'PanSTARRS'
-        else:
-            catalogues.pop('PanSTARRS', None)
-            cat_name = list(catalogues.keys())[0]
-        opt = catalogues[cat_name]
-    except IndexError:
-        raise AstrosourceException('Unavailable filter')
-
-    coords = catalogue_call(avgCoord, opt, cat_name)
+    if not coords:
+        raise AstrosourceException(f"Could not find coordinate match in any catalogues for {filterCode}")
 
     #Setup standard catalogue coordinates
     catCoords=SkyCoord(ra=coords.ra*degree, dec=coords.dec*degree)

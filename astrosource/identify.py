@@ -134,9 +134,6 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     sys.stdout.write("🌟 Identify comparison stars for photometry calculations\n")
     #Initialisation values
     usedImages=[]
-    # Generate a blank targetstars.csv file
-    targetfile = paths['parent'] / "targetstars.csv"
-    savetxt(targetfile, targetStars, delimiter=",", fmt='%0.8f')
 
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
@@ -163,6 +160,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
                     referenceFrame = photFile
                     fileSizer = photFile.size
                     logger.debug("{} - {}".format(photFile.size, file))
+
     if not referenceFrame.size:
         raise AstrosourceException("No suitable reference files found")
 

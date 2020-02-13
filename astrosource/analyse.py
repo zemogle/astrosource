@@ -18,6 +18,35 @@ from astrosource.utils import photometry_files_to_array, AstrosourceException
 
 logger = logging.getLogger('astrosource')
 
+def get_total_counts(photFileArray, compFile, loopLength):
+
+    fileCount=[]
+    compArray=[]
+    allCountsArray=[]
+
+    for photFile in photFileArray:
+        allCounts=0.0
+        allCountsErr=0.0
+        fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
+        #Array of comp measurements
+        logger.debug("***************************************")
+
+        logger.debug(compFile.shape)
+        logger.debug("Calculating total counts")
+        for j in range(loopLength):
+            if compFile.size == 2 or (compFile.shape[0]== 3 and compFile.size ==3) or (compFile.shape[0]== 5 and compFile.size ==5):
+                matchCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+            else:
+                matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
+            # idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+            match = nearest_target(matchCoord, fileRaDec)
+            allCounts=allCounts+photFile[match['idx']][4]
+            allCountsErr=allCountsErr+photFile[match['idx']][5]
+            if (compFile.shape[0]== 5 and compFile.size ==5) or (compFile.shape[0]== 3 and compFile.size ==3):
+                break
+
+        allCountsArray.append([allCounts,allCountsErr])
+    return allCountsArray
 
 def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath = None):
     '''
@@ -79,33 +108,7 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
 
     # Get total counts for each file
 
-    fileCount=[]
-    compArray=[]
-    allCountsArray=[]
-
-    for photFile in photFileArray:
-        allCounts=0.0
-        allCountsErr=0.0
-        fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-        #Array of comp measurements
-        logger.debug("***************************************")
-
-        logger.debug(compFile.shape)
-        logger.debug("Calculating total counts")
-        for j in range(compFile.shape[0]):
-            if compFile.size == 2 or (compFile.shape[0]== 3 and compFile.size ==3) or (compFile.shape[0]== 5 and compFile.size ==5):
-                matchCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-            else:
-                matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
-            idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-            allCounts=allCounts+photFile[idx][4]
-            allCountsErr=allCountsErr+photFile[idx][5]
-            if (compFile.shape[0]== 5 and compFile.size ==5) or (compFile.shape[0]== 3 and compFile.size ==3):
-                break
-
-        allCountsArray.append([allCounts,allCountsErr])
-
-    logger.debug(allCountsArray)
+    allCountsArray = get_total_counts(photFileArray, compFile, loopLength= compFile.shape[0])
 
     # Define targetlist as every star in referenceImage above a count threshold
     logger.debug("Setting up Variable Search List")
@@ -192,37 +195,11 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
         calibFlag=0
 
     # Get total counts for each file
-    fileCount=[]
-    compArray=[]
-    allCountsArray=[]
-    for ifile, photFile in enumerate(photFileArray):
-        allCounts=0.0
-        allCountsErr=0.0
-        fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-        logger.debug(f"Calculating total Comparison counts for : {ifile}")
-        #logger.debug(compFile.shape[0])
-
-        if compFile.shape[0]== 5 and compFile.size ==5:
-            loopLength=1
-        else:
-            loopLength=compFile.shape[0]
-        #logger.debug(compFile.size)
-                    #sys.exit()
-        for j in range(loopLength):
-            if compFile.size == 2 or (compFile.shape[0]== 5 and compFile.size ==5):
-    ##
-    ##    for j in range(compFile.shape[0]):
-    ##        if compFile.size == 2 or compFile.shape[0] == 5:
-                matchCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-            else:
-                matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
-            idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-            allCounts=add(allCounts,photFile[idx][4])
-            allCountsErr=add(allCountsErr,photFile[idx][5])
-
-        allCountsArray.append([allCounts,allCountsErr])
-
-    logger.debug(allCountsArray)
+    if compFile.shape[0]== 5 and compFile.size ==5:
+        loopLength=1
+    else:
+        loopLength=compFile.shape[0]
+    allCountsArray = get_total_counts(photFileArray, compFile, loopLength)
 
     allcountscount=0
 
