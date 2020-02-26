@@ -397,6 +397,11 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         logger.debug(average(compFile[:,1]))
         avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
 
+    try:
+        catalogues = FILTERS[filterCode]
+    except IndexError:
+        raise AstrosourceException(f"{filterCode} is not accepted at present")
+        
     # Look up in online catalogues
     for cat_name, opt in catalogues.items():
         try:
