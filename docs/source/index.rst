@@ -42,3 +42,4 @@ Documentation
   :caption: Contents:
 
   basic_usage
+  api_usage

@@ -20,7 +20,6 @@ logger = logging.getLogger('astrosource')
 
 def get_total_counts(photFileArray, compFile, loopLength):
 
-    fileCount=[]
     compArray=[]
     allCountsArray=[]
 
@@ -38,10 +37,10 @@ def get_total_counts(photFileArray, compFile, loopLength):
                 matchCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
             else:
                 matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
-            # idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-            match = nearest_target(matchCoord, fileRaDec)
-            allCounts=allCounts+photFile[match['idx']][4]
-            allCountsErr=allCountsErr+photFile[match['idx']][5]
+
+            idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+            allCounts = allCounts + photFile[idx][4]
+            allCountsErr = allCountsErr + photFile[idx][5]
             if (compFile.shape[0]== 5 and compFile.size ==5) or (compFile.shape[0]== 3 and compFile.size ==3):
                 break
 
@@ -181,6 +180,7 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
     return outputVariableHolder
 
 def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.5):
+    fileCount=[]
     sys.stdout.write('🖥 Starting photometric calculations\n')
 
     photFileArray,fileList = photometry_files_to_array(paths['parent'])
@@ -242,7 +242,7 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
                 magErrVar = 1.0857 * (photFile[idx][5]/photFile[idx][4])
                 if magErrVar < errorReject:
 
-                    magErrEns = 1.0857 * (allCountsErr/allCounts)
+                    magErrEns = 1.0857 * (allCountsArray[allcountscount][1]/allCountsArray[allcountscount][0])
                     magErrTotal = pow( pow(magErrVar,2) + pow(magErrEns,2),0.5)
 
                     #templist is a temporary holder of the resulting file.
@@ -276,7 +276,7 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
                         tempList=append(tempList, photFile[idx][4])
 
                     outputPhot.append(tempList)
-                    fileCount.append(allCounts)
+                    fileCount.append(allCountsArray[allcountscount][0])
                     allcountscount=allcountscount+1
 
                 else:

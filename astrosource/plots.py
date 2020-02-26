@@ -156,7 +156,7 @@ def make_plots(filterCode, paths):
             savetxt(paths['outcatPath'] / '{}_calibAIJ.csv'.format(r), outputPeransoCalib, delimiter=",", fmt='%0.8f')
     return
 
-def phased_plots(paths, filterCode):
+def phased_plots(paths, filterCode, targetFile):
 
     # Load in list of used files
     fileList=[]
@@ -166,7 +166,6 @@ def phased_plots(paths, filterCode):
     fileList = paths['parent'].glob("*.p*")
     #logger.debug(fileList)
 
-    targetFile = genfromtxt(paths['parent'] / 'targetstars.csv', dtype=float, delimiter=',')
     # Remove any nan rows from targetFile
     targetRejecter=[]
     if not (targetFile.shape[0] == 4 and targetFile.size ==4):

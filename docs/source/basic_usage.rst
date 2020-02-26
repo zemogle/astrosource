@@ -1,7 +1,7 @@
 Basic Usage
 ===========
 
-AstroSource is designed to be run as a command line tool. Once you have installed it you can run it using the command ``astrosource``, however you could also use it as a library which is called from other code. In this page we will only discuss **command line usage**.
+AstroSource is designed to be run as a command line tool or a Python library. Once you have installed it you can run it using the command ``astrosource``, however you could also use it as a library which is called from other code. In this page we will only discuss **command line usage**.
 
 Time-series data
 ------------------

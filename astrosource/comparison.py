@@ -21,7 +21,7 @@ import logging
 logger = logging.getLogger('astrosource')
 
 
-def find_comparisons(parentPath=None, fileList=None, stdMultiplier=3., thresholdCounts=1000000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=5.0):
+def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=3., thresholdCounts=1000000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=5.0):
     '''
     Find stable comparison stars for the target photometry
 
@@ -56,7 +56,7 @@ def find_comparisons(parentPath=None, fileList=None, stdMultiplier=3., threshold
     compFile, photFileArray = read_data_files(parentPath, fileList)
 
     if removeTargets == 1:
-        targetFile = remove_targets(parentPath, compFile, acceptDistance)
+        targetFile = remove_targets(parentPath, compFile, acceptDistance, targets)
 
     while True:
         # First half of Loop: Add up all of the counts of all of the comparison stars
@@ -226,10 +226,9 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
         sortStars.append([cf[0],cf[1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
     return stdCompStar, sortStars
 
-def remove_targets(parentPath, compFile, acceptDistance):
+def remove_targets(parentPath, compFile, acceptDistance, targetFile):
     max_sep=acceptDistance * arcsecond
     logger.info("Removing Target Stars from potential Comparisons")
-    targetFile = genfromtxt(parentPath / 'targetstars.csv', dtype=float, delimiter=',')
     fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
     # Remove any nan rows from targetFile
     targetRejecter=[]
@@ -401,7 +400,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         catalogues = FILTERS[filterCode]
     except IndexError:
         raise AstrosourceException(f"{filterCode} is not accepted at present")
-        
+
     # Look up in online catalogues
     for cat_name, opt in catalogues.items():
         try:

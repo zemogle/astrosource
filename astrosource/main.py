@@ -7,13 +7,7 @@ from colorlog import ColoredFormatter
 from numpy import array
 from astropy.utils.exceptions import AstropyWarning, AstropyDeprecationWarning
 
-from astrosource.identify import find_stars, gather_files
-from astrosource.comparison import find_comparisons, find_comparisons_calibrated
-from astrosource.analyse import calculate_curves, photometric_calculations
-from astrosource.plots import make_plots, phased_plots
-from astrosource.eebls import plot_bls
-from astrosource.detrend import detrend_data
-from astrosource.periodic import plot_with_period
+from astrosource.astrosource import TimeSeries
 
 from astrosource.utils import get_targets, folder_setup, AstrosourceException, cleanup
 
@@ -46,7 +40,10 @@ logger.addHandler(stream)
 @click.option('--format', default='fz', type=str)
 @click.option('--imgreject','-ir', type=float, default=0.0)
 @click.option('--clean', is_flag=True)
-def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, clean):
+@click.option('--verbose','-v', is_flag=True)
+def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, clean, verbose):
+    if verbose:
+        logger.setLevel(logging.DEBUG)
     try:
         parentPath = Path(indir)
         if clean:
@@ -57,39 +54,23 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
             logger.error("Either RA and Dec or a targetfile must be specified")
             return
 
-        paths = folder_setup(parentPath)
-        filelist, filtercode = gather_files(paths, filetype=format)
-
         if ra and dec:
             targets = array([(ra,dec,0,0)])
         elif target_file:
             target_file = parentPath / target_file
             targets = get_targets(target_file)
 
-        # sys.tracebacklimit = 0
+        ts = TimeSeries(indir=parentPath, targets=targets, format=format)
 
-        if full or stars:
-            usedimages = find_stars(targets, paths, filelist, imageFracReject=imgreject)
         if full or comparison:
-            find_comparisons(parentPath, usedimages)
-            if calib and (filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']):
-                # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
-                if filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
-                    find_comparisons_calibrated(filtercode, paths)
-                else:
-                    sys.stdout.write(f'⚠️ filter {filtercode} not supported for calibration')
+            ts.analyse()
         if full or calc:
-            calculate_curves(targets, parentPath=parentPath)
+            ts.curves()
         if full or phot:
-            photometric_calculations(targets, paths=paths)
-        if full or plot and not detrend:
-            make_plots(filterCode=filtercode, paths=paths)
-        if detrend:
-            detrend_data(paths, filterCode=filtercode)
-        if period:
-            plot_with_period(paths, filterCode=filtercode)
-        if eebls:
-            plot_bls(paths=paths)
+            ts.photometry()
+        if full or plot:
+            ts.plot(detrend=detrend, period=period, eebls=eebls)
+
         sys.stdout.write("✅ AstroSource analysis complete\n")
 
     except AstrosourceException as e:
