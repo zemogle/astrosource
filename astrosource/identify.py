@@ -189,7 +189,6 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     for file in fileList:
         rejStartCounter = rejStartCounter +1
         photFile = load(file)
-        # DUP fileRaDec = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
         logger.debug('Image Number: ' + str(rejStartCounter))
         logger.debug(file)
         logger.debug("Image threshold size: "+str(imgsize))
