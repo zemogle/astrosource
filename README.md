@@ -61,6 +61,8 @@ There are a few input options when running the scripts. You can either run the w
 `--full` [boolean flag] Run the whole code. This will run the following steps in this order `stars` > `comparison` > `calc` > `phot` > `plot`
 
 ### Extra options
+`--verbose` [boolean flag] Show all system messages for AstroSource
+
 `--detrend` [boolean flag] Detrend exoplanet data
 
 `--eebls` [boolean flag] EEBLS - box fitting to search for periodic transits
