@@ -2,6 +2,27 @@ from numpy import asarray, genfromtxt, load, isnan, delete
 from os import getcwd, makedirs
 import shutil
 import click
+import colorlog
+import logging
+import logging.config
+from colorlog import ColoredFormatter
+
+def setup_logger(name, verbose=False):
+    # formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
+    LOGFORMAT = "%(log_color)s%(levelname)-8s%(reset)s | %(log_color)s%(message)s%(reset)s"
+    formatter = ColoredFormatter(LOGFORMAT)
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger(name)
+    logger.handlers = []
+    if verbose:
+        LOG_LEVEL = logging.DEBUG
+    else:
+        LOG_LEVEL = logging.CRITICAL
+    logger.setLevel(LOG_LEVEL)
+    logger.addHandler(handler)
+    return logger
 
 class Mutex(click.Option):
     def __init__(self, *args, **kwargs):

@@ -2,7 +2,6 @@ from pathlib import Path
 import click
 import sys
 import logging
-from colorlog import ColoredFormatter
 
 from numpy import array
 from astropy.utils.exceptions import AstropyWarning, AstropyDeprecationWarning
@@ -11,16 +10,7 @@ from astrosource.astrosource import TimeSeries
 
 from astrosource.utils import get_targets, folder_setup, AstrosourceException, cleanup
 
-LOG_LEVEL = logging.CRITICAL
-LOGFORMAT = "  %(log_color)s%(levelname)-8s%(reset)s | %(log_color)s%(message)s%(reset)s"
-logging.root.setLevel(LOG_LEVEL)
-formatter = ColoredFormatter(LOGFORMAT)
-stream = logging.StreamHandler()
-stream.setLevel(LOG_LEVEL)
-stream.setFormatter(formatter)
 logger = logging.getLogger('astrosource')
-logger.setLevel(LOG_LEVEL)
-logger.addHandler(stream)
 
 @click.command()
 @click.option('--full', is_flag=True)
@@ -42,8 +32,7 @@ logger.addHandler(stream)
 @click.option('--clean', is_flag=True)
 @click.option('--verbose','-v', is_flag=True)
 def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, clean, verbose):
-    if verbose:
-        logger.setLevel(logging.DEBUG)
+
     try:
         parentPath = Path(indir)
         if clean:
@@ -60,7 +49,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
             target_file = parentPath / target_file
             targets = get_targets(target_file)
 
-        ts = TimeSeries(indir=parentPath, targets=targets, format=format)
+        ts = TimeSeries(indir=parentPath, targets=targets, format=format, verbose=verbose)
 
         if full or comparison:
             ts.analyse()

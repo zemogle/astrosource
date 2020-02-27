@@ -8,9 +8,7 @@ from astrosource.eebls import plot_bls
 from astrosource.identify import find_stars, gather_files
 from astrosource.periodic import plot_with_period
 from astrosource.plots import make_plots
-from astrosource.utils import AstrosourceException, folder_setup, cleanup
-
-logger = logging.getLogger('astrosource')
+from astrosource.utils import AstrosourceException, folder_setup, cleanup, setup_logger
 
 
 class TimeSeries:
@@ -19,14 +17,16 @@ class TimeSeries:
         self.indir = Path(indir)
         self.format = kwargs.get('format','fz')
         self.imgreject = kwargs.get('imgreject',0.0)
+        verbose = kwargs.get('verbose', False)
         self.paths = folder_setup(self.indir)
+        logger = setup_logger('astrosource', verbose)
         self.filelist, self.filtercode = gather_files(self.paths, filetype=self.format)
 
-    def analyse(self):
+    def analyse(self, calib=True):
         usedimages = find_stars(self.targets, self.paths, self.filelist, imageFracReject=self.imgreject)
         find_comparisons(self.targets, self.indir, usedimages)
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
-        if self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
+        if calib == True and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
             try:
                 find_comparisons_calibrated(self.filtercode, self.paths)
             except AstrosourceException as e:

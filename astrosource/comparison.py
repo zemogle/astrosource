@@ -320,7 +320,7 @@ def catalogue_call(avgCoord, opt, cat_name):
     if cat_name == 'APASS':
         resp = Vizier.query_region(avgCoord, '0.33 deg', catalog='APASS')['II/336/apass9']
     elif cat_name == 'SDSS':
-        resp = SDSS.query_region(avgCoord, '0.33 deg')
+        resp = Vizier.query_region(avgCoord, '0.33 deg', catalog='SDSS')['V/147/sdss12']
         if not resp:
             ConeSearch.URL='http://skymapper.anu.edu.au/sm-cone/public/query?'
             try:
@@ -332,11 +332,13 @@ def catalogue_call(avgCoord, opt, cat_name):
 
 
     if cat_name in ['APASS','PanSTARRS']:
-        data.ra = array(resp['RAJ2000'].data)
-        data.dec = array(resp['DEJ2000'].data)
+        radecname = {'ra' :'RAJ2000', 'dec': 'DEJ2000'}
+    elif cat_name == 'SDSS':
+        radecname = {'ra' :'RA_ICRS', 'dec': 'DE_ICRS'}
     else:
-        data.ra = array(resp['raj2000'].data)
-        data.dec = array(resp['dej2000'].data)
+        radecname = {'ra' :'raj2000', 'dec': 'dej2000'}
+    data.ra = array(resp[radecname['ra']].data)
+    data.dec = array(resp[radecname['dec']].data)
 
     # extract RA, Dec, Mag and error as arrays
     data.mag = array(resp[opt['filter']].data)
@@ -355,7 +357,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
                         'PanSTARRS': {'filter' : 'gmag', 'error' : 'e_gmag'}},
                 'rp' : {'SDSS' : {'filter' : 'r_psf', 'error' : 'e_r_psf'},
                         'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag'}},
-                'ip' : {'SDSS' : {'filter' : 'i_psf', 'error' : 'e_i_psf'},
+                'ip' : {'SDSS' : {'filter' : 'imag', 'error' : 'e_imag'},
                         'PanSTARRS': {'filter' : 'imag', 'error' : 'e_imag'}},
                 'zs' : {'SDSS' : {'filter' : 'z_psf', 'error' : 'e_z_psf'},
                         'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag'}},

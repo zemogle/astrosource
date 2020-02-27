@@ -42,6 +42,8 @@ The basic options
   Input file format. If not `fz`, `fits`, or `fit` assumes the input files are photometry files with correct headers. If image files given, code will extra photometry from FITS extension. Defaults to `fz`.
 **full** `boolean flag`
   Run the whole code. This will run the following steps in this order `stars` > `comparison` > `calc` > `phot` > `plot`
+**verbose** `boolean flag`
+  Output all of the astrosource system messages
 
 The various stages which are run as part of **full** can be run individually, when combined with the required target information:
 
