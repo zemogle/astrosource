@@ -17,7 +17,7 @@ setup(
             'astropy',
             'click',
             'matplotlib',
-            'numpy',
+            'numpy>=1.16',
             'pytest',
             'astroquery',
             'scipy',
