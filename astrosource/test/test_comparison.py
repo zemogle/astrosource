@@ -1,5 +1,5 @@
 from astropy.io import fits
-import numpy
+from numpy import array as nparray
 import os
 from pathlib import Path
 from mock import patch
@@ -34,7 +34,6 @@ def test_read_data_files():
     files = os.listdir(TEST_PATHS['parent'])
     fileslist = TEST_PATHS['parent'].glob('*.npy')
     assert 'screenedComps.csv' in files
-    assert 'targetstars.csv' in files
     compFile, photFileArray = read_data_files(TEST_PATHS['parent'], fileslist)
     referenceFrame, fileRaDec = find_reference_frame(photFileArray)
     assert list(referenceFrame[0]) == [154.7583434, -9.6660181000000005, 271.47230000000002, 23.331099999999999, 86656.100000000006, 319.22829999999999]
@@ -44,19 +43,21 @@ def test_read_data_files():
 
 def test_comparison():
     # All files are present so we are ready to continue
-    fileslist = TEST_PATHS['parent'].glob('*.npy')
-    outfile, num_cands = find_comparisons(TEST_PATHS['parent'], fileslist)
+    filelist = TEST_PATHS['parent'].glob('*.npy')
+    targets = nparray([154.90837080,-9.80627780,0.00000000,0.00000000])
+    outfile, num_cands = find_comparisons(targets=targets, parentPath=TEST_PATHS['parent'], fileList=filelist)
 
     assert outfile == TEST_PATHS['parent'] / "compsUsed.csv"
     assert num_cands == 11
 
 @patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_vsx)
 def test_remove_targets_calibrated():
+    targets = nparray([154.90837080,-9.80627780,0.00000000,0.00000000])
     parentPath = TEST_PATHS['parent']
     fileslist = TEST_PATHS['parent'].glob('*.npy')
     compFile, photFileArray = read_data_files(parentPath, fileslist)
     assert compFile.shape == (60,2)
-    compFile_out = remove_targets(parentPath, compFile, acceptDistance=5.0)
+    compFile_out = remove_targets(parentPath, compFile, acceptDistance=5.0, targetFile=targets)
     # 3 stars are removed because they are variable
     assert compFile_out.shape == (57,2)
 

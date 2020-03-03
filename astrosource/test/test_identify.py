@@ -84,9 +84,6 @@ def test_find_stars():
     print(phot_files)
     usedImages = find_stars(target, TEST_PATHS, phot_files)
     images_list = [str(u) for u in usedImages]
-    # Check the targets are in targetstars.csv
-    test_targets = (TEST_PATHS['parent'] / 'targetstars.csv').read_text().strip().split(',')
-    assert test_targets == ['117.02697080','50.22581110','0.00000000','0.00000000']
     # Check the right files are saved
     test_list = (TEST_PATHS['parent'] / 'usedImages_test.txt').read_text().strip().split('\n')
     assert images_list.sort() == test_list.sort()
@@ -94,7 +91,6 @@ def test_find_stars():
     (TEST_PATHS['parent'] / 'usedImages.txt').unlink()
     test_files = ['XOd2_ip_57757d0522793000_2017d01d04_1a0899013_22d293_kb29.npy',
                   'XOd2_ip_57757d0532642000_2017d01d04_1a089113_22d284_kb29.npy',
-                  'screenedComps.csv',
-                  'targetstars.csv']
+                  'screenedComps.csv']
     for tf in test_files:
         (TEST_PATHS['parent'] / tf).unlink()

@@ -178,7 +178,6 @@ def find_reference_frame(photFileArray):
 
 def read_data_files(parentPath, fileList):
     # LOAD Phot FILES INTO LIST
-
     photFileArray = []
     for file in fileList:
         photFileArray.append(load(file))
