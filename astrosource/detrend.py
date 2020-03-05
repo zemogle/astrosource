@@ -31,7 +31,7 @@ def detrend_data(paths, filterCode):
     r=0
     #logger.debug(fileList)
     for file in fileList:
-        photFile = load(file)
+        photFile = load(paths['parent'] / file)
         exists=os.path.isfile(str(file).replace('diff','calib'))
         if exists:
             calibFile = genfromtxt(str(file).replace('diff','calib'), dtype=float, delimiter=',')

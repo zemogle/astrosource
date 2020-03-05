@@ -79,7 +79,7 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
     # LOAD Phot FILES INTO LIST
     photFileArray=[]
     for file in fileList:
-        photFileArray.append(load(file))
+        photFileArray.append(load(parentPath / file))
 
     if not photFileArray:
         raise AstrosourceException("No input files")

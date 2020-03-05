@@ -49,8 +49,8 @@ def rename_data_file(prihdr):
 def export_photometry_files(filelist, indir, filetype='csv'):
     phot_list = []
     for f in filelist:
-        out = extract_photometry(f, indir)
-        phot_list.append(out)
+        filepath = extract_photometry(f, indir)
+        phot_list.append(Path(filepath).name)
     return phot_list
 
 def extract_photometry(infile, parentPath, outfile=None):
@@ -75,9 +75,9 @@ def convert_photometry_files(filelist):
     new_files = []
     for fn in filelist:
         photFile = genfromtxt(fn, dtype=float, delimiter=',')
-        filename = Path(fn).with_suffix('.npy')
-        save(filename, photFile)
-        new_files.append(str(filename))
+        filepath = Path(fn).with_suffix('.npy')
+        save(filepath, photFile)
+        new_files.append(filepath.name)
     return new_files
 
 def gather_files(paths, filetype="fz"):
@@ -144,7 +144,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     referenceFrame = None
 
     for file in fileList:
-        photFile = load(file)
+        photFile = load(paths['parent'] / file)
         if (( asarray(photFile[:,0]) > 360).sum() > 0) :
             logger.debug("REJECT")
             logger.debug(file)
@@ -188,7 +188,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     wcsFileReject=0
     for file in fileList:
         rejStartCounter = rejStartCounter +1
-        photFile = load(file)
+        photFile = load(paths['parent'] / file)
         logger.debug('Image Number: ' + str(rejStartCounter))
         logger.debug(file)
         logger.debug("Image threshold size: "+str(imgsize))
@@ -275,7 +275,8 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     used_file = paths['parent'] / "usedImages.txt"
     with open(used_file, "w") as f:
         for s in usedImages:
-            f.write(str(s) +"\n")
+            filename = Path(s).name
+            f.write(str(filename) +"\n")
 
     sys.stdout.write('\n')
     return usedImages

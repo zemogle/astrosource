@@ -1,5 +1,5 @@
 from numpy import asarray, genfromtxt, load, isnan, delete
-from os import getcwd, makedirs
+from os import getcwd, makedirs, remove
 import shutil
 import click
 import colorlog
@@ -61,6 +61,9 @@ def cleanup(parentPath):
     for fname in files:
         if (parentPath / fname).exists():
             (parentPath / fname).unlink()
+
+    for fname in parentPath.glob("*.npy"):
+        remove(fname)
     return
 
 def folder_setup(parentPath=None):
@@ -91,7 +94,7 @@ def photometry_files_to_array(parentPath):
     # LOAD Phot FILES INTO LIST
     photFileArray=[]
     for file in fileList:
-        loadPhot=load(file)
+        loadPhot=load(parentPath / file)
         if loadPhot.shape[1] > 6:
             loadPhot=delete(loadPhot,6,1)
             loadPhot=delete(loadPhot,6,1)

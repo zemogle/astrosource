@@ -1,6 +1,7 @@
 from astropy.io import fits
 from numpy import array as nparray
 import os
+import pytest
 from pathlib import Path
 from mock import patch
 
@@ -16,6 +17,9 @@ TEST_PATH_PARENT = Path(os.path.dirname(__file__)) / 'test_files'
 
 TEST_PATHS = {'parent': TEST_PATH_PARENT / 'comparison'}
 
+@pytest.fixture
+def targets():
+    return nparray([154.90837080,-9.80627780,0.00000000,0.00000000])
 
 def test_setup():
     used_files = TEST_PATHS['parent'] / 'usedImages.txt'
@@ -41,18 +45,16 @@ def test_read_data_files():
     assert len(referenceFrame) == 227
     assert len(fileRaDec) == 227
 
-def test_comparison():
+def test_comparison(targets):
     # All files are present so we are ready to continue
     filelist = TEST_PATHS['parent'].glob('*.npy')
-    targets = nparray([154.90837080,-9.80627780,0.00000000,0.00000000])
     outfile, num_cands = find_comparisons(targets=targets, parentPath=TEST_PATHS['parent'], fileList=filelist)
 
     assert outfile == TEST_PATHS['parent'] / "compsUsed.csv"
     assert num_cands == 11
 
 @patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_vsx)
-def test_remove_targets_calibrated():
-    targets = nparray([154.90837080,-9.80627780,0.00000000,0.00000000])
+def test_remove_targets_calibrated(targets):
     parentPath = TEST_PATHS['parent']
     fileslist = TEST_PATHS['parent'].glob('*.npy')
     compFile, photFileArray = read_data_files(parentPath, fileslist)

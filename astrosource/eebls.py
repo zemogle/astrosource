@@ -175,7 +175,7 @@ def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, q
     df = (fmax-fmin)/nf
     dp = (endPeriod-startPeriod)/nf
     for file in fileList:
-        photFile = load(file)
+        photFile = load(paths['parent'] / file)
         logger.debug('**********************')
         logger.debug('Testing: ' + str(file))
         t = photFile[:,0]
