@@ -4,11 +4,8 @@ from astropy.units import degree
 from astropy.coordinates import SkyCoord
 import glob
 import sys
-import matplotlib
 from pathlib import Path
-matplotlib.use("Agg") # must be before pyplot
 
-import matplotlib.pyplot as plt
 import math
 import os
 
@@ -179,7 +176,7 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
 
     return outputVariableHolder
 
-def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.5):
+def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.5, filesave=True):
     fileCount=[]
     sys.stdout.write('🖥 Starting photometric calculations\n')
 
@@ -345,9 +342,11 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
         logger.info("Stdev   : {}".format(stdVar))
 
         outputPhot=delete(outputPhot, starReject, axis=0)
-        if outputPhot.shape[0] > 2:
+
+
+        if outputPhot.shape[0] <= 2:
+            raise AstrosourceException("Photometry not possible")
+        elif ouputPhot.shape[0] > 2 and filesave:
             savetxt(os.path.join(paths['outcatPath'],"doerPhot_V" +str(q+1) +".csv"), outputPhot, delimiter=",", fmt='%0.8f')
             logger.debug('Saved doerPhot_V')
-        else:
-            raise AstrosourceException("Photometry not possible")
-        return outputPhot
+    return outputPhot
