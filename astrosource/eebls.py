@@ -1,11 +1,12 @@
 import sys
 import os
+import logging
 import matplotlib.pyplot as plt
-from numpy import median, zeros, nan, nanmedian, sqrt, mean, std, load, linspace, \
-    zeros_like, divide
+from numpy import median, zeros, nan, nanmedian, sqrt, mean, std, loadtxt, linspace, \
+    zeros_like, divide, asarray
 from astropy.constants import G, R_sun, M_sun, R_jup, M_jup, R_earth, M_earth
 from astropy.coordinates import SkyCoord
-import logging
+from pathlib import Path
 
 from astrosource.utils import AstrosourceException
 
@@ -174,10 +175,10 @@ def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, q
     fmax = 1/startPeriod
     df = (fmax-fmin)/nf
     dp = (endPeriod-startPeriod)/nf
-    for file in fileList:
-        photFile = load(paths['parent'] / file)
+    for filename in fileList:
+        photFile = loadtxt(paths['outcatPath'] / Path(filename).name, delimiter=',')
         logger.debug('**********************')
-        logger.debug('Testing: ' + str(file))
+        logger.debug(f'Testing: {filename}')
         t = photFile[:,0]
         f = photFile[:,1]
         res = bls(t, f, qmi, qma, fmin, df, nf, nb, startPeriod, dp)
@@ -223,7 +224,7 @@ def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, q
             plt.xlabel(r"Phase ($\phi$)")
             plt.ylabel(r"Mean value of $x(\phi)$ in a bin")
             plt.tight_layout()
-            filebase = str(file).split("/")[-1].split("\\")[-1].replace(".csv","").replace("_calibExcel","")
+            filebase = str(filename).split("/")[-1].split("\\")[-1].replace(".csv","").replace("_calibExcel","")
             plot_filename = "{}_EELBS_Plot.png".format(filebase)
             plt.savefig(eelbsPath / plot_filename)
 
