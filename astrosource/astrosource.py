@@ -7,7 +7,7 @@ from astrosource.detrend import detrend_data
 from astrosource.eebls import plot_bls
 from astrosource.identify import find_stars, gather_files
 from astrosource.periodic import plot_with_period
-from astrosource.plots import make_plots
+from astrosource.plots import make_plots, make_calibrated_plots, open_photometry_files
 from astrosource.utils import AstrosourceException, folder_setup, cleanup, setup_logger
 
 
@@ -38,11 +38,15 @@ class TimeSeries:
     def curves(self):
         calculate_curves(targets=self.targets, parentPath=self.paths['parent'])
 
-    def photometry(self):
-        photometric_calculations(targets=self.targets, paths=self.paths)
+    def photometry(self, filesave=False):
+        self.data = photometric_calculations(targets=self.targets, paths=self.paths, filesave=filesave)
 
     def plot(self, detrend=False, period=False, eebls=False):
-        make_plots(filterCode=self.filtercode, paths=self.paths)
+        if not hasattr(self, 'data'):
+            self.data = open_photometry_files(self.paths['outcatPath'])
+        make_plots(filterCode=self.filtercode, paths=self.paths, photometrydata=self.data)
+        if (self.paths['parent'] / 'calibCompsUsed.csv').exists():
+            make_calibrated_plots(filterCode=self.filtercode, paths=self.paths, photometrydata=self.data)
         if detrend:
             detrend_data(filterCode=self.filtercode, paths=self.paths)
         if period:

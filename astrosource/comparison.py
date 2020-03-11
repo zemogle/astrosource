@@ -432,10 +432,6 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
 
         if d2dcomp *arcsecond < max_sep*arcsecond:
             if not isnan(coords.mag[idxcomp]):
-                #logger.debug(idxcomp)
-                #logger.debug(d2dcomp)
-                #logger.debug(magCat[idxcomp])
-                #logger.debug(emagCat[idxcomp])
 
                 if compFile.shape[0] ==13:
                     calibStands.append([compFile[0],compFile[1],compFile[2],coords.mag[idxcomp],coords.emag[idxcomp]])

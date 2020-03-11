@@ -205,6 +205,7 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
     else:
         loopLength=targets.shape[0]
     # For each variable calculate all the things
+    photometrydata = []
     for q in range(loopLength):
         starErrorRejCount=0
         starDistanceRejCount=0
@@ -346,7 +347,9 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
 
         if outputPhot.shape[0] <= 2:
             raise AstrosourceException("Photometry not possible")
-        elif ouputPhot.shape[0] > 2 and filesave:
+        elif outputPhot.shape[0] > 2 and filesave:
             savetxt(os.path.join(paths['outcatPath'],"doerPhot_V" +str(q+1) +".csv"), outputPhot, delimiter=",", fmt='%0.8f')
             logger.debug('Saved doerPhot_V')
-    return outputPhot
+        # Store the photometry data in array
+        photometrydata.append(outputPhot)
+    return photometrydata

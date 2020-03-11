@@ -15,20 +15,14 @@ logger = logging.getLogger('astrosource')
 def photometry_output(filterCode, paths):
     return
 
-def make_plots(filterCode, paths):
-
+def output_files(paths, photometrydata):
     if (paths['parent'] / 'calibCompsUsed.csv').exists():
         calibFlag=1
     else:
         calibFlag=0
 
-    fileList = paths['outcatPath'].glob("doer*.csv")
-    # print([f for f in fileList])
-
-    for file in fileList:
-
-        outputPhot=genfromtxt(file, delimiter=",", dtype='float')
-        r = file.stem.split("_")[-1]
+    for j, outputPhot in enumerate(photometrydata):
+        r = j+1
         logger.info("Making Plots and Catalogues for Variable " + str(r))
 
         # Output Differential peranso file
@@ -46,6 +40,23 @@ def make_plots(filterCode, paths):
         savetxt(paths['outcatPath'] / '{}_diffAIJ.txt'.format(r), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
         savetxt(paths['outcatPath'] / '{}_diffAIJ.csv'.format(r), outputPeransoCalib, delimiter=",", fmt='%0.8f')
 
+    return
+
+def open_photometry_files(outcatPath):
+    fileList = outcatPath.glob("doer*.csv")
+    photometrydata = []
+    for file in fileList:
+        outputPhot=genfromtxt(file, delimiter=",", dtype='float')
+        photometrydata.append(outputPhot)
+    return photometrydata
+
+def make_plots(filterCode, paths, photometrydata):
+
+    fileList = paths['outcatPath'].glob("doer*.csv")
+    # print([f for f in fileList])
+
+    for j, outputPhot in enumerate(photometrydata):
+        r = j + 1
         plt.cla()
         outplotx=asarray(outputPhot)[:,6]
         outploty=asarray(outputPhot)[:,10]
@@ -55,20 +66,20 @@ def make_plots(filterCode, paths):
         plt.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
         plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
         plt.grid(True)
-        plt.savefig(paths['outputPath'] / '{}_EnsembleVarDiffMag.png'.format(r))
-        plt.savefig(paths['outputPath'] / '{}_EnsembleVarDiffMag.eps'.format(r))
+        plt.savefig(paths['outputPath'] / f'{r}_EnsembleVarDiffMag.png')
+        plt.savefig(paths['outputPath'] / f'{r}_EnsembleVarDiffMag.eps')
 
         plt.cla()
         outplotx=asarray(outputPhot)[:,7]
         outploty=asarray(outputPhot)[:,10]
         plt.xlabel('Airmass')
-        plt.ylabel('Differential ' +filterCode+' Mag')
+        plt.ylabel(f'Differential {filterCode} Mag')
         plt.plot(outplotx,outploty,'bo')
         plt.ylim(min(outploty)-0.02,max(outploty)+0.02,'k-')
         plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
         plt.grid(True)
-        plt.savefig(paths['checkPath'] / '{}_AirmassEnsVarDiffMag.png'.format(r))
-        plt.savefig(paths['checkPath'] / '{}_AirmassEnsVarDiffMag.eps'.format(r))
+        plt.savefig(paths['checkPath'] / f'{r}_AirmassEnsVarDiffMag.png')
+        plt.savefig(paths['checkPath'] / f'{r}_AirmassEnsVarDiffMag.eps')
 
         plt.cla()
         outplotx=asarray(outputPhot)[:,7]
@@ -79,81 +90,83 @@ def make_plots(filterCode, paths):
         plt.ylim(min(outploty)-1000,max(outploty)+1000,'k-')
         plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
         plt.grid(True)
-        plt.savefig(paths['checkPath'] / '{}_AirmassVarCounts.png'.format(r))
-        plt.savefig(paths['checkPath'] / '{}_AirmassVarCounts.eps'.format(r))
+        plt.savefig(paths['checkPath'] / f'{r}_AirmassVarCounts.png')
+        plt.savefig(paths['checkPath'] / f'{r}_AirmassVarCounts.eps')
 
-        # Make a calibrated version
-        # Need to shift the shape of the curve against the lowest error in the catalogue.
+    return
 
-        if calibFlag == 1:
-            calibCompFile=genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
-            compFile = genfromtxt(paths['parent'] / 'stdComps.csv', dtype=float, delimiter=',')
-            logger.info("Calibrating Photometry")
-            # Load in calibrated magnitudes and add them
-            #logger.info(compFile.size)
+def make_calibrated_plots(filterCode, paths, photometrydata):
+    # Make a calibrated version
+    # Need to shift the shape of the curve against the lowest error in the catalogue.
+    for j, outputPhot in enumerate(photometrydata):
+        r = j + 1
+        calibCompFile=genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
+        compFile = genfromtxt(paths['parent'] / 'stdComps.csv', dtype=float, delimiter=',')
+        logger.info("Calibrating Photometry")
+        # Load in calibrated magnitudes and add them
+        #logger.info(compFile.size)
+        if compFile.shape[0] == 5 and compFile.size != 25:
+            ensembleMag=calibCompFile[3]
+        else:
+            ensembleMag=calibCompFile[:,3]
+        ensMag=0
+
+        if compFile.shape[0] == 5 and compFile.size != 25:
+            lenloop=1
+        else:
+            lenloop=len(calibCompFile[:,3])
+        for q in range(lenloop):
             if compFile.shape[0] == 5 and compFile.size != 25:
-                ensembleMag=calibCompFile[3]
+                ensMag=pow(10,-ensembleMag*0.4)
             else:
-                ensembleMag=calibCompFile[:,3]
-            ensMag=0
-
-            if compFile.shape[0] == 5 and compFile.size != 25:
-                lenloop=1
-            else:
-                lenloop=len(calibCompFile[:,3])
-            for q in range(lenloop):
-                if compFile.shape[0] == 5 and compFile.size != 25:
-                    ensMag=pow(10,-ensembleMag*0.4)
-                else:
-                    ensMag=ensMag+(pow(10,-ensembleMag[q]*0.4))
-            #logger.info(ensMag)
-            ensembleMag=-2.5*math.log10(ensMag)
-            logger.info("Ensemble Magnitude: "+str(ensembleMag))
+                ensMag=ensMag+(pow(10,-ensembleMag[q]*0.4))
+        #logger.info(ensMag)
+        ensembleMag=-2.5*math.log10(ensMag)
+        logger.info("Ensemble Magnitude: "+str(ensembleMag))
 
 
-            #calculate error
-            if compFile.shape[0] == 5 and compFile.size !=25:
-                ensembleMagError=calibCompFile[4]
-                #ensembleMagError=average(ensembleMagError)*1/pow(ensembleMagError.size, 0.5)
-            else:
-                ensembleMagError=calibCompFile[:,4]
-                ensembleMagError=average(ensembleMagError)*1/pow(ensembleMagError.size, 0.5)
+        #calculate error
+        if compFile.shape[0] == 5 and compFile.size !=25:
+            ensembleMagError=calibCompFile[4]
+            #ensembleMagError=average(ensembleMagError)*1/pow(ensembleMagError.size, 0.5)
+        else:
+            ensembleMagError=calibCompFile[:,4]
+            ensembleMagError=average(ensembleMagError)*1/pow(ensembleMagError.size, 0.5)
 
-            #for file in fileList:
-            for i in range(outputPhot.shape[0]):
-                outputPhot[i][10]=outputPhot[i][10]+ensembleMag
-                #outputPhot[i][11]=pow((pow(outputPhot[i][11],2)+pow(ensembleMagError,2)),0.5)
-
-
-            plt.cla()
-            outplotx=asarray(outputPhot)[:,6]
-            outploty=asarray(outputPhot)[:,10]
-            plt.xlabel('BJD')
-            plt.ylabel('Calibrated ' +filterCode+' Mag')
-            plt.plot(outplotx,outploty,'bo')
-            plt.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
-            plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
-            plt.grid(True)
-            plt.savefig(paths['outputPath'] / '{}_EnsembleVarCalibMag.png'.format(r))
-            plt.savefig(paths['outputPath'] / '{}_EnsembleVarCalibMag.eps'.format(r))
+        #for file in fileList:
+        for i in range(outputPhot.shape[0]):
+            outputPhot[i][10]=outputPhot[i][10]+ensembleMag
+            #outputPhot[i][11]=pow((pow(outputPhot[i][11],2)+pow(ensembleMagError,2)),0.5)
 
 
-            # Output Calibed peranso file
-            outputPeransoCalib=[]
-            r = file.stem.split("_")[-1]
-            for i in range(outputPhot.shape[0]):
-                outputPeransoCalib.append([outputPhot[i][6],outputPhot[i][10],outputPhot[i][11]])
-            savetxt(paths['outcatPath'] / '{}_calibPeranso.txt'.format(r), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
-            savetxt(paths['outcatPath'] / '{}_calibExcel.csv'.format(r), outputPeransoCalib, delimiter=",", fmt='%0.8f')
+        plt.cla()
+        outplotx=asarray(outputPhot)[:,6]
+        outploty=asarray(outputPhot)[:,10]
+        plt.xlabel('BJD')
+        plt.ylabel('Calibrated ' +filterCode+' Mag')
+        plt.plot(outplotx,outploty,'bo')
+        plt.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
+        plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
+        plt.grid(True)
+        plt.savefig(paths['outputPath'] / '{}_EnsembleVarCalibMag.png'.format(r))
+        plt.savefig(paths['outputPath'] / '{}_EnsembleVarCalibMag.eps'.format(r))
 
-            # Output astroImageJ file
-            outputPeransoCalib=[]
-            for i in range(asarray(outputPhot).shape[0]):
-                outputPeransoCalib.append([outputPhot[i][6]-2450000.0,outputPhot[i][10],outputPhot[i][11]])
-                #i=i+1
 
-            savetxt(paths['outcatPath'] / '{}_calibAIJ.txt'.format(r), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
-            savetxt(paths['outcatPath'] / '{}_calibAIJ.csv'.format(r), outputPeransoCalib, delimiter=",", fmt='%0.8f')
+        # Output Calibed peranso file
+        outputPeransoCalib=[]
+        for i in range(outputPhot.shape[0]):
+            outputPeransoCalib.append([outputPhot[i][6],outputPhot[i][10],outputPhot[i][11]])
+        savetxt(paths['outcatPath'] / '{}_calibPeranso.txt'.format(r), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
+        savetxt(paths['outcatPath'] / '{}_calibExcel.csv'.format(r), outputPeransoCalib, delimiter=",", fmt='%0.8f')
+
+        # Output astroImageJ file
+        outputPeransoCalib=[]
+        for i in range(asarray(outputPhot).shape[0]):
+            outputPeransoCalib.append([outputPhot[i][6]-2450000.0,outputPhot[i][10],outputPhot[i][11]])
+            #i=i+1
+
+        savetxt(paths['outcatPath'] / '{}_calibAIJ.txt'.format(r), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
+        savetxt(paths['outcatPath'] / '{}_calibAIJ.csv'.format(r), outputPeransoCalib, delimiter=",", fmt='%0.8f')
     return
 
 def phased_plots(paths, filterCode, targetFile):
@@ -191,10 +204,6 @@ def phased_plots(paths, filterCode, targetFile):
         else:
             period = targetFile[q][2]
             phaseShift = targetFile[q][3]
-
-        #logger.debug(calibFile[:,6])
-        #logger.debug(calibFile[:,10])
-        #logger.debug(calibFile[:,11])
 
         # Variable lightcurve
 

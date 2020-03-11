@@ -241,4 +241,4 @@ def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, q
                 f.write("Depth: "+ str(-res[4])+"\n")
                 f.write("Period: "+ str(res[5])+"\n")
                 f.write("SDE: "+ str(res[6])+"\n")
-    return plot_filename, texFileName
+    return

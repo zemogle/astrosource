@@ -56,7 +56,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
         if full or calc:
             ts.curves()
         if full or phot:
-            ts.photometry()
+            ts.photometry(filesave=True)
         if full or plot:
             ts.plot(detrend=detrend, period=period, eebls=eebls)
 
