@@ -185,8 +185,14 @@ def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, q
         if not res:
             raise AstrosourceException("BLS fit failed")
         else: # If it did not fail, then do the rest.
-            logger.debug("Best SR: ", res[0], "\nIngress: ", res[1], "\nEgress: ", res[2], "\nq: ", res[3], \
-        "\nDepth: ", res[4], "\nPeriod: ", res[5], "\nSDE: ", res[6])
+            logger.debug(f'Best SR: {res[0]}')
+            logger.debug(f'Ingress: {res[1]}')
+            logger.debug(f'Egress: {res[2]}')
+            logger.debug(f'q: {res[3]}')
+            logger.debug(f'Depth: {res[4]}')
+            logger.debug(f'Period: {res[5]}')
+            logger.debug(f'SDE: {res[6]}')
+
             t1 = t[0]
             u = t - t1
             s = mean(f)

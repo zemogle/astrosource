@@ -52,9 +52,6 @@ def open_photometry_files(outcatPath):
 
 def make_plots(filterCode, paths, photometrydata):
 
-    fileList = paths['outcatPath'].glob("doer*.csv")
-    # print([f for f in fileList])
-
     for j, outputPhot in enumerate(photometrydata):
         r = j + 1
         plt.cla()

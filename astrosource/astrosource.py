@@ -29,10 +29,12 @@ class TimeSeries:
         if calib == True and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
             try:
                 find_comparisons_calibrated(self.filtercode, self.paths)
+                self.calibrated = True
             except AstrosourceException as e:
                 logger.warning(e)
-
+                self.calibrated = False
         else:
+            self.calibrated = False
             sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration')
 
     def curves(self):

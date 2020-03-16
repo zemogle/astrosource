@@ -25,8 +25,6 @@ def detrend_data(paths, filterCode):
     for line in (paths['parent'] / "usedImages.txt").read_text():
         fileList.append(line.strip())
 
-    # Detect Filter Set being used
-
     fileList = paths['outcatPath'].glob('*diffExcel*csv')
     r=0
     #logger.debug(fileList)
