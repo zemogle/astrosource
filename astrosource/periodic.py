@@ -123,7 +123,7 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
         periodTrialMatrix.append([periodguess,distance_sum,stdev_sum])
 
     periodTrialMatrix=asarray(periodTrialMatrix)
-    savetxt(os.path.join(periodPath,str(variableName)+'_'+"Trials.csv"), periodTrialMatrix, delimiter=",", fmt='%0.8f')
+    savetxt(periodPath / f'{variableName}_Trials.csv', periodTrialMatrix, delimiter=",", fmt='%0.8f')
 
     (distance_minperiod, distance_min) = find_minimum(distance_results, periodguess_array)
     (stdev_minperiod, stdev_min) = find_minimum(stdev_results, periodguess_array)
@@ -139,6 +139,8 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
     # stdev method
 
     # Get deviation to the left
+    beginIndex = 0
+    beginValue = stdev_results[beginIndex]
     totalRange=max(stdev_results) - min(stdev_results)
     for q in range(len(periodguess_array)):
         if periodguess_array[q]==pdm["stdev_minperiod"]:
@@ -220,7 +222,6 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
         stepper=stepper+1
 
     pdm["distance_error"] = (righthandP - lefthandP)/2
-
     return pdm
 
 #########################################
@@ -255,7 +256,6 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         #logger.debug(minDate)
 
         pdm_results = {}
-
         pdm=phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, numBins, periodPath, variableName)
 
         plt.figure(figsize=(15, 5))
@@ -275,7 +275,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
         plt.xlabel(r"Trial Period")
         plt.ylabel(r"Likelihood of Period")
-        plt.savefig(os.path.join(periodPath,str(variableName)+'_'+"StringLikelihoodPlot.png"))
+        plt.savefig(periodPath / f"{variableName}_StringLikelihoodPlot.png")
         plt.clf()
 
         plt.plot(phaseTest, varData[:,1], 'bo', linestyle='None')
@@ -286,7 +286,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         plt.title("Period: {0} d  Steps: {1}".format(pdm["distance_minperiod"], periodsteps))
         plt.xlabel(r"Phase ($\phi$)")
         plt.ylabel(f"Differential {filterCode} Magnitude")
-        plt.savefig(os.path.join(periodPath,str(variableName)+'_'+"StringTestPeriodPlot.png"))
+        plt.savefig(periodPath / f"{variableName}_StringTestPeriodPlot.png")
         plt.clf()
 
         if calibFile.exists():
@@ -299,27 +299,27 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
             plt.title("Period: {0} d  Steps: {1}".format(pdm["distance_minperiod"], periodsteps))
             plt.xlabel(r"Phase ($\phi$)")
             plt.ylabel(f"Calibrated {filterCode} Magnitude")
-            plt.savefig(os.path.join(periodPath,str(variableName)+'_'+"StringTestPeriodPlot_Calibrated.png"))
+            plt.savefig(periodPath / f"{variableName}_StringTestPeriodPlot_Calibrated.png")
             plt.clf()
 
             tempPeriodCatOut=[]
             for g in range(len(calibData[:,0])):
                 tempPeriodCatOut.append([(calibData[g,0]/(pdm["distance_minperiod"]) % 1), calibData[g,1], calibData[g,2]])
             tempPeriodCatOut=asarray(tempPeriodCatOut)
-            savetxt(os.path.join(periodPath,str(variableName)+'_'+"String_PhasedCalibMags.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+            savetxt(periodPath / f"{variableName}_String_PhasedCalibMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
 
         tempPeriodCatOut=[]
         for g in range(len(phaseTest)):
             tempPeriodCatOut.append([phaseTest[g],varData[g,1]])
         tempPeriodCatOut=asarray(tempPeriodCatOut)
-        savetxt(os.path.join(periodPath,str(variableName)+'_'+"StringTrial.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+        savetxt(periodPath / f"{variableName}_StringTrial.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
         tempPeriodCatOut=[]
         for g in range(len(varData[:,0])):
             tempPeriodCatOut.append([(varData[g,0]/(pdm["distance_minperiod"]) % 1), varData[g,1], varData[g,2]])
         tempPeriodCatOut=asarray(tempPeriodCatOut)
-        savetxt(os.path.join(periodPath,str(variableName)+'_'+"String_PhasedDiffMags.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+        savetxt(periodPath / f"{variableName}_String_PhasedDiffMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
 
         logger.debug("PDM Method Estimate (days): "+ str(pdm["stdev_minperiod"]))
@@ -337,7 +337,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
         plt.xlabel(r"Trial Period")
         plt.ylabel(r"Likelihood of Period")
-        plt.savefig(os.path.join(periodPath,str(variableName)+'_'+"PDMLikelihoodPlot.png"))
+        plt.savefig(periodPath / f"{variableName}_PDMLikelihoodPlot.png")
 
         plt.clf()
 
@@ -350,7 +350,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         plt.title("Period: {0} d  Steps: {1}".format(pdm["stdev_minperiod"], periodsteps))
         plt.xlabel(r"Phase ($\phi$)")
         plt.ylabel(r"Differential " + str(filterCode) + " Magnitude")
-        plt.savefig(os.path.join(periodPath,str(variableName)+'_'+"PDMTestPeriodPlot.png"))
+        plt.savefig(periodPath / f"{variableName}_PDMTestPeriodPlot.png")
         plt.clf()
 
         if calibFile.exists():
@@ -363,24 +363,24 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
             plt.title("Period: {0} d  Steps: {1}".format(pdm["stdev_minperiod"], periodsteps))
             plt.xlabel(r"Phase ($\phi$)")
             plt.ylabel(r"Calibrated " + str(filterCode) + " Magnitude")
-            plt.savefig(os.path.join(periodPath,str(variableName)+'_'+"PDMTestPeriodPlot_Calibrated.png"))
+            plt.savefig(periodPath / f"{variableName}_PDMTestPeriodPlot_Calibrated.png")
             plt.clf()
 
             tempPeriodCatOut=[]
             for g in range(len(calibData[:,0])):
                 tempPeriodCatOut.append([(calibData[g,0]/(pdm["stdev_minperiod"])) % 1, calibData[g,1], calibData[g,2]])
             tempPeriodCatOut=asarray(tempPeriodCatOut)
-            savetxt(os.path.join(periodPath,str(variableName)+'_'+"PDM_PhasedCalibMags.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+            savetxt(periodPath / f"{variableName}_PDM_PhasedCalibMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
         tempPeriodCatOut=[]
         for g in range(len(phaseTest)):
             tempPeriodCatOut.append([phaseTest[g],varData[g,1]])
         tempPeriodCatOut=asarray(tempPeriodCatOut)
-        savetxt(os.path.join(periodPath,str(variableName)+'_'+"PDMTrial.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+        savetxt(periodPath / f"{variableName}_PDMTrial.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
         tempPeriodCatOut=[]
         for g in range(len(varData[:,0])):
             tempPeriodCatOut.append([(varData[g,0]/(pdm["stdev_minperiod"])) % 1, varData[g,1], varData[g,2]])
         tempPeriodCatOut=asarray(tempPeriodCatOut)
-        savetxt(os.path.join(periodPath,str(variableName)+'_'+"PDM_PhaseddiffMags.csv"), tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+        savetxt(periodPath / f"{variableName}_PDM_PhaseddiffMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
     return
