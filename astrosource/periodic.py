@@ -237,7 +237,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
     logger.debug("Filter Set: " + filterCode)
 
     fileList = paths['outcatPath'].glob('*_diffExcel.csv')
-    with open(paths['parent'] / paths['parent'] / "periodEstimates.txt", "w") as f:
+    with open(paths['parent'] / "periodEstimates.txt", "w") as f:
         f.write("Period Estimates \n\n")
 
     # Load in the files

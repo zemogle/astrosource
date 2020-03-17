@@ -228,7 +228,10 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
 def remove_targets(parentPath, compFile, acceptDistance, targetFile):
     max_sep=acceptDistance * arcsecond
     logger.info("Removing Target Stars from potential Comparisons")
-    fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
+    try:
+        fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
+    except IndexError:
+        raise AstrosourceException("Only 1 comparison star was found")
     # Remove any nan rows from targetFile
     targetRejecter=[]
     if not (targetFile.shape[0] == 4 and targetFile.size ==4):
