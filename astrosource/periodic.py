@@ -4,6 +4,7 @@ import os
 import platform
 import glob
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 import logging
 
@@ -123,7 +124,7 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
         periodTrialMatrix.append([periodguess,distance_sum,stdev_sum])
 
     periodTrialMatrix=asarray(periodTrialMatrix)
-    savetxt(periodPath / f'{variableName}_Trials.csv', periodTrialMatrix, delimiter=",", fmt='%0.8f')
+    savetxt(Path(periodPath / f'{variableName}_Trials.csv'), periodTrialMatrix, delimiter=",", fmt='%0.8f')
 
     (distance_minperiod, distance_min) = find_minimum(distance_results, periodguess_array)
     (stdev_minperiod, stdev_min) = find_minimum(stdev_results, periodguess_array)

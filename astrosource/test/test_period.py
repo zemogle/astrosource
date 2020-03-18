@@ -12,6 +12,22 @@ TEST_PATH_PARENT = Path(os.path.dirname(__file__)) / 'test_files'
 TEST_PATHS = {'parent': TEST_PATH_PARENT / 'period',
                 'outcatPath' : TEST_PATH_PARENT / 'period'}
 
+TEST_FILES = [
+            'V1_PDMLikelihoodPlot.png',
+            'V1_PDM_PhaseddiffMags.csv',
+            'V1_String_PhasedCalibMags.csv',
+            'V1_PDMTestPeriodPlot.png',
+            'V1_StringLikelihoodPlot.png',
+            'V1_String_PhasedDiffMags.csv',
+            'V1_PDMTestPeriodPlot_Calibrated.png',
+            'V1_StringTestPeriodPlot.png',
+            'V1_Trials.csv',
+            'V1_PDMTrial.csv',
+            'V1_StringTestPeriodPlot_Calibrated.png',
+            'V1_PDM_PhasedCalibMags.csv',
+            'V1_StringTrial.csv',
+]
+
 def test_pdm():
     vardata = np.genfromtxt(TEST_PATHS['parent'] / 'V1_diffExcel.csv', dtype=float, delimiter=',')
     num = 10000
@@ -24,26 +40,16 @@ def test_pdm():
     assert 0.0003 == pytest.approx(pdm['stdev_error'])
     assert 0.0001 == pytest.approx(pdm['distance_error'])
     assert len(pdm['periodguess_array']) == num
-
+    teardown_function()
 
 def test_period_files_created():
     plot_with_period(paths=TEST_PATHS, filterCode='B')
-    test_files = [
-                'V1_PDMLikelihoodPlot.png',
-                'V1_PDM_PhaseddiffMags.csv',
-                'V1_String_PhasedCalibMags.csv',
-                'V1_PDMTestPeriodPlot.png',
-                'V1_StringLikelihoodPlot.png',
-                'V1_String_PhasedDiffMags.csv',
-                'V1_PDMTestPeriodPlot_Calibrated.png',
-                'V1_StringTestPeriodPlot.png',
-                'V1_Trials.csv',
-                'V1_PDMTrial.csv',
-                'V1_StringTestPeriodPlot_Calibrated.png',
-                'V1_PDM_PhasedCalibMags.csv',
-                'V1_StringTrial.csv',
-    ]
-    for t in test_files:
+    for t in TEST_FILES:
         assert (TEST_PATHS['parent'] / 'periods' / t).exists() == True
-    for tf in test_files:
-        os.remove(TEST_PATHS['parent'] / 'periods' / tf)
+    teardown_function()
+
+def teardown_function():
+    for tf in TEST_FILES:
+        f = TEST_PATHS['parent'] / 'periods' / tf
+        if f.exists():
+            os.remove(f)
