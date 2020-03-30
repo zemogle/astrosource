@@ -76,7 +76,6 @@ def folder_setup(parentPath=None):
         'outputPath' : parentPath / "outputplots",
         'outcatPath' : parentPath / "outputcats",
         'checkPath'  : parentPath / "checkplots",
-        'inputs'     : parentPath / "inputs"
     }
     for k, path in paths.items():
         if not path.exists():
@@ -97,7 +96,7 @@ def photometry_files_to_array(parentPath):
         loadPhot=load(parentPath / file)
         if loadPhot.shape[1] > 6:
             loadPhot=delete(loadPhot,6,1)
-            loadPhot=delete(loadPhot,6,1)
+            # loadPhot=delete(loadPhot,6,1)
         photFileArray.append(loadPhot)
 
     return photFileArray, fileList

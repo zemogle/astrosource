@@ -3,6 +3,7 @@ import sys
 import os
 from pathlib import Path
 from collections import namedtuple
+import numpy as np
 
 from numpy import min, max, median, std, isnan, delete, genfromtxt, savetxt, load, \
     asarray, add, append, log10, average, array
@@ -21,7 +22,7 @@ import logging
 logger = logging.getLogger('astrosource')
 
 
-def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=3., thresholdCounts=1000000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=5.0):
+def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=3., thresholdCounts=1000000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=1.0):
     '''
     Find stable comparison stars for the target photometry
 
@@ -55,8 +56,7 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=3., 
 
     compFile, photFileArray = read_data_files(parentPath, fileList)
 
-    if removeTargets == 1:
-        targetFile = remove_targets(parentPath, compFile, acceptDistance, targets)
+    compFile = remove_stars_targets(parentPath, compFile, acceptDistance, targets, removeTargets)
 
     while True:
         # First half of Loop: Add up all of the counts of all of the comparison stars
@@ -85,7 +85,7 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=3., 
         for j in range(len(stdCompStar)):
             logger.debug(stdCompStar[j])
             if ( stdCompStar[j] > (stdCompMed + (stdMultiplier*stdCompStd)) ):
-                logger.debug("Star Rejected, Variability too high!")
+                logger.debug(f"Star {j} Rejected, Variability too high!")
                 starRejecter.append(j)
 
             if ( isnan(stdCompStar[j]) ) :
@@ -189,17 +189,18 @@ def read_data_files(parentPath, fileList):
     return compFile, photFileArray
 
 def ensemble_comparisons(photFileArray, compFile):
-    fileCount=[]
+    fileCount = []
+    logger.critical(f'{compFile.shape}')
     for photFile in photFileArray:
-        allCounts=0.0
+        allCounts = 0.0
         fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
         for cf in compFile:
             matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
             allCounts = add(allCounts,photFile[idx][4])
-
         logger.debug("Total Counts in Image: {:.2f}".format(allCounts))
-        fileCount=append(fileCount, allCounts)
+        fileCount.append(allCounts)
+    logger.debug("Total total {}".format(np.sum(np.array(fileCount))))
     return fileCount
 
 def calculate_comparison_variation(compFile, photFileArray, fileCount):
@@ -225,7 +226,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
         sortStars.append([cf[0],cf[1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
     return stdCompStar, sortStars
 
-def remove_targets(parentPath, compFile, acceptDistance, targetFile):
+def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, removeTargets):
     max_sep=acceptDistance * arcsecond
     logger.info("Removing Target Stars from potential Comparisons")
     try:
@@ -233,31 +234,34 @@ def remove_targets(parentPath, compFile, acceptDistance, targetFile):
     except IndexError:
         raise AstrosourceException("Only 1 comparison star was found")
     # Remove any nan rows from targetFile
-    targetRejecter=[]
-    if not (targetFile.shape[0] == 4 and targetFile.size ==4):
-        for z in range(targetFile.shape[0]):
-          if isnan(targetFile[z][0]):
-            targetRejecter.append(z)
-        targetFile=delete(targetFile, targetRejecter, axis=0)
+    if removeTargets:
+        targetRejecter=[]
+        if not (targetFile.shape[0] == 4 and targetFile.size ==4):
+            for z in range(targetFile.shape[0]):
+              if isnan(targetFile[z][0]):
+                targetRejecter.append(z)
+            targetFile=delete(targetFile, targetRejecter, axis=0)
 
-    # Remove targets from consideration
-    if targetFile.shape[0] == 4:
-        loopLength=1
-    else:
-        loopLength=targetFile.shape[0]
-    targetRejects=[]
-    tg_file_len = len(targetFile)
-    for tf in targetFile:
-        if tg_file_len == 4:
-            varCoord = SkyCoord(targetFile[0],(targetFile[1]), frame='icrs', unit=degree)
+        # Remove targets from consideration
+        if targetFile.shape[0] == 4:
+            loopLength=1
         else:
-            varCoord = SkyCoord(tf[0],(tf[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
-        idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
-        if d2d.arcsecond < acceptDistance:
-            targetRejects.append(idx)
-        if tg_file_len == 4:
-            break
+            loopLength=targetFile.shape[0]
+        targetRejects=[]
+        tg_file_len = len(targetFile)
+        for tf in targetFile:
+            if tg_file_len == 4:
+                varCoord = SkyCoord(targetFile[0],(targetFile[1]), frame='icrs', unit=degree)
+            else:
+                varCoord = SkyCoord(tf[0],(tf[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
+            idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
+            if d2d.arcsecond < acceptDistance:
+                targetRejects.append(idx)
+            if tg_file_len == 4:
+                break
+
     compFile=delete(compFile, idx, axis=0)
+    fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
 
     # Get Average RA and Dec from file
     if compFile.shape[0] == 13:
@@ -282,20 +286,20 @@ def remove_targets(parentPath, compFile, acceptDistance, targetFile):
     logger.debug(raCat)
     decCat=array(variableResult['DEJ2000'].data)
     logger.debug(decCat)
-
     varStarReject=[]
+    logger.critical(compFile)
     for t in range(raCat.size):
-      logger.debug(raCat[t])
-      compCoord=SkyCoord(ra=raCat[t]*degree, dec=decCat[t]*degree)
-      logger.debug(compCoord)
-      catCoords=SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
-      idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
-      logger.debug(d2dcomp)
-      if d2dcomp *arcsecond < max_sep*arcsecond:
-        logger.debug("match!")
-        varStarReject.append(t)
-      else:
-        logger.debug("no match!")
+        logger.debug(raCat[t])
+        compCoord=SkyCoord(ra=raCat[t]*degree, dec=decCat[t]*degree)
+        logger.debug(compCoord)
+        catCoords=SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
+        idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
+        logger.debug(d2dcomp)
+        if d2dcomp *arcsecond < max_sep*arcsecond:
+            logger.debug("match!")
+            varStarReject.append(t)
+        else:
+            logger.debug("no match!")
 
 
     logger.debug("Number of stars prior to VSX reject")
@@ -303,7 +307,6 @@ def remove_targets(parentPath, compFile, acceptDistance, targetFile):
     compFile=delete(compFile, varStarReject, axis=0)
     logger.debug("Number of stars post to VSX reject")
     logger.debug(compFile.shape[0])
-
 
     if (compFile.shape[0] ==1):
         compFile=[[compFile[0][0],compFile[0][1],0.01]]
@@ -313,6 +316,7 @@ def remove_targets(parentPath, compFile, acceptDistance, targetFile):
         sortStars=asarray(sortStars)
         savetxt("stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
         raise AstrosourceException("Looks like you have a single comparison star!")
+    logger.critical(f'{compFile.shape}')
     return compFile
 
 

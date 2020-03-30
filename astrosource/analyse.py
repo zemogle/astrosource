@@ -1,5 +1,5 @@
 from numpy import genfromtxt, savetxt, load, delete, asarray, multiply, log10, divide, \
-    less, append, add, std, average, median, inf, nan, isnan, nanstd, nanmean
+    less, append, add, std, average, median, inf, nan, isnan, nanstd, nanmean, array
 from astropy.units import degree
 from astropy.coordinates import SkyCoord
 import glob
@@ -15,11 +15,24 @@ from astrosource.utils import photometry_files_to_array, AstrosourceException
 
 logger = logging.getLogger('astrosource')
 
+def trim_out(photometrydata):
+    for photFile in photometrydata:
+        calibDiff=-((photFile[:,1]-calibFile[:,1])[0])
+        measureReject=[]
+        for i in range(photFile.shape[0]):
+            if photFile[i,1] < float(brightD) or photFile[i,1] > float(brightV) :
+                measureReject.append(i)
+                logger.debug(photFile[i,1])
+                logger.debug("REJECT")
+        logger.debug(photFile.shape[0])
+        photFile = delete(photFile, measureReject, axis=0)
+        logger.debug(photFile.shape[0])
+    return data
+
 def get_total_counts(photFileArray, compFile, loopLength):
 
     compArray=[]
     allCountsArray=[]
-
     for photFile in photFileArray:
         allCounts=0.0
         allCountsErr=0.0
@@ -27,7 +40,6 @@ def get_total_counts(photFileArray, compFile, loopLength):
         #Array of comp measurements
         logger.debug("***************************************")
 
-        logger.debug(compFile.shape)
         logger.debug("Calculating total counts")
         for j in range(loopLength):
             if compFile.size == 2 or (compFile.shape[0]== 3 and compFile.size ==3) or (compFile.shape[0]== 5 and compFile.size ==5):
@@ -36,11 +48,11 @@ def get_total_counts(photFileArray, compFile, loopLength):
                 matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
 
             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-            allCounts = allCounts + photFile[idx][4]
-            allCountsErr = allCountsErr + photFile[idx][5]
+            allCounts = add(allCounts, photFile[idx][4])
+            allCountsErr = add(allCountsErr, photFile[idx][5])
             if (compFile.shape[0]== 5 and compFile.size ==5) or (compFile.shape[0]== 3 and compFile.size ==3):
                 break
-
+        logger.debug(allCounts)
         allCountsArray.append([allCounts,allCountsErr])
     return allCountsArray
 
@@ -84,7 +96,6 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
     # LOAD IN COMPARISON FILE
     preFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
 
-    logger.debug(preFile.shape)
     if preFile.shape[0] !=13:
         preFile=(preFile[preFile[:,2].argsort()])
 
@@ -95,7 +106,6 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
     for photFile in photFileArray:
         if photFile.size > fileSizer:
             referenceFrame=photFile
-            logger.debug(photFile.size)
             fileSizer=photFile.size
 
     compFile=genfromtxt(parentPath / "compsUsed.csv", dtype=float, delimiter=',')
@@ -176,11 +186,12 @@ def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath 
 
     return outputVariableHolder
 
-def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.5, filesave=True):
+def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5, filesave=True):
     fileCount=[]
     sys.stdout.write('🖥 Starting photometric calculations\n')
 
     photFileArray,fileList = photometry_files_to_array(paths['parent'])
+    logger.debug(fileList)
 
     if (paths['parent'] / 'calibCompsUsed.csv').exists():
         logger.debug("Calibrated")
@@ -230,7 +241,9 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
         compArray=[]
         compList=[]
         allcountscount=0
+        logger.debug(f"PhotFile size {len(photFileArray)}")
         for imgs, photFile in enumerate(photFileArray):
+            logger.debug(imgs)
             sys.stdout.write('.')
             compList=[]
             fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
@@ -238,11 +251,11 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
             starRejected=0
             if (less(d2d.arcsecond, acceptDistance)):
                 magErrVar = 1.0857 * (photFile[idx][5]/photFile[idx][4])
+                logger.debug("{} {} {}".format(magErrVar,d2d.arcsecond[0], acceptDistance))
                 if magErrVar < errorReject:
-
                     magErrEns = 1.0857 * (allCountsArray[allcountscount][1]/allCountsArray[allcountscount][0])
                     magErrTotal = pow( pow(magErrVar,2) + pow(magErrEns,2),0.5)
-
+                    # magErrEns = 1.0857 * (allCountsErr/allCounts)
                     #templist is a temporary holder of the resulting file.
                     tempList=photFile[idx,:]
                     googFile = Path(fileList[imgs]).name
@@ -283,22 +296,22 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
             else:
                 starDistanceRejCount=starDistanceRejCount+1
                 starRejected=1
-
+            logger.debug(array(outputPhot).shape)
             if ( starRejected == 1):
 
                     #templist is a temporary holder of the resulting file.
-                    tempList=photFileArray[imgs][idx,:]
+                    tempList=[photFileArray[imgs][idx,:]]
                     googFile = Path(fileList[imgs]).name
-                    tempList=append(tempList, float(googFile.split("_")[5].replace("d",".")))
-                    tempList=append(tempList, float(googFile.split("_")[4].replace("a",".")))
-                    tempList=append(tempList, allCountsArray[allcountscount][0])
-                    tempList=append(tempList, allCountsArray[allcountscount][1])
+                    tempList.append( float(googFile.split("_")[5].replace("d",".")))
+                    tempList.append( float(googFile.split("_")[4].replace("a",".")))
+                    tempList.append( allCountsArray[allcountscount][0])
+                    tempList.append( allCountsArray[allcountscount][1])
 
                     #Differential Magnitude
-                    tempList=append(tempList,nan)
-                    tempList=append(tempList,nan)
-                    tempList=append(tempList, photFileArray[imgs][idx][4])
-                    tempList=append(tempList, photFileArray[imgs][idx][5])
+                    tempList.append(nan)
+                    tempList.append(nan)
+                    tempList.append( photFileArray[imgs][idx][4])
+                    tempList.append( photFileArray[imgs][idx][5])
 
 
                     if (compFile.shape[0]== 5 and compFile.size ==5) or (compFile.shape[0]== 3 and compFile.size ==3):
@@ -317,13 +330,14 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
                     outputPhot.append(tempList)
                     fileCount.append(allCounts)
                     allcountscount=allcountscount+1
-
+        logger.debug(array(outputPhot).shape)
         # Check for dud images
         imageReject=[]
         for j in range(asarray(outputPhot).shape[0]):
             if isnan(outputPhot[j][11]):
                 imageReject.append(j)
         outputPhot=delete(outputPhot, imageReject, axis=0)
+        logger.debug(array(outputPhot).shape)
 
         ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
         stdVar=nanstd(asarray(outputPhot)[:,10])
@@ -343,13 +357,14 @@ def photometric_calculations(targets, paths, acceptDistance=10.0, errorReject=0.
         logger.info("Stdev   : {}".format(stdVar))
 
         outputPhot=delete(outputPhot, starReject, axis=0)
-
+        logger.debug(array(outputPhot).shape)
 
         if outputPhot.shape[0] <= 2:
             raise AstrosourceException("Photometry not possible")
         elif outputPhot.shape[0] > 2 and filesave:
-            savetxt(os.path.join(paths['outcatPath'],"doerPhot_V" +str(q+1) +".csv"), outputPhot, delimiter=",", fmt='%0.8f')
+            savetxt(os.path.join(paths['outcatPath'],f"doerPhot_V{q+1}.csv"), outputPhot, delimiter=",", fmt='%0.8f')
             logger.debug('Saved doerPhot_V')
         # Store the photometry data in array
         photometrydata.append(outputPhot)
+    # photometrydata = trim_catalogue(photometrydata)
     return photometrydata

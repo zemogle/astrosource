@@ -99,7 +99,7 @@ def gather_files(paths, filetype="fz"):
         raise AstrosourceException("Check your images, the script detected multiple filters in your file list. Astrosource currently only does one filter at a time.")
     return phot_list, list(filters)[0]
 
-def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=10000, maximumCounts=1000000, imageFracReject=0.0, starFracReject=0.1, rejectStart=7, minCompStars=1):
+def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=2000, maximumCounts=1000000, imageFracReject=0.0, starFracReject=0.1, rejectStart=7, minCompStars=1):
     """
     Finds stars useful for photometry in each photometry/data file
 
@@ -271,6 +271,8 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
     logger.info('Output sent to screenedComps.csv ready for use in Comparison')
 
     screened_file = paths['parent'] / "screenedComps.csv"
+    # outputComps = asarray(outputComps)
+    # outputComps.sort(axis=1)
     savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
     used_file = paths['parent'] / "usedImages.txt"
     with open(used_file, "w") as f:
@@ -279,4 +281,4 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=1
             f.write(str(filename) +"\n")
 
     sys.stdout.write('\n')
-    return usedImages
+    return usedImages, outputComps

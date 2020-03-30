@@ -1,4 +1,5 @@
 from numpy import asarray, savetxt, std, max, min, genfromtxt, load
+import numpy as np
 import sys
 import os
 import platform
@@ -89,141 +90,155 @@ def sum_stdevs (sortedPhases, sortedNormalizedFluxes, numBins):
         minIndex = (float(i) / float(numBins)) * float(len(sortedPhases))
         maxIndex = (float(i + 1) / float(numBins)) * float(len(sortedPhases))
 
-    for j in range (0, len(sortedPhases)):
-      if (j >= minIndex and j < maxIndex):
-        fluxes_inrange.append(sortedNormalizedFluxes[j])
+        for j in range (0, len(sortedPhases)):
+            if (j >= minIndex and j < maxIndex):
+                fluxes_inrange.append(sortedNormalizedFluxes[j])
 
-    stdev_of_bin_i = std(fluxes_inrange)
-    stdevSum = stdevSum + stdev_of_bin_i
+        stdev_of_bin_i = std(fluxes_inrange)
+        stdevSum = stdevSum + stdev_of_bin_i
 
     return(stdevSum)
 
 #########################################
 
 def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, numBins, periodPath, variableName):
+  numBins = 10
+  minperiod=0.2
+  maxperiod=1
+  periodsteps=10000
+  periodguess_array = []
 
-    periodguess_array = []
+  distance_results = []
+  stdev_results = []
 
-    distance_results = []
-    stdev_results = []
+  (julian_dates, fluxes) = (varData[:,0],varData[:,1])
+  normalizedFluxes = normalize(fluxes)
 
-    (julian_dates, fluxes) = (varData[:,0],varData[:,1])
-    normalizedFluxes = normalize(fluxes)
-    periodTrialMatrix=[]
+  for r in range(periodsteps):
+    periodguess = minperiod + (r * ((maxperiod-minperiod)/periodsteps))
+    (sortedPhases, sortedNormalizedFluxes) = getPhases(julian_dates, normalizedFluxes, periodguess)
 
-    for r in range(periodsteps):
-        periodguess = minperiod + (r * ((maxperiod-minperiod)/periodsteps))
-        (sortedPhases, sortedNormalizedFluxes) = getPhases(julian_dates, normalizedFluxes, periodguess)
+    distance_sum = sum_distances(sortedPhases, sortedNormalizedFluxes)
+    stdev_sum = sum_stdevs(sortedPhases, sortedNormalizedFluxes, numBins)
 
-        distance_sum = sum_distances(sortedPhases, sortedNormalizedFluxes)
-        stdev_sum = sum_stdevs(sortedPhases, sortedNormalizedFluxes, numBins)
+    periodguess_array.append(periodguess)
+    distance_results.append(distance_sum)
+    stdev_results.append(stdev_sum)
 
-        periodguess_array.append(periodguess)
-        distance_results.append(distance_sum)
-        stdev_results.append(stdev_sum)
-        periodTrialMatrix.append([periodguess,distance_sum,stdev_sum])
+  periodTrialMatrix=[]
+  for r in range(periodsteps):
+    periodTrialMatrix.append([periodguess_array[r],distance_results[r],stdev_results[r]])
+  periodTrialMatrix=np.asarray(periodTrialMatrix)
+  np.savetxt(os.path.join(periodPath,str(variableName)+'_'+"Trials.csv"), periodTrialMatrix, delimiter=",", fmt='%0.8f')
 
-    periodTrialMatrix=asarray(periodTrialMatrix)
-    savetxt(Path(periodPath / f'{variableName}_Trials.csv'), periodTrialMatrix, delimiter=",", fmt='%0.8f')
+  (distance_minperiod, distance_min) = find_minimum(distance_results, periodguess_array)
+  (stdev_minperiod, stdev_min) = find_minimum(stdev_results, periodguess_array)
 
-    (distance_minperiod, distance_min) = find_minimum(distance_results, periodguess_array)
-    (stdev_minperiod, stdev_min) = find_minimum(stdev_results, periodguess_array)
+  pdm = {}
+  pdm["periodguess_array"] = periodguess_array
+  pdm["distance_results"] = distance_results
+  pdm["distance_minperiod"] = distance_minperiod
+  pdm["stdev_results"] = stdev_results
+  pdm["stdev_minperiod"] = stdev_minperiod
 
-    pdm = {}
-    pdm["periodguess_array"] = periodguess_array
-    pdm["distance_results"] = distance_results
-    pdm["distance_minperiod"] = distance_minperiod
-    pdm["stdev_results"] = stdev_results
-    pdm["stdev_minperiod"] = stdev_minperiod
+  # Estimating the error
+  # stdev method
+  #print (np.min(stdev_results))
+  #print (np.max(stdev_results))
+  # Get deviation to the left
+  totalRange=np.max(stdev_results) - np.min(stdev_results)
+  for q in range(len(periodguess_array)):
+    if periodguess_array[q]==pdm["stdev_minperiod"]:
+      beginIndex=q
+      beginValue=stdev_results[q]
+  #print (beginIndex)
+  #print (beginValue)
+  currentperiod=stdev_minperiod
+  stepper=0
+  thresholdvalue=beginValue+(0.5*totalRange)
+  while True:
+    #print (beginIndex-stepper)
+    #print (stdev_results[beginIndex-stepper])
+    if stdev_results[beginIndex-stepper] > thresholdvalue:
+      #print ("LEFTHAND PERIOD!")
+      #print (periodguess_array[beginIndex-stepper])
+      lefthandP=periodguess_array[beginIndex-stepper]
+      #print (distance_results)
+      break
+    stepper=stepper+1
 
-    # Estimating the error
-    # stdev method
+  stepper=0
+  thresholdvalue=beginValue+(0.5*totalRange)
+  #print (beginIndex)
+  #print (periodsteps)
 
-    # Get deviation to the left
-    beginIndex = 0
-    beginValue = stdev_results[beginIndex]
-    totalRange=max(stdev_results) - min(stdev_results)
-    for q in range(len(periodguess_array)):
-        if periodguess_array[q]==pdm["stdev_minperiod"]:
-          beginIndex=q
-          beginValue=stdev_results[q]
-    #logger.debug(beginIndex)
-    #logger.debug(beginValue)
-    currentperiod=stdev_minperiod
-    stepper=0
-    thresholdvalue=beginValue+(0.5*totalRange)
-    while True:
-    #logger.debug(beginIndex-stepper)
-    #logger.debug(stdev_results[beginIndex-stepper])
-        if stdev_results[beginIndex-stepper] > thresholdvalue:
-          #logger.debug("LEFTHAND PERIOD!")
-          #logger.debug(periodguess_array[beginIndex-stepper])
-          lefthandP=periodguess_array[beginIndex-stepper]
-          #logger.debug(distance_results)
-          break
-        stepper=stepper+1
-
-    stepper=0
-    thresholdvalue=beginValue+(0.5*totalRange)
-    #logger.debug(beginIndex)
-    #logger.debug(periodsteps)
-
-    while True:
-    # logger.debug(beginIndex+stepper)
-    #logger.debug(stdev_results[beginIndex+stepper])
-        if beginIndex+stepper+1 == periodsteps:
-          righthandP=periodguess_array[beginIndex+stepper]
-          logger.debug("Warning: Peak period for stdev method too close to top of range")
-          break
-        if stdev_results[beginIndex+stepper] > thresholdvalue:
-          #logger.debug("RIGHTHAND PERIOD!")
-          #logger.debug(periodguess_array[beginIndex+stepper])
-          righthandP=periodguess_array[beginIndex+stepper]
-          #logger.debug(distance_results)
-          break
-        stepper=stepper+1
+  while True:
+    #print (beginIndex+stepper)
+    #print (stdev_results[beginIndex+stepper])
+    if beginIndex+stepper+1 == periodsteps:
+      righthandP=periodguess_array[beginIndex+stepper]
+      print ("Warning: Peak period for stdev method too close to top of range")
+      break
+    if stdev_results[beginIndex+stepper] > thresholdvalue:
+      #print ("RIGHTHAND PERIOD!")
+      #print (periodguess_array[beginIndex+stepper])
+      righthandP=periodguess_array[beginIndex+stepper]
+      #print (distance_results)
+      break
+    stepper=stepper+1
 
 
-    #logger.debug("Stdev method error: " + str((righthandP - lefthandP)/2))
-    pdm["stdev_error"] = (righthandP - lefthandP)/2
+  #print ("Stdev method error: " + str((righthandP - lefthandP)/2))
+  pdm["stdev_error"] = (righthandP - lefthandP)/2
 
 
-    # Estimating the error
-    # stdev method
-    #logger.debug(min(stdev_results))
-    #logger.debug(max(stdev_results))
-    # Get deviation to the left
-    totalRange=max(distance_results) - min(distance_results)
-    for q in range(len(periodguess_array)):
-        if periodguess_array[q]==pdm["distance_minperiod"]:
-          beginIndex=q
-          beginValue=distance_results[q]
-    #logger.debug(beginIndex)
-    #logger.debug(beginValue)
-    currentperiod=distance_minperiod
-    stepper=0
-    thresholdvalue=beginValue+(0.5*totalRange)
-    while True:
-        if distance_results[beginIndex-stepper] > thresholdvalue:
+  # Estimating the error
+  # stdev method
+  #print (np.min(stdev_results))
+  #print (np.max(stdev_results))
+  # Get deviation to the left
+  totalRange=np.max(distance_results) - np.min(distance_results)
+  for q in range(len(periodguess_array)):
+    if periodguess_array[q]==pdm["distance_minperiod"]:
+      beginIndex=q
+      beginValue=distance_results[q]
+  #print (beginIndex)
+  #print (beginValue)
+  currentperiod=distance_minperiod
+  stepper=0
+  thresholdvalue=beginValue+(0.5*totalRange)
+  while True:
+    #print (beginIndex-stepper)
+    #print (stdev_results[beginIndex-stepper])
+    if distance_results[beginIndex-stepper] > thresholdvalue:
+      #print ("LEFTHAND PERIOD!")
+      #print (periodguess_array[beginIndex-stepper])
+      lefthandP=periodguess_array[beginIndex-stepper]
+      #print (distance_results)
+      break
+    stepper=stepper+1
 
-          lefthandP=periodguess_array[beginIndex-stepper]
-          break
-        stepper=stepper+1
+  stepper=0
+  thresholdvalue=beginValue+(0.5*totalRange)
+  while True:
+    if beginIndex+stepper+1 == periodsteps:
+      righthandP=periodguess_array[beginIndex+stepper]
+      print ("Warning: Peak period for distance method too close to top of range")
+      break
+    #print (beginIndex+stepper)
+    #print (stdev_results[beginIndex+stepper])
+    if distance_results[beginIndex+stepper] > thresholdvalue:
+      #print ("RIGHTHAND PERIOD!")
+      #print (periodguess_array[beginIndex+stepper])
+      righthandP=periodguess_array[beginIndex+stepper]
+      #print (distance_results)
+      break
+    stepper=stepper+1
 
-    stepper=0
-    thresholdvalue=beginValue+(0.5*totalRange)
-    while True:
-        if beginIndex+stepper+1 == periodsteps:
-          righthandP=periodguess_array[beginIndex+stepper]
-          logger.debug("Warning: Peak period for distance method too close to top of range")
-          break
-        if distance_results[beginIndex+stepper] > thresholdvalue:
-          righthandP=periodguess_array[beginIndex+stepper]
-          break
-        stepper=stepper+1
+  #print ("Distance method error: " + str((righthandP - lefthandP)/2))
+  pdm["distance_error"] = (righthandP - lefthandP)/2
 
-    pdm["distance_error"] = (righthandP - lefthandP)/2
-    return pdm
+  return (pdm)
 
 #########################################
 

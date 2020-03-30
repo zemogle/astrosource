@@ -22,7 +22,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--plot', is_flag=True)
 @click.option('--detrend', is_flag=True)
 @click.option('--eebls', is_flag=True)
-@click.option('--period', is_flag=True)
+@click.option('--period', default=0.0, type=float)
 @click.option('--indir', default=None, type=str, required=True)
 @click.option('--ra', type=float)
 @click.option('--dec', type=float)
@@ -57,6 +57,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
             ts.curves()
         if full or phot:
             ts.photometry(filesave=True)
+            ts.output()
         if full or plot:
             ts.plot(detrend=detrend, period=period, eebls=eebls)
 
