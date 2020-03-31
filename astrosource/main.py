@@ -54,7 +54,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
         if full or comparison:
             ts.analyse()
         if full or calc:
-            ts.curves()
+            ts.find_stable()
         if full or phot:
             ts.photometry(filesave=True)
             ts.output()

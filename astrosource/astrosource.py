@@ -2,7 +2,7 @@ from pathlib import Path
 import logging
 import sys
 
-from astrosource.analyse import calculate_curves, photometric_calculations
+from astrosource.analyse import find_stable_comparisons, photometric_calculations
 from astrosource.comparison import find_comparisons, find_comparisons_calibrated
 from astrosource.detrend import detrend_data
 from astrosource.eebls import plot_bls
@@ -10,7 +10,6 @@ from astrosource.identify import find_stars, gather_files
 from astrosource.periodic import plot_with_period
 from astrosource.plots import make_plots, make_calibrated_plots, open_photometry_files, output_files, phased_plots
 from astrosource.utils import AstrosourceException, folder_setup, cleanup, setup_logger
-
 
 class TimeSeries:
     def __init__(self, targets, indir, **kwargs):
@@ -33,12 +32,12 @@ class TimeSeries:
                 find_comparisons_calibrated(self.filtercode, self.paths)
                 self.calibrated = True
             except AstrosourceException as e:
-                logger.warning(e)
+                sys.stdout.write(f'🛑 {e}')
         elif calib:
             sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration')
 
-    def curves(self):
-        calculate_curves(targets=self.targets, parentPath=self.paths['parent'])
+    def find_stable(self):
+        find_stable_comparisons(targets=self.targets, parentPath=self.paths['parent'])
 
     def photometry(self, filesave=False):
         self.data = photometric_calculations(targets=self.targets, paths=self.paths, filesave=filesave)

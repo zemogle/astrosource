@@ -190,7 +190,6 @@ def read_data_files(parentPath, fileList):
 
 def ensemble_comparisons(photFileArray, compFile):
     fileCount = []
-    logger.critical(f'{compFile.shape}')
     for photFile in photFileArray:
         allCounts = 0.0
         fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
@@ -259,7 +258,6 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                 targetRejects.append(idx)
             if tg_file_len == 4:
                 break
-
     compFile=delete(compFile, idx, axis=0)
     fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
 
@@ -287,7 +285,6 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     decCat=array(variableResult['DEJ2000'].data)
     logger.debug(decCat)
     varStarReject=[]
-    logger.critical(compFile)
     for t in range(raCat.size):
         logger.debug(raCat[t])
         compCoord=SkyCoord(ra=raCat[t]*degree, dec=decCat[t]*degree)
@@ -316,7 +313,6 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         sortStars=asarray(sortStars)
         savetxt("stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
         raise AstrosourceException("Looks like you have a single comparison star!")
-    logger.critical(f'{compFile.shape}')
     return compFile
 
 
@@ -375,7 +371,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         os.makedirs(calibPath)
 
     Vizier.ROW_LIMIT = -1
-    max_sep=1.0 * arcsecond
+    max_sep=5.0 * arcsecond
 
     # Get List of Files Used
     fileList=[]
@@ -422,7 +418,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     #Setup standard catalogue coordinates
     catCoords=SkyCoord(ra=coords.ra*degree, dec=coords.dec*degree)
 
-
+    logger.critical(f"{catCoords}")
     #Get calib mags for least variable IDENTIFIED stars.... not the actual stars in compUsed!! Brighter, less variable stars may be too bright for calibration!
     #So the stars that will be used to calibrate the frames to get the OTHER stars.
     calibStands=[]
@@ -450,7 +446,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     if asarray(calibStands).shape[0] == 0:
         logger.info("We could not find a suitable match between any of your stars and the calibration catalogue")
         logger.info("You might need to reduce the low value (usually 10000) to get some dimmer stars in script 1")
-        raise AstrosourceException("Perhaps try 5000 then 1000. You are trying to find dim stars to calibrate to.")
+        raise AstrosourceException("Stars are too dim to calibrate to.")
 
     varimin=(min(asarray(calibStands)[:,2])) * variabilityMultiplier
 

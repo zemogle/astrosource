@@ -52,13 +52,13 @@ def get_total_counts(photFileArray, compFile, loopLength):
             allCountsErr = add(allCountsErr, photFile[idx][5])
             if (compFile.shape[0]== 5 and compFile.size ==5) or (compFile.shape[0]== 3 and compFile.size ==3):
                 break
-        logger.debug(allCounts)
         allCountsArray.append([allCounts,allCountsErr])
+    logger.debug(allCountsArray)
     return allCountsArray
 
-def calculate_curves(targets, acceptDistance=10.0, errorReject=0.05, parentPath = None):
+def find_stable_comparisons(targets, acceptDistance=1.0, errorReject=0.05, parentPath = None):
     '''
-    Find stable comparison stars for the target photometry
+    Find stable comparison stars for the target photometry and remove variables
 
     Parameters
     ----------
@@ -258,6 +258,7 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
                     # magErrEns = 1.0857 * (allCountsErr/allCounts)
                     #templist is a temporary holder of the resulting file.
                     tempList=photFile[idx,:]
+                    logger.critical(tempList) #****************************
                     googFile = Path(fileList[imgs]).name
                     tempList=append(tempList, float(googFile.split("_")[2].replace("d",".")))
                     tempList=append(tempList, float(googFile.split("_")[4].replace("a",".")))
@@ -269,8 +270,7 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
                     tempList=append(tempList, magErrTotal)
                     tempList=append(tempList, photFile[idx][4])
                     tempList=append(tempList, photFile[idx][5])
-
-
+                    logger.critical(tempList)
 
                     if (compFile.shape[0]== 5 and compFile.size ==5) or (compFile.shape[0]== 3 and compFile.size ==3):
                         loopLength=1

@@ -271,8 +271,8 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=2
     logger.info('Output sent to screenedComps.csv ready for use in Comparison')
 
     screened_file = paths['parent'] / "screenedComps.csv"
-    # outputComps = asarray(outputComps)
-    # outputComps.sort(axis=1)
+    outputComps = asarray(outputComps)
+    outputComps.sort(axis=0)
     savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
     used_file = paths['parent'] / "usedImages.txt"
     with open(used_file, "w") as f:
