@@ -418,7 +418,6 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     #Setup standard catalogue coordinates
     catCoords=SkyCoord(ra=coords.ra*degree, dec=coords.dec*degree)
 
-    logger.critical(f"{catCoords}")
     #Get calib mags for least variable IDENTIFIED stars.... not the actual stars in compUsed!! Brighter, less variable stars may be too bright for calibration!
     #So the stars that will be used to calibrate the frames to get the OTHER stars.
     calibStands=[]
