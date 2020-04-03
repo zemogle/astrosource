@@ -41,23 +41,26 @@ class TimeSeries:
 
     def photometry(self, filesave=False):
         self.data = photometric_calculations(targets=self.targets, paths=self.paths, filesave=filesave)
+        self.ensemblemag = 0.0
+        self.output(mode='diff')
 
-    def plot(self, detrend=False, eebls=False, period=0.0, phaseShift=0.0):
+    def plot(self, detrend=False, eebls=False, period=0.0, phaseShift=0.0, filesave=False):
         if not hasattr(self, 'data'):
             self.data = open_photometry_files(self.paths['outcatPath'])
         make_plots(filterCode=self.filtercode, paths=self.paths, photometrydata=self.data)
         if self.calibrated:
-            make_calibrated_plots(filterCode=self.filtercode, paths=self.paths, photometrydata=self.data)
-            phased_plots(filterCode=self.filtercode, paths=self.paths, targets=self.targets, period=period, phaseShift=phaseShift)
+            self.ensemblemag = make_calibrated_plots(filterCode=self.filtercode, paths=self.paths, photometrydata=self.data)
+            self.output(mode='calib')
         if detrend:
             detrend_data(filterCode=self.filtercode, paths=self.paths)
-        if period:
+        if period and self.calibrated:
+            phased_plots(filterCode=self.filtercode, paths=self.paths, targets=self.targets, period=period, phaseShift=phaseShift)
             plot_with_period(filterCode=self.filtercode, paths=self.paths)
         if eebls:
             plot_bls(paths=self.paths)
 
-    def output(self):
-        output_files(self.paths, self.data)
+    def output(self, mode):
+        output_files(self.paths, self.data, mode=mode)
 
     def clean(self):
         cleanup(self.paths['parent'])

@@ -13,45 +13,24 @@ from astrosource.utils import photometry_files_to_array, AstrosourceException
 logger = logging.getLogger('astrosource')
 
 
-def output_files(paths, photometrydata):
-    calibFlag = True if (paths['parent'] / 'calibCompsUsed.csv').exists() else False
+def output_files(paths, photometrydata, mode='diff'):
+    if mode == 'calib' and not (paths['parent'] / 'calibCompsUsed.csv').exists():
+        raise AstrosourceException("")
 
     for j, outputPhot in enumerate(photometrydata):
         r = j+1
         logger.info("Outputting files Variable " + str(r))
 
-        # Output Differential peranso file
-        outputPeransoCalib=[]
-        for i in range(outputPhot.shape[0]):
-            outputPeransoCalib.append([outputPhot[i][6],outputPhot[i][10],outputPhot[i][11]])
+        outputPeransoCalib = [x for x in zip(outputPhot[:,6],outputPhot[:,10],outputPhot[:,11])]
 
-        savetxt(paths['outcatPath'] / 'V{}_diffPeranso.txt'.format(r), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
-        savetxt(paths['outcatPath'] / 'V{}_diffExcel.csv'.format(r), outputPeransoCalib, delimiter=",", fmt='%0.8f')
+        savetxt(paths['outcatPath'] / f'V{r}_{mode}Peranso.txt', outputPeransoCalib, delimiter=" ", fmt='%0.8f')
+        savetxt(paths['outcatPath'] / f'V{r}_{mode}Excel.csv', outputPeransoCalib, delimiter=",", fmt='%0.8f')
 
         # Output Differential astroImageJ file
-        outputPeransoCalib=[]
-        for i in range(asarray(outputPhot).shape[0]):
-            outputPeransoCalib.append([outputPhot[i][6]-2450000.0,outputPhot[i][10],outputPhot[i][11]])
-        savetxt(paths['outcatPath'] / 'V{}_diffAIJ.txt'.format(r), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
-        savetxt(paths['outcatPath'] / 'V{}_diffAIJ.csv'.format(r), outputPeransoCalib, delimiter=",", fmt='%0.8f')
+        outputaijCalib = [x for x in zip(outputPhot[:,6]-2450000.0,outputPhot[:,10],outputPhot[:,11])]
 
-    if calibFlag:
-        # Output Calibed peranso file
-        outputPeransoCalib=[]
-        for i in range(outputPhot.shape[0]):
-            outputPeransoCalib.append([outputPhot[i][6],outputPhot[i][10],outputPhot[i][11]])
-        savetxt(paths['outcatPath'] / f'V{r}_calibPeranso.txt', outputPeransoCalib, delimiter=" ", fmt='%0.8f')
-        savetxt(paths['outcatPath'] / f'V{r}_calibExcel.csv', outputPeransoCalib, delimiter=",", fmt='%0.8f')
-
-        # Output astroImageJ file
-        outputPeransoCalib=[]
-        for i in range(asarray(outputPhot).shape[0]):
-            outputPeransoCalib.append([outputPhot[i][6]-2450000.0,outputPhot[i][10],outputPhot[i][11]])
-            #i=i+1
-
-        savetxt(paths['outcatPath'] / f'V{r}_calibAIJ.txt', outputPeransoCalib, delimiter=" ", fmt='%0.8f')
-        savetxt(paths['outcatPath'] / f'V{r}_calibAIJ.csv', outputPeransoCalib, delimiter=",", fmt='%0.8f')
-
+        savetxt(paths['outcatPath'] / f'V{r}_{mode}AIJ.txt', outputaijCalib, delimiter=" ", fmt='%0.8f')
+        savetxt(paths['outcatPath'] / f'V{r}_{mode}AIJ.csv', outputaijCalib, delimiter=",", fmt='%0.8f')
     return
 
 def open_photometry_files(outcatPath):
@@ -76,9 +55,9 @@ def make_plots(filterCode, paths, photometrydata, fileformat='full'):
         plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
         plt.grid(True)
         if fileformat == 'full' or fileformat == 'png':
-            plt.savefig(paths['outputPath'] / f'{r}_EnsembleVarDiffMag.png')
+            plt.savefig(paths['outputPath'] / f'V{r}_EnsembleVarDiffMag.png')
         if fileformat == 'full' or fileformat == 'eps':
-            plt.savefig(paths['outputPath'] / f'{r}_EnsembleVarDiffMag.eps')
+            plt.savefig(paths['outputPath'] / f'V{r}_EnsembleVarDiffMag.eps')
 
         plt.cla()
         outplotx=asarray(outputPhot)[:,7]
@@ -90,9 +69,9 @@ def make_plots(filterCode, paths, photometrydata, fileformat='full'):
         plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
         plt.grid(True)
         if fileformat == 'full' or fileformat == 'png':
-            plt.savefig(paths['checkPath'] / f'{r}_AirmassEnsVarDiffMag.png')
+            plt.savefig(paths['checkPath'] / f'V{r}_AirmassEnsVarDiffMag.png')
         if fileformat == 'full' or fileformat == 'eps':
-            plt.savefig(paths['checkPath'] / f'{r}_AirmassEnsVarDiffMag.eps')
+            plt.savefig(paths['checkPath'] / f'V{r}_AirmassEnsVarDiffMag.eps')
 
         plt.cla()
         outplotx=asarray(outputPhot)[:,7]
@@ -104,9 +83,9 @@ def make_plots(filterCode, paths, photometrydata, fileformat='full'):
         plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
         plt.grid(True)
         if fileformat == 'full' or fileformat == 'png':
-            plt.savefig(paths['checkPath'] / f'{r}_AirmassVarCounts.png')
+            plt.savefig(paths['checkPath'] / f'V{r}_AirmassVarCounts.png')
         if fileformat == 'full' or fileformat == 'eps':
-            plt.savefig(paths['checkPath'] / f'{r}_AirmassVarCounts.eps')
+            plt.savefig(paths['checkPath'] / f'V{r}_AirmassVarCounts.eps')
 
     return
 
@@ -137,7 +116,7 @@ def make_calibrated_plots(filterCode, paths, photometrydata):
                 ensMag=ensMag+(pow(10,-ensembleMag[q]*0.4))
         #logger.info(ensMag)
         ensembleMag=-2.5*math.log10(ensMag)
-        logger.info("Ensemble Magnitude: "+str(ensembleMag))
+        logger.info(f"Ensemble Magnitude: {ensembleMag}")
 
 
         #calculate error
@@ -150,21 +129,21 @@ def make_calibrated_plots(filterCode, paths, photometrydata):
 
         #for file in fileList:
         for i in range(outputPhot.shape[0]):
-            outputPhot[i][10]=outputPhot[i][10]+ensembleMag
+            outputPhot[i][10]+=ensembleMag
 
         plt.cla()
         outplotx=asarray(outputPhot)[:,6]
         outploty=asarray(outputPhot)[:,10]
         plt.xlabel('BJD')
-        plt.ylabel('Calibrated ' +filterCode+' Mag')
+        plt.ylabel(f'Calibrated {filterCode} Mag')
         plt.plot(outplotx,outploty,'bo')
         plt.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
         plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
         plt.grid(True)
-        plt.savefig(paths['outputPath'] / 'V{}_EnsembleVarCalibMag.png'.format(r))
-        plt.savefig(paths['outputPath'] / 'V{}_EnsembleVarCalibMag.eps'.format(r))
+        plt.savefig(paths['outputPath'] / f'V{r}_EnsembleVarCalibMag.png')
+        plt.savefig(paths['outputPath'] / f'V{r}_EnsembleVarCalibMag.eps')
 
-    return
+    return ensembleMag
 
 def phased_plots(paths, filterCode, targets, period, phaseShift):
 
@@ -174,20 +153,19 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
         fileList.append(line.strip())
 
     fileList = paths['parent'].glob("*.p*")
-    #logger.debug(fileList)
     outputPath = paths['parent'] / 'outputplots'
 
     for q, target in enumerate(targets):
         filename = paths['outcatPath'] / 'V{}_calibExcel.csv'.format(q+1)
         calibFile = genfromtxt(filename, dtype=float, delimiter=',')
+        for i in range(calibFile.shape[0]):
+            calibFile[i][1] = calibFile[i][1]
 
         # Variable lightcurve
 
         plt.cla()
         outplotx=calibFile[:,0]
         outploty=calibFile[:,1]
-        logger.debug(outplotx)
-        logger.debug(outploty)
         plt.xlabel('BJD')
         plt.ylabel('Apparent {} Magnitude'.format(filterCode))
         plt.plot(outplotx,outploty,'bo')
@@ -205,8 +183,6 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
         outplotx=((calibFile[:,0]/period)+phaseShift)%1
         outploty=calibFile[:,1]
         outplotxrepeat=outplotx+1
-        logger.debug(outplotx)
-        logger.debug(outploty)
         plt.xlabel('Phase')
         plt.ylabel('Apparent ' + str(filterCode) + ' Magnitude')
         plt.plot(outplotx,outploty,'bo')

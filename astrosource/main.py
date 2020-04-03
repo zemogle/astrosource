@@ -57,9 +57,9 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
             ts.find_stable()
         if full or phot:
             ts.photometry(filesave=True)
-            ts.output()
         if full or plot:
-            ts.plot(detrend=detrend, period=period, eebls=eebls)
+            ts.plot(detrend=detrend, period=period, eebls=eebls, filesave=True)
+
 
         sys.stdout.write("✅ AstroSource analysis complete\n")
 
