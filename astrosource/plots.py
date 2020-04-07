@@ -93,44 +93,6 @@ def make_calibrated_plots(filterCode, paths, photometrydata):
     # Make a calibrated version
     # Need to shift the shape of the curve against the lowest error in the catalogue.
     for j, outputPhot in enumerate(photometrydata):
-        r = j + 1
-        calibCompFile=genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
-        compFile = genfromtxt(paths['parent'] / 'stdComps.csv', dtype=float, delimiter=',')
-        logger.info("Calibrating Photometry")
-        # Load in calibrated magnitudes and add them
-        #logger.info(compFile.size)
-        if compFile.shape[0] == 5 and compFile.size != 25:
-            ensembleMag=calibCompFile[3]
-        else:
-            ensembleMag=calibCompFile[:,3]
-        ensMag=0
-
-        if compFile.shape[0] == 5 and compFile.size != 25:
-            lenloop=1
-        else:
-            lenloop=len(calibCompFile[:,3])
-        for q in range(lenloop):
-            if compFile.shape[0] == 5 and compFile.size != 25:
-                ensMag=pow(10,-ensembleMag*0.4)
-            else:
-                ensMag=ensMag+(pow(10,-ensembleMag[q]*0.4))
-        #logger.info(ensMag)
-        ensembleMag=-2.5*math.log10(ensMag)
-        logger.info(f"Ensemble Magnitude: {ensembleMag}")
-
-
-        #calculate error
-        if compFile.shape[0] == 5 and compFile.size !=25:
-            ensembleMagError=calibCompFile[4]
-            #ensembleMagError=average(ensembleMagError)*1/pow(ensembleMagError.size, 0.5)
-        else:
-            ensembleMagError=calibCompFile[:,4]
-            ensembleMagError=average(ensembleMagError)*1/pow(ensembleMagError.size, 0.5)
-
-        #for file in fileList:
-        for i in range(outputPhot.shape[0]):
-            outputPhot[i][10]+=ensembleMag
-
         plt.cla()
         outplotx=asarray(outputPhot)[:,6]
         outploty=asarray(outputPhot)[:,10]
@@ -140,10 +102,10 @@ def make_calibrated_plots(filterCode, paths, photometrydata):
         plt.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
         plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
         plt.grid(True)
-        plt.savefig(paths['outputPath'] / f'V{r}_EnsembleVarCalibMag.png')
-        plt.savefig(paths['outputPath'] / f'V{r}_EnsembleVarCalibMag.eps')
+        plt.savefig(paths['outputPath'] / f'V{j+1}_EnsembleVarCalibMag.png')
+        plt.savefig(paths['outputPath'] / f'V{j+1}_EnsembleVarCalibMag.eps')
 
-    return ensembleMag
+    return
 
 def phased_plots(paths, filterCode, targets, period, phaseShift):
 

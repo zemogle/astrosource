@@ -2,7 +2,7 @@ from pathlib import Path
 import logging
 import sys
 
-from astrosource.analyse import find_stable_comparisons, photometric_calculations
+from astrosource.analyse import find_stable_comparisons, photometric_calculations, calibrated_photometry
 from astrosource.comparison import find_comparisons, find_comparisons_calibrated
 from astrosource.detrend import detrend_data
 from astrosource.eebls import plot_bls
@@ -40,17 +40,21 @@ class TimeSeries:
         find_stable_comparisons(targets=self.targets, parentPath=self.paths['parent'])
 
     def photometry(self, filesave=False):
-        self.data = photometric_calculations(targets=self.targets, paths=self.paths, filesave=filesave)
+        data = photometric_calculations(targets=self.targets, paths=self.paths, filesave=filesave)
+        self.output(mode='diff', data=data)
         self.ensemblemag = 0.0
-        self.output(mode='diff')
+        if self.calibrated:
+            self.data = calibrated_photometry(paths=self.paths, photometrydata=data)
+            self.output(mode='calib', data=self.data)
+        else:
+            self.data = data
 
     def plot(self, detrend=False, eebls=False, period=0.0, phaseShift=0.0, filesave=False):
         if not hasattr(self, 'data'):
             self.data = open_photometry_files(self.paths['outcatPath'])
         make_plots(filterCode=self.filtercode, paths=self.paths, photometrydata=self.data)
         if self.calibrated:
-            self.ensemblemag = make_calibrated_plots(filterCode=self.filtercode, paths=self.paths, photometrydata=self.data)
-            self.output(mode='calib')
+            make_calibrated_plots(filterCode=self.filtercode, paths=self.paths, photometrydata=self.data)
         if detrend:
             detrend_data(filterCode=self.filtercode, paths=self.paths)
         if period and self.calibrated:
@@ -59,8 +63,8 @@ class TimeSeries:
         if eebls:
             plot_bls(paths=self.paths)
 
-    def output(self, mode):
-        output_files(self.paths, self.data, mode=mode)
+    def output(self, mode, data):
+        output_files(self.paths, photometrydata=data, mode=mode)
 
     def clean(self):
         cleanup(self.paths['parent'])

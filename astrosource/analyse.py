@@ -357,3 +357,46 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
         photometrydata.append(outputPhot)
     # photometrydata = trim_catalogue(photometrydata)
     return photometrydata
+
+def calibrated_photometry(paths, photometrydata):
+    pdata = []
+    for j, outputPhot in enumerate(photometrydata):
+        calibCompFile = genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
+        compFile = genfromtxt(paths['parent'] / 'stdComps.csv', dtype=float, delimiter=',')
+        logger.info("Calibrating Photometry")
+        # Load in calibrated magnitudes and add them
+        #logger.info(compFile.size)
+        if compFile.shape[0] == 5 and compFile.size != 25:
+            ensembleMag=calibCompFile[3]
+        else:
+            ensembleMag=calibCompFile[:,3]
+        ensMag=0
+
+        if compFile.shape[0] == 5 and compFile.size != 25:
+            lenloop=1
+        else:
+            lenloop=len(calibCompFile[:,3])
+        for q in range(lenloop):
+            if compFile.shape[0] == 5 and compFile.size != 25:
+                ensMag=pow(10,-ensembleMag*0.4)
+            else:
+                ensMag=ensMag+(pow(10,-ensembleMag[q]*0.4))
+        #logger.info(ensMag)
+        ensembleMag=-2.5*math.log10(ensMag)
+        logger.info(f"Ensemble Magnitude: {ensembleMag}")
+
+
+        #calculate error
+        if compFile.shape[0] == 5 and compFile.size !=25:
+            ensembleMagError=calibCompFile[4]
+            #ensembleMagError=average(ensembleMagError)*1/pow(ensembleMagError.size, 0.5)
+        else:
+            ensembleMagError=calibCompFile[:,4]
+            ensembleMagError=average(ensembleMagError)*1/pow(ensembleMagError.size, 0.5)
+
+        #for file in fileList:
+        for i in range(outputPhot.shape[0]):
+            outputPhot[i][10]+=ensembleMag
+        # Write back to photometry data
+        pdata.append(outputPhot)
+    return pdata
