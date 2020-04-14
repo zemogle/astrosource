@@ -348,7 +348,7 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
 
         outputPhot=delete(outputPhot, starReject, axis=0)
         if outputPhot.shape[0] > 2:
-            savetxt(os.path.join(paths['outcatPath'],"doerPhot_V" +str(q+1) +".csv"), outputPhot, delimiter=",", fmt='%0.8f')
+            savetxt(paths['outcatPath'] / f"doerPhot_V{str(q+1)}.csv", outputPhot, delimiter=",", fmt='%0.8f')
             logger.debug('Saved doerPhot_V')
         else:
             raise AstrosourceException("Photometry not possible")

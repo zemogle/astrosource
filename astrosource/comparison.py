@@ -205,7 +205,6 @@ def ensemble_comparisons(photFileArray, compFile):
 def calculate_comparison_variation(compFile, photFileArray, fileCount):
     stdCompStar=[]
     sortStars=[]
-
     for cf in compFile:
         compDiffMags = []
         q=0
@@ -371,7 +370,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         os.makedirs(calibPath)
 
     Vizier.ROW_LIMIT = -1
-    max_sep=5.0 * arcsecond
+    max_sep=1.0 * arcsecond
 
     # Get List of Files Used
     fileList=[]

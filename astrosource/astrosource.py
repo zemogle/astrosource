@@ -20,10 +20,10 @@ class TimeSeries:
         verbose = kwargs.get('verbose', False)
         self.paths = folder_setup(self.indir)
         logger = setup_logger('astrosource', verbose)
-        self.filelist, self.filtercode = gather_files(self.paths, filetype=self.format)
+        self.files, self.filtercode = gather_files(self.paths, filetype=self.format)
 
     def analyse(self, calib=True):
-        self.usedimages, self.stars = find_stars(self.targets, self.paths, self.filelist, imageFracReject=self.imgreject)
+        self.usedimages, self.stars = find_stars(self.targets, self.paths, self.files, imageFracReject=self.imgreject)
         find_comparisons(self.targets, self.indir, self.usedimages)
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         self.calibrated = False
@@ -49,7 +49,7 @@ class TimeSeries:
         else:
             self.data = data
 
-    def plot(self, detrend=False, eebls=False, period=0.0, phaseShift=0.0, filesave=False):
+    def plot(self, detrend=False, eebls=False, period=False, phaseShift=0.0, filesave=False):
         if not hasattr(self, 'data'):
             self.data = open_photometry_files(self.paths['outcatPath'])
         make_plots(filterCode=self.filtercode, paths=self.paths, photometrydata=self.data)
@@ -58,8 +58,8 @@ class TimeSeries:
         if detrend:
             detrend_data(filterCode=self.filtercode, paths=self.paths)
         if period and self.calibrated:
-            phased_plots(filterCode=self.filtercode, paths=self.paths, targets=self.targets, period=period, phaseShift=phaseShift)
-            plot_with_period(filterCode=self.filtercode, paths=self.paths)
+            self.period = plot_with_period(filterCode=self.filtercode, paths=self.paths)
+            phased_plots(filterCode=self.filtercode, paths=self.paths, targets=self.targets, period=self.period, phaseShift=phaseShift)
         if eebls:
             plot_bls(paths=self.paths)
 

@@ -34,7 +34,7 @@ def rename_data_file(prihdr):
         filterOne = filter[0]
 
     expTime=(str(prihdr['EXPTIME']).replace('.','d'))
-    dateObs=(prihdr['DATE'].replace('-','d').replace(':','d').replace('.','d'))
+    dateObs=(prihdr['DATE-OBS'].replace('-','d').replace(':','d').replace('.','d'))
     airMass=(str(prihdr['AIRMASS']).replace('.','a'))
     instruMe=(prihdr['INSTRUME']).replace(' ','').replace('/','').replace('-','')
 
@@ -47,11 +47,11 @@ def rename_data_file(prihdr):
     return newName
 
 def export_photometry_files(filelist, indir, filetype='csv'):
-    phot_list = []
+    phot_dict = {}
     for f in filelist:
         filepath = extract_photometry(f, indir)
-        phot_list.append(Path(filepath).name)
-    return phot_list
+        phot_dict[Path(filepath).name] = Path(f).name
+    return phot_dict
 
 def extract_photometry(infile, parentPath, outfile=None):
 
@@ -272,7 +272,7 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=2
 
     screened_file = paths['parent'] / "screenedComps.csv"
     outputComps = asarray(outputComps)
-    outputComps.sort(axis=0)
+    # outputComps.sort(axis=0)
     savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
     used_file = paths['parent'] / "usedImages.txt"
     with open(used_file, "w") as f:

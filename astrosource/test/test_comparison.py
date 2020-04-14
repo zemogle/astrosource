@@ -41,7 +41,7 @@ def test_read_data_files():
     compFile, photFileArray = read_data_files(TEST_PATHS['parent'], fileslist)
     referenceFrame, fileRaDec = find_reference_frame(photFileArray)
     assert list(referenceFrame[0]) == [154.7583434, -9.6660181000000005, 271.47230000000002, 23.331099999999999, 86656.100000000006, 319.22829999999999]
-    assert (fileRaDec[0].ra.degree, fileRaDec[0].dec.degree) == ( 154.7583434,  -9.6660181)
+    assert (fileRaDec[0].ra.degree, fileRaDec[0].dec.degree) == (2.92142, -1.74868)
     assert len(referenceFrame) == 227
     assert len(fileRaDec) == 227
 
