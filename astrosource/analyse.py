@@ -301,7 +301,7 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
                     #templist is a temporary holder of the resulting file.
                     tempList=photFileArray[imgs][idx,:]
                     googFile = Path(fileList[imgs]).name
-                    tempList=append(tempList, float(googFile.split("_")[5].replace("d",".")))
+                    tempList=append(tempList, float(googFile.split("_")[2].replace("d",".")))
                     tempList=append(tempList, float(googFile.split("_")[4].replace("a",".")))
                     tempList=append(tempList, allCountsArray[allcountscount][0])
                     tempList=append(tempList, allCountsArray[allcountscount][1])
@@ -312,14 +312,20 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
                     tempList=append(tempList, photFileArray[imgs][idx][4])
                     tempList=append(tempList, photFileArray[imgs][idx][5])
 
-
                     if (compFile.shape[0]== 5 and compFile.size ==5) or (compFile.shape[0]== 3 and compFile.size ==3):
                         loopLength=1
                     else:
                         loopLength=compFile.shape[0]
 
+                    for j in range(loopLength):
+                        if compFile.size == 2 or (compFile.shape[0]== 3 and compFile.size ==3) or (compFile.shape[0]== 5 and compFile.size ==5):
+                            matchCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+                        else:
+                            matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
+                        idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+                        tempList=append(tempList, photFileArray[imgs][idx][4])
                     outputPhot.append(tempList)
-                    fileCount.append(allCounts)
+                    fileCount.append(allCountsArray[allcountscount][0])
                     allcountscount=allcountscount+1
 
         # Check for dud images

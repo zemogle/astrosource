@@ -318,24 +318,36 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
 def catalogue_call(avgCoord, opt, cat_name):
     data = namedtuple(typename='data',field_names=['ra','dec','mag','emag'])
 
-    if cat_name == 'APASS':
-        resp = Vizier.query_region(avgCoord, '0.33 deg', catalog='APASS')['II/336/apass9']
-    elif cat_name == 'SDSS':
-        resp = Vizier.query_region(avgCoord, '0.33 deg', catalog='SDSS')['V/147/sdss12']
-        if not resp:
-            ConeSearch.URL='http://skymapper.anu.edu.au/sm-cone/public/query?'
-            try:
-                resp = ConeSearch.query_region(avgCoord, '0.33 deg')
-            except VOSError:
-                raise AstrosourceException("Could not find RA {} Dec {} in SDSS or SkyMapper".format(avgCoord.ra.value,avgCoord.dec.value))
-    elif cat_name == 'PanSTARRS':
-        resp = Vizier.query_region(avgCoord, '0.33 deg', catalog='PanStarrs')['II/349/ps1']
+    TABLES = {'APASS':'II/336/apass9',
+              'SDSS' :'V/147/sdss12',
+              'PanSTARRS' : 'II/349/ps1',
+              }
+    tbname = TABLES.get(cat_name, None)
+    SOURCE = ConeSearch if cat_name == 'SkyMapper' else Vizier
+    kwargs = {'radius':'0.33 deg'}
+    if cat_name == 'SkyMapper':
+        ConeSearch.URL='http://skymapper.anu.edu.au/sm-cone/public/query?'
+    else:
+        kwargs['catalog'] = cat_name
 
+    try:
+        query = SOURCE.query_region(avgCoord, **kwargs)
+    except VOSError:
+        raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
+
+    if cat_name != 'SkyMapper' and query.keys():
+        resp = query[tbname]
+    elif cat_name == 'SkyMapper':
+        resp = query
+    else:
+        raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
 
     if cat_name in ['APASS','PanSTARRS']:
         radecname = {'ra' :'RAJ2000', 'dec': 'DEJ2000'}
     elif cat_name == 'SDSS':
         radecname = {'ra' :'RA_ICRS', 'dec': 'DE_ICRS'}
+    elif cat_name == 'SkyMapper':
+        radecname = {'ra' :'ra', 'dec': 'dec'}
     else:
         radecname = {'ra' :'raj2000', 'dec': 'dej2000'}
     data.ra = array(resp[radecname['ra']].data)
@@ -357,6 +369,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
                 'gp' : {'SDSS' : {'filter' : 'g_psf', 'error' : 'e_g_psf'},
                         'PanSTARRS': {'filter' : 'gmag', 'error' : 'e_gmag'}},
                 'rp' : {'SDSS' : {'filter' : 'r_psf', 'error' : 'e_r_psf'},
+                        'SkyMapper' : {'filter' : 'RMag', 'error' : 'RMagErr'},
                         'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag'}},
                 'ip' : {'SDSS' : {'filter' : 'imag', 'error' : 'e_imag'},
                         'PanSTARRS': {'filter' : 'imag', 'error' : 'e_imag'}},
@@ -408,8 +421,8 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     for cat_name, opt in catalogues.items():
         try:
             coords = catalogue_call(avgCoord, opt, cat_name)
-        except AstrosourceException:
-            pass
+        except AstrosourceException as e:
+            logger.debug(e)
 
     if not coords:
         raise AstrosourceException(f"Could not find coordinate match in any catalogues for {filterCode}")

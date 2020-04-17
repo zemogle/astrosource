@@ -29,9 +29,10 @@ logger = logging.getLogger('astrosource')
 @click.option('--target-file', default=None, type=str)
 @click.option('--format', default='fz', type=str)
 @click.option('--imgreject','-ir', type=float, default=0.0)
+@click.option('--bjd', is_flag=True)
 @click.option('--clean', is_flag=True)
 @click.option('--verbose','-v', is_flag=True)
-def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, clean, verbose):
+def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, bjd, clean, verbose):
 
     try:
         parentPath = Path(indir)

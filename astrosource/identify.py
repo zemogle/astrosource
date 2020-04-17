@@ -13,7 +13,7 @@ from astrosource.utils import AstrosourceException
 
 logger = logging.getLogger('astrosource')
 
-def rename_data_file(prihdr):
+def rename_data_file(prihdr, bjd=False):
 
     prihdrkeys = prihdr.keys()
 
@@ -39,21 +39,23 @@ def rename_data_file(prihdr):
     instruMe=(prihdr['INSTRUME']).replace(' ','').replace('/','').replace('-','')
 
     if (prihdr['MJD-OBS'] == 'UNKNOWN'):
-        mjdObs = 'UNKNOWN'
+        timeobs = 'UNKNOWN'
+    elif bjd:
+        timeobs = convert_mjd_bjd(prihdr)
     else:
-        mjdObs = '{0:.10f}'.format(prihdr['MJD-OBS']).replace('.','d')
-    newName=f"{objectTemp}_{filterOne}_{mjdObs}_{dateObs}_{airMass}_{expTime}_{instruMe}.npy"
+        timeobs = '{0:.10f}'.format(prihdr['MJD-OBS']).replace('.','d')
+    newName=f"{objectTemp}_{filterOne}_{timeobs}_{dateObs}_{airMass}_{expTime}_{instruMe}.npy"
 
     return newName
 
-def export_photometry_files(filelist, indir, filetype='csv'):
+def export_photometry_files(filelist, indir, filetype='csv', bjd=False):
     phot_dict = {}
     for f in filelist:
-        filepath = extract_photometry(f, indir)
+        filepath = extract_photometry(f, indir, bjd)
         phot_dict[Path(filepath).name] = Path(f).name
     return phot_dict
 
-def extract_photometry(infile, parentPath, outfile=None):
+def extract_photometry(infile, parentPath, outfile=None, bjd=False):
 
     with fits.open(infile) as hdulist:
 
@@ -80,7 +82,16 @@ def convert_photometry_files(filelist):
         new_files.append(filepath.name)
     return new_files
 
-def gather_files(paths, filetype="fz"):
+def convert_mjd_bjd(hdr):
+    pointing = coord.SkyCoord(hdr['RA'], hdr['DEC'], unit=(degree, degree), frame='icrs')
+    location = EarthLocation.from_geodetic(hdr['LONGITUD'], hdr['LATITUDE'], hdr['HEIGHT'])
+    t = Time(mJD, format='mjd',scale='utc', location=location)
+
+    tdbholder= (utc_tdb.JDUTC_to_BJDTDB(t, lat=hdr['LATITUDE'], longi=hdr['LONGITUD'], alt=hdr['HEIGHT'], leap_update=True))
+
+    return tdbholder[0][0]
+
+def gather_files(paths, filetype="fz", bjd=False):
     # Get list of files
     sys.stdout.write('💾 Inspecting input files\n')
     filelist = paths['parent'].glob("*.{}".format(filetype))
@@ -88,7 +99,7 @@ def gather_files(paths, filetype="fz"):
         # Assume we are not dealing with image files but photometry files
         phot_list = convert_photometry_files(filelist)
     else:
-        phot_list = export_photometry_files(filelist, paths['parent'])
+        phot_list = export_photometry_files(filelist, paths['parent'], bjd)
     if not phot_list:
         raise AstrosourceException("No files of type '.{}' found in {}".format(filetype, paths['parent']))
 

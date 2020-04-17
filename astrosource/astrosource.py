@@ -18,9 +18,10 @@ class TimeSeries:
         self.format = kwargs.get('format','fz')
         self.imgreject = kwargs.get('imgreject',0.0)
         verbose = kwargs.get('verbose', False)
+        bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
         logger = setup_logger('astrosource', verbose)
-        self.files, self.filtercode = gather_files(self.paths, filetype=self.format)
+        self.files, self.filtercode = gather_files(self.paths, filetype=self.format, bjd=bjd)
 
     def analyse(self, calib=True):
         self.usedimages, self.stars = find_stars(self.targets, self.paths, self.files, imageFracReject=self.imgreject)
