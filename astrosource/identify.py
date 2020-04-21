@@ -1,13 +1,16 @@
-from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose
-from astropy import units as u
-from astropy import wcs
-from astropy.coordinates import SkyCoord
-from astropy.io import fits
 import glob
 from pathlib import Path
 import sys
 import os
 import logging
+
+from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose
+from astropy import units as u
+from astropy import wcs
+from astropy.coordinates import SkyCoord, EarthLocation
+from astropy.io import fits
+from astropy.time import Time
+from barycorrpy import utc_tdb
 
 from astrosource.utils import AstrosourceException
 
@@ -83,9 +86,9 @@ def convert_photometry_files(filelist):
     return new_files
 
 def convert_mjd_bjd(hdr):
-    pointing = coord.SkyCoord(hdr['RA'], hdr['DEC'], unit=(degree, degree), frame='icrs')
+    pointing = SkyCoord(hdr['RA'], hdr['DEC'], unit=(u.degree, u.degree), frame='icrs')
     location = EarthLocation.from_geodetic(hdr['LONGITUD'], hdr['LATITUDE'], hdr['HEIGHT'])
-    t = Time(mJD, format='mjd',scale='utc', location=location)
+    t = Time(hdr['MJD-OBS'], format='mjd',scale='utc', location=location)
 
     tdbholder= (utc_tdb.JDUTC_to_BJDTDB(t, lat=hdr['LATITUDE'], longi=hdr['LONGITUD'], alt=hdr['HEIGHT'], leap_update=True))
 

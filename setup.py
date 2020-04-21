@@ -21,7 +21,8 @@ setup(
             'pytest',
             'astroquery',
             'scipy',
-            'colorlog'
+            'colorlog',
+            'barycorrpy'
     ],
     packages=find_packages(),
     include_package_data=True,

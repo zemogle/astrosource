@@ -16,19 +16,6 @@ from astrosource.utils import photometry_files_to_array, AstrosourceException
 
 logger = logging.getLogger('astrosource')
 
-def trim_out(photometrydata):
-    for photFile in photometrydata:
-        calibDiff=-((photFile[:,1]-calibFile[:,1])[0])
-        measureReject=[]
-        for i in range(photFile.shape[0]):
-            if photFile[i,1] < float(brightD) or photFile[i,1] > float(brightV) :
-                measureReject.append(i)
-                logger.debug(photFile[i,1])
-                logger.debug("REJECT")
-        logger.debug(photFile.shape[0])
-        photFile = delete(photFile, measureReject, axis=0)
-        logger.debug(photFile.shape[0])
-    return data
 
 def get_total_counts(photFileArray, compFile, loopLength):
 
