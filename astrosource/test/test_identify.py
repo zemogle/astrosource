@@ -17,7 +17,7 @@ def test_rename_object():
                 "FILTER2"   : "air",
                 "FILTER3"   : "air",
                 'EXPTIME'   : 20.0,
-                'DATE'      : "2019-01-25T15:54:10.861857",
+                'DATE-OBS'      : "2019-01-25T15:54:10.861857",
                 'AIRMASS'   : 1.6,
                 'INSTRUME'  : 'kb92',
                 'MJD-OBS'   : 58508.3265502,
@@ -32,7 +32,7 @@ def test_rename_noobject():
                 "FILTER2"   : "air",
                 "FILTER3"   : "air",
                 'EXPTIME'   : 20.0,
-                'DATE'      : "2019-01-25T15:54:10.861857",
+                'DATE-OBS'      : "2019-01-25T15:54:10.861857",
                 'AIRMASS'   : 1.6,
                 'INSTRUME'  : 'kb92',
                 'MJD-OBS'   : 58508.3265502,
@@ -47,7 +47,7 @@ def test_rename_nomjd():
                 "FILTER2"   : "air",
                 "FILTER3"   : "air",
                 'EXPTIME'   : 20.0,
-                'DATE'      : "2019-01-25T15:54:10.861857",
+                'DATE-OBS'      : "2019-01-25T15:54:10.861857",
                 'AIRMASS'   : 1.6,
                 'INSTRUME'  : 'kb92',
                 'MJD-OBS'   :'UNKNOWN',
@@ -64,7 +64,7 @@ def test_extract_photometry(tmp_path):
     assert result_file == tmp_path / "test.npy"
 
     result_phot = numpy.load(result_file)
-    test_photfile = TEST_PATHS['parent'] / 'photFile_test.csv'
+    test_photfile = TEST_PATHS['parent'] / 'photometry_test.csv'
     test_phot = numpy.genfromtxt(test_photfile, dtype=float, delimiter=',')
     # Test if csv file is as we expect
     assert result_phot.all() == test_phot.all()
@@ -72,11 +72,12 @@ def test_extract_photometry(tmp_path):
 def test_gather_files():
 
     phot_files, filtercode = gather_files(TEST_PATHS, filetype="fits")
-    test_files = [TEST_PATHS['parent'] / 'XOd2_ip_57757d0522793000_2017d01d04_1a0899013_22d293_kb29.npy', TEST_PATHS['parent'] /  'XOd2_ip_57757d0532642000_2017d01d04_1a089113_22d284_kb29.npy']
-    assert phot_files.sort() == test_files.sort()
+    test_files = {'XOd2_ip_57757d0532642000_2017d01d04T01d16d43d571_1a089113_22d284_kb29.npy': 'photometry_test2.fits',
+    'XOd2_ip_57757d0522793000_2017d01d04T01d15d18d519_1a0899013_22d293_kb29.npy': 'photometry_test.fits'}
+    assert phot_files == test_files
     # Clean up
-    for tf in test_files:
-        os.remove(tf)
+    # for tf in test_files:
+    #     os.remove(tf)
 
 def test_find_stars():
     target = [[117.0269708, 50.2258111, 0,0]]
@@ -92,5 +93,5 @@ def test_find_stars():
     test_files = ['XOd2_ip_57757d0522793000_2017d01d04_1a0899013_22d293_kb29.npy',
                   'XOd2_ip_57757d0532642000_2017d01d04_1a089113_22d284_kb29.npy',
                   'screenedComps.csv']
-    for tf in test_files:
-        (TEST_PATHS['parent'] / tf).unlink()
+    # for tf in test_files:
+    #     (TEST_PATHS['parent'] / tf).unlink()

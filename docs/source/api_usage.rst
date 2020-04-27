@@ -41,8 +41,19 @@ Analysis
 -------
 To find the stars in the photometry tables and find comparisons. This will perform photometric calibration unless `calib=False` is passed.
 
-.. code-block:: python
+If you would like to output CSV files with the photometry data, you need to pass `filesave=True` as shown below.
 
+.. code-block:: python
+  ts = TimeSeries(indir=indir, targets=targets)
   ts.analyse(calib=False)
-  ts.curves()
-  ts.photometry()
+  ts.find_stable()
+  ts.photometry(filesave=True)
+  ts.plot(detrend=False, period=True, eebls=False, filesave=True)
+
+This is an example of the full analysis code using the input directory `indir` and `targets` from above.
+
+The `plot` stage has 3 optional inputs:
+
+* detrend: detrend exoplanet data
+* period: recursively attempt to find a period (for periodic sources like variable stars or binaries)
+* eebls: Edge Enhanced Box-fitting Least Squares analysis for an exoplanet transit curve  

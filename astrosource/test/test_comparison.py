@@ -19,7 +19,7 @@ TEST_PATHS = {'parent': TEST_PATH_PARENT / 'comparison'}
 
 @pytest.fixture
 def targets():
-    return nparray([154.90837080,-9.80627780,0.00000000,0.00000000])
+    return nparray([2.92142, -1.74868,0.00000000,0.00000000])
 
 def test_setup():
     used_files = TEST_PATHS['parent'] / 'usedImages.txt'
@@ -41,7 +41,7 @@ def test_read_data_files():
     compFile, photFileArray = read_data_files(TEST_PATHS['parent'], fileslist)
     referenceFrame, fileRaDec = find_reference_frame(photFileArray)
     assert list(referenceFrame[0]) == [154.7583434, -9.6660181000000005, 271.47230000000002, 23.331099999999999, 86656.100000000006, 319.22829999999999]
-    assert (fileRaDec[0].ra.degree, fileRaDec[0].dec.degree) == (2.92142, -1.74868)
+    assert (fileRaDec[0].ra.degree, fileRaDec[0].dec.degree) == (154.7583434, -9.6660181)
     assert len(referenceFrame) == 227
     assert len(fileRaDec) == 227
 
@@ -51,7 +51,7 @@ def test_comparison(targets):
     outfile, num_cands = find_comparisons(targets=targets, parentPath=TEST_PATHS['parent'], fileList=filelist)
 
     assert outfile == TEST_PATHS['parent'] / "compsUsed.csv"
-    assert num_cands == 8
+    assert num_cands == 2
 
 @patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_vsx)
 def test_remove_targets_calibrated(targets):
@@ -61,14 +61,14 @@ def test_remove_targets_calibrated(targets):
     assert compFile.shape == (60,2)
     compFile_out = remove_stars_targets(parentPath, compFile, acceptDistance=5.0, targetFile=targets, removeTargets=1)
     # 3 stars are removed because they are variable
-    assert compFile_out.shape == (57,2)
+    assert compFile_out.shape == (56,2)
 
 @patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_apass_b)
 def test_find_comparisons_calibrated_b():
     compFile = find_comparisons_calibrated('B', paths=TEST_PATHS)
-    assert compFile.shape == (8,5)
+    assert compFile.shape == (2,5)
 
 @patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_apass_v)
 def test_find_comparisons_calibrated_v():
     compFile = find_comparisons_calibrated('V', paths=TEST_PATHS)
-    assert compFile.shape == (8,5)
+    assert compFile.shape == (2,5)
