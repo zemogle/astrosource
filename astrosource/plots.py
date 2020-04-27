@@ -2,6 +2,8 @@ from numpy import genfromtxt, savetxt, asarray, average, isnan, delete, min, max
 from astropy.coordinates import SkyCoord
 from pathlib import Path
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import math
 import os

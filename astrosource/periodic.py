@@ -4,6 +4,8 @@ import sys
 import os
 import platform
 import glob
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from pathlib import Path
 
