@@ -15,13 +15,14 @@ class TimeSeries:
     def __init__(self, targets, indir, **kwargs):
         self.targets = targets
         self.indir = Path(indir)
+        filelist=kwargs.get('filelist', None)
         self.format = kwargs.get('format','fz')
         self.imgreject = kwargs.get('imgreject',0.0)
         verbose = kwargs.get('verbose', False)
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
         logger = setup_logger('astrosource', verbose)
-        self.files, self.filtercode = gather_files(self.paths, filetype=self.format, bjd=bjd)
+        self.files, self.filtercode = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd)
 
     def analyse(self, calib=True):
         self.usedimages, self.stars = find_stars(self.targets, self.paths, self.files, imageFracReject=self.imgreject)
@@ -43,7 +44,6 @@ class TimeSeries:
     def photometry(self, filesave=False):
         data = photometric_calculations(targets=self.targets, paths=self.paths, filesave=filesave)
         self.output(mode='diff', data=data)
-        self.ensemblemag = 0.0
         if self.calibrated:
             self.data = calibrated_photometry(paths=self.paths, photometrydata=data)
             self.output(mode='calib', data=self.data)

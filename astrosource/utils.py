@@ -16,7 +16,7 @@ def setup_logger(name, verbose=False):
     handler.setFormatter(formatter)
 
     logger = logging.getLogger(name)
-    logger.handlers = []
+    # logger.handlers = []
     if verbose:
         LOG_LEVEL = logging.DEBUG
     else:

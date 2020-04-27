@@ -107,17 +107,6 @@ def detrend_data(paths, filterCode):
         #return basedate to the data
         photFile[:,0]=photFile[:,0]+baseSubDate
 
-
-        # ax=plt.plot(photFile[:,0],photFile[:,1],'ro')
-        # plt.gca().invert_yaxis()
-        # #logger.debug(ax.lines)
-        # plt.show()
-        # del ax
-        # plt.clf()
-        # plt.cla()
-        # plt.close()
-        # plt.close("all")
-
         # Output trimmed files
         savetxt(paths['outcatPath'] / 'V{}_diffPeranso.txt'.format(str(r+1)), photFile, delimiter=" ", fmt='%0.8f')
         savetxt(paths['outcatPath'] / 'V{}_diffExcel.csv'.format(str(r+1)), photFile, delimiter=",", fmt='%0.8f')
@@ -148,33 +137,6 @@ def detrend_data(paths, filterCode):
         plt.clf()
         plt.close()
         plt.close("all")
-
-
-        if exists:
-            measureReject=[]
-            for i in range(calibFile.shape[0]):
-                if calibFile[i,1] < float(brightD)+calibDiff or calibFile[i,1] > float(brightV)+calibDiff :
-                    measureReject.append(i)
-                    logger.debug(calibFile[i,1])
-                    logger.debug("REJECT")
-            logger.debug(calibFile.shape[0])
-            calibFile=delete(calibFile, measureReject, axis=0)
-            logger.debug(calibFile.shape[0])
-
-            # Output trimmed files
-            savetxt(paths['outcatPath'] / 'V{}_calibPeranso.txt'.format(str(r+1)), calibFile, delimiter=" ", fmt='%0.8f')
-            savetxt(paths['outcatPath'] / 'V{}_calibExcel.csv'.format(str(r+1)), calibFile, delimiter=",", fmt='%0.8f')
-
-            # Output astroImageJ file
-            outputPeransoCalib=[]
-            #i=0
-            for i in range(asarray(calibFile).shape[0]):
-                outputPeransoCalib.append([calibFile[i][0]-2450000.0,calibFile[i][1],calibFile[i][2]])
-                #i=i+1
-
-            savetxt(paths['outcatPath'] / 'V{}_calibAIJ.txt'.format(str(r+1)), outputPeransoCalib, delimiter=" ", fmt='%0.8f')
-            savetxt(paths['outcatPath'] / 'V{}_calibAIJ.csv'.format(str(r+1)), outputPeransoCalib, delimiter=",", fmt='%0.8f')
-            #r=r+1
 
         r=r+1
     return

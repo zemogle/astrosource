@@ -54,8 +54,19 @@ def rename_data_file(prihdr, bjd=False):
 def export_photometry_files(filelist, indir, filetype='csv', bjd=False):
     phot_dict = {}
     for f in filelist:
-        filepath = extract_photometry(f, indir, bjd)
-        phot_dict[Path(filepath).name] = Path(f).name
+        s3 = False
+        try:
+            fitsobj = Path(f)
+        except TypeError:
+            fitsobj = f.open()
+            s3 = True
+        filepath = extract_photometry(fitsobj, indir, bjd)
+        if s3:
+            f.close()
+            filename = f.name
+        else:
+            filename = fitsobj.name
+        phot_dict[Path(filepath).name] = filename
     return phot_dict
 
 def extract_photometry(infile, parentPath, outfile=None, bjd=False):
@@ -74,6 +85,7 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False):
         countserr = data['fluxerr']
         # savetxt(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr]), delimiter=',')
         save(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr]))
+
     return outfile
 
 def convert_photometry_files(filelist):
@@ -94,10 +106,11 @@ def convert_mjd_bjd(hdr):
 
     return tdbholder[0][0]
 
-def gather_files(paths, filetype="fz", bjd=False):
+def gather_files(paths, filelist=None, filetype="fz", bjd=False):
     # Get list of files
     sys.stdout.write('💾 Inspecting input files\n')
-    filelist = paths['parent'].glob("*.{}".format(filetype))
+    if not filelist:
+        filelist = paths['parent'].glob("*.{}".format(filetype))
     if filetype not in ['fits','fit','fz']:
         # Assume we are not dealing with image files but photometry files
         phot_list = convert_photometry_files(filelist)
@@ -105,7 +118,6 @@ def gather_files(paths, filetype="fz", bjd=False):
         phot_list = export_photometry_files(filelist, paths['parent'], bjd)
     if not phot_list:
         raise AstrosourceException("No files of type '.{}' found in {}".format(filetype, paths['parent']))
-
     filters = set([os.path.basename(f).split('_')[1] for f in phot_list])
 
     logger.debug("Filter Set: {}".format(filters))
