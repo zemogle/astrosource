@@ -1,7 +1,6 @@
 from numpy import genfromtxt, savetxt, asarray, average, isnan, delete, min, max
 from astropy.coordinates import SkyCoord
 from pathlib import Path
-
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -17,7 +16,7 @@ logger = logging.getLogger('astrosource')
 
 def output_files(paths, photometrydata, mode='diff'):
     if mode == 'calib' and not (paths['parent'] / 'calibCompsUsed.csv').exists():
-        raise AstrosourceException("")
+        raise AstrosourceException("No calibrated photometry available")
 
     for j, outputPhot in enumerate(photometrydata):
         r = j+1

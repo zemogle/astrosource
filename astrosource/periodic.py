@@ -130,7 +130,7 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
     for r in range(periodsteps):
         periodTrialMatrix.append([periodguess_array[r],distance_results[r],stdev_results[r]])
     periodTrialMatrix=np.asarray(periodTrialMatrix)
-    np.savetxt(os.path.join(periodPath,str(variableName)+'_'+"Trials.csv"), periodTrialMatrix, delimiter=",", fmt='%0.8f')
+    np.savetxt(periodPath / f"{variableName}_Trials.csv", periodTrialMatrix, delimiter=",", fmt='%0.8f')
 
     (distance_minperiod, distance_min) = find_minimum(distance_results, periodguess_array)
     (stdev_minperiod, stdev_min) = find_minimum(stdev_results, periodguess_array)
@@ -178,7 +178,7 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
     #print (stdev_results[beginIndex+stepper])
         if beginIndex+stepper+1 == periodsteps:
             righthandP=periodguess_array[beginIndex+stepper]
-            print ("Warning: Peak period for stdev method too close to top of range")
+            logger.debug("Warning: Peak period for stdev method too close to top of range")
             break
         if stdev_results[beginIndex+stepper] > thresholdvalue:
             #print ("RIGHTHAND PERIOD!")
@@ -224,7 +224,7 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
     while True:
         if beginIndex+stepper+1 == periodsteps:
             righthandP=periodguess_array[beginIndex+stepper]
-            print ("Warning: Peak period for distance method too close to top of range")
+            logger.debug("Warning: Peak period for distance method too close to top of range")
             break
         #print (beginIndex+stepper)
         #print (stdev_results[beginIndex+stepper])
@@ -248,7 +248,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
     trialRange=[minperiod, maxperiod]
 
     # Get list of phot files
-    periodPath = paths['parent'] / "periods"
+    periodPath = paths['periods']
     if not periodPath.exists():
         os.makedirs(periodPath)
 

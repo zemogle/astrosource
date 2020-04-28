@@ -77,6 +77,7 @@ def folder_setup(parentPath=None):
         'outputPath' : parentPath / "outputplots",
         'outcatPath' : parentPath / "outputcats",
         'checkPath'  : parentPath / "checkplots",
+        'periods'    : parentPath / "periods"
     }
     for k, path in paths.items():
         if not path.exists():
