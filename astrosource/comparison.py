@@ -342,6 +342,8 @@ def catalogue_call(avgCoord, opt, cat_name):
     else:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
 
+
+    logger.debug(f'Looking for sources in {cat_name}')
     if cat_name in ['APASS','PanSTARRS']:
         radecname = {'ra' :'RAJ2000', 'dec': 'DEJ2000'}
     elif cat_name == 'SDSS':
@@ -364,16 +366,16 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     FILTERS = {
                 'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag'}},
                 'V' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag'}},
-                'up' : {'SDSS' : {'filter' : 'u_psf', 'error' : 'e_u_psf'},
+                'up' : {'SDSS' : {'filter' : 'umag', 'error' : 'e_umag'},
                         'PanSTARRS': {'filter' : 'umag', 'error' : 'e_umag'}},
                 'gp' : {'SDSS' : {'filter' : 'g_psf', 'error' : 'e_g_psf'},
                         'PanSTARRS': {'filter' : 'gmag', 'error' : 'e_gmag'}},
-                'rp' : {'SDSS' : {'filter' : 'r_psf', 'error' : 'e_r_psf'},
+                'rp' : {'SDSS' : {'filter' : 'rmag', 'error' : 'e_rmag'},
                         'SkyMapper' : {'filter' : 'RMag', 'error' : 'RMagErr'},
                         'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag'}},
                 'ip' : {'SDSS' : {'filter' : 'imag', 'error' : 'e_imag'},
                         'PanSTARRS': {'filter' : 'imag', 'error' : 'e_imag'}},
-                'zs' : {'SDSS' : {'filter' : 'z_psf', 'error' : 'e_z_psf'},
+                'zs' : {'SDSS' : {'filter' : 'zmag', 'error' : 'e_zmag'},
                         'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag'}},
                 }
 
