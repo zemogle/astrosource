@@ -29,3 +29,14 @@ def mock_vizier_query_region_apass_v(*args, **kwargs):
     t.add_column(evmag, name='e_Vmag')
     q = {'II/336/apass9' : t }
     return q
+
+def mock_vizier_query_region_ps_r(*args, **kwargs):
+    t = mock_vizier_query_region()
+    rmag = Column(np.array([16.82 ,    np.nan, 16.287, 16.566, 17.006], dtype=np.float32))
+    ermag = Column(np.array([0.018,   np.nan, 0.009, 0.02 , 0.11 ], dtype=np.float32))
+    qual = Column(np.array([52,52,52,0,52],dtype='uint8'))
+    t.add_column(rmag, name='rmag')
+    t.add_column(ermag, name='e_rmag')
+    t.add_column(qual, name='Qual')
+    q = {'II/349/ps1' : t }
+    return q

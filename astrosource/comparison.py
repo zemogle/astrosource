@@ -6,7 +6,7 @@ from collections import namedtuple
 import numpy as np
 
 from numpy import min, max, median, std, isnan, delete, genfromtxt, savetxt, load, \
-    asarray, add, append, log10, average, array
+    asarray, add, append, log10, average, array, where
 from astropy.units import degree, arcsecond
 from astropy.coordinates import SkyCoord
 from astroquery.sdss import SDSS
@@ -316,7 +316,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
 
 
 def catalogue_call(avgCoord, opt, cat_name):
-    data = namedtuple(typename='data',field_names=['ra','dec','mag','emag'])
+    data = namedtuple(typename='data',field_names=['ra','dec','mag','emag','cat_name'])
 
     TABLES = {'APASS':'II/336/apass9',
               'SDSS' :'V/147/sdss12',
@@ -352,12 +352,22 @@ def catalogue_call(avgCoord, opt, cat_name):
         radecname = {'ra' :'ra', 'dec': 'dec'}
     else:
         radecname = {'ra' :'raj2000', 'dec': 'dej2000'}
+
+    # Filter out bad data from catalogues
+    print(resp[radecname['ra']].data)
+    if cat_name == 'PanSTARRS':
+        resp = resp[where((resp['Qual'] == 52) | (resp['Qual'] == 60) | (resp['Qual'] == 61))]
+    elif cat_name == 'SDSS':
+        resp = resp[resp['Q'] == 3]
+
+    data.cat_name = cat_name
     data.ra = array(resp[radecname['ra']].data)
     data.dec = array(resp[radecname['dec']].data)
 
     # extract RA, Dec, Mag and error as arrays
     data.mag = array(resp[opt['filter']].data)
     data.emag = array(resp[opt['error']].data)
+    print(data.mag)
     return data
 
 def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, panStarrsInstead=False):
@@ -387,7 +397,6 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         os.makedirs(calibPath)
 
     Vizier.ROW_LIMIT = -1
-    max_sep=1.0 * arcsecond
 
     # Get List of Files Used
     fileList=[]
@@ -425,6 +434,11 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     for cat_name, opt in catalogues.items():
         try:
             coords = catalogue_call(avgCoord, opt, cat_name)
+            if coords.cat_name == 'PanSTARRS':
+                max_sep=2.5 * arcsecond
+            else:
+                max_sep=1.0 * arcsecond
+
         except AstrosourceException as e:
             logger.debug(e)
 
