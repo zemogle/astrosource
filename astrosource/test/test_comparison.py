@@ -12,7 +12,7 @@ from astrosource.comparison import find_comparisons, read_data_files, find_refer
     remove_stars_targets, find_comparisons_calibrated, catalogue_call
 
 from astrosource.test.mocks import mock_vizier_query_region_vsx, mock_vizier_query_region_apass_b,\
-    mock_vizier_query_region_apass_v, mock_vizier_query_region_ps_r
+    mock_vizier_query_region_apass_v, mock_vizier_query_region_ps_r, mock_vizier_query_region_sdss_r
 
 
 TEST_PATH_PARENT = Path(os.path.dirname(__file__)) / 'test_files'
@@ -80,3 +80,9 @@ def test_catalogue_call_panstarrs():
     coord=SkyCoord(ra=303.6184*degree, dec=(-13.8355*degree))
     resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag'},cat_name='PanSTARRS')
     assert len(resp.ra) == 4
+
+@patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_sdss_r)
+def test_catalogue_call_sdss():
+    coord=SkyCoord(ra=303.6184*degree, dec=(-13.8355*degree))
+    resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag'},cat_name='SDSS')
+    assert len(resp.ra) == 3
