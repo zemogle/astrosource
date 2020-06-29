@@ -207,17 +207,14 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
     sortStars=[]
     for cf in compFile:
         compDiffMags = []
-        q=0
         logger.debug("*************************")
         logger.debug("RA : " + str(cf[0]))
         logger.debug("DEC: " + str(cf[1]))
-        for imgs in range(photFileArray.shape[0]):
-            photFile = photFileArray[imgs]
+        for q, photFile in enumerate(photFileArray):
             fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
             matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
             compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
-            q = add(q,1)
 
         logger.debug("VAR: " +str(std(compDiffMags)))
         stdCompStar.append(std(compDiffMags))
@@ -291,7 +288,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         catCoords=SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
         idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
         logger.debug(d2dcomp)
-        if d2dcomp *arcsecond < max_sep*arcsecond:
+        if d2dcomp.arcsecond.any() < max_sep.value:
             logger.debug("match!")
             varStarReject.append(t)
         else:
@@ -354,7 +351,6 @@ def catalogue_call(avgCoord, opt, cat_name):
         radecname = {'ra' :'raj2000', 'dec': 'dej2000'}
 
     # Filter out bad data from catalogues
-    print(resp[radecname['ra']].data)
     if cat_name == 'PanSTARRS':
         resp = resp[where((resp['Qual'] == 52) | (resp['Qual'] == 60) | (resp['Qual'] == 61))]
     elif cat_name == 'SDSS':
@@ -367,7 +363,6 @@ def catalogue_call(avgCoord, opt, cat_name):
     # extract RA, Dec, Mag and error as arrays
     data.mag = array(resp[opt['filter']].data)
     data.emag = array(resp[opt['error']].data)
-    print(data.mag)
     return data
 
 def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, panStarrsInstead=False):
@@ -461,8 +456,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         else:
             compCoord=SkyCoord(ra=compFile[q][0]*degree, dec=compFile[q][1]*degree)
         idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
-
-        if d2dcomp *arcsecond < max_sep*arcsecond:
+        if d2dcomp.arcsecond.any() < max_sep.value:
             if not isnan(coords.mag[idxcomp]):
 
                 if compFile.shape[0] ==13:
@@ -478,10 +472,6 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
         raise AstrosourceException("Stars are too dim to calibrate to.")
 
     varimin=(min(asarray(calibStands)[:,2])) * variabilityMultiplier
-
-    logger.debug("varimin")
-    #logger.debug(asarray(calibStands)[:,2])
-    logger.debug(varimin)
 
     calibStandsReject=[]
     for q in range(len(asarray(calibStands)[:,0])):

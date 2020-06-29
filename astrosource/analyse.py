@@ -21,14 +21,13 @@ def get_total_counts(photFileArray, compFile, loopLength):
 
     compArray=[]
     allCountsArray=[]
+    logger.debug("***************************************")
+    logger.debug("Calculating total counts")
     for photFile in photFileArray:
         allCounts=0.0
         allCountsErr=0.0
         fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
         #Array of comp measurements
-        logger.debug("***************************************")
-
-        logger.debug("Calculating total counts")
         for j in range(loopLength):
             if compFile.size == 2 or (compFile.shape[0]== 3 and compFile.size ==3) or (compFile.shape[0]== 5 and compFile.size ==5):
                 matchCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
@@ -241,8 +240,6 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
                     magErrEns = 1.0857 * (allCountsArray[allcountscount][1]/allCountsArray[allcountscount][0])
                     magErrTotal = pow( pow(magErrVar,2) + pow(magErrEns,2),0.5)
 
-                    logger.debug(f"{magErrTotal}")
-
                     #templist is a temporary holder of the resulting file.
                     tempList=photFile[idx,0:6]
                     # logger.debug(f"{tempList}")
@@ -262,7 +259,6 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
                         loopLength=1
                     else:
                         loopLength=compFile.shape[0]
-                    logger.debug(compFile.shape[0])
                     for j in range(loopLength):
                         if compFile.size == 2 or (compFile.shape[0]== 3 and compFile.size ==3) or (compFile.shape[0]== 5 and compFile.size ==5):
                             matchCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
@@ -282,7 +278,6 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
             else:
                 starDistanceRejCount=starDistanceRejCount+1
                 starRejected=1
-            logger.debug(f"{np.asarray(outputPhot).shape}")
             if ( starRejected == 1):
 
                     #templist is a temporary holder of the resulting file.
@@ -359,28 +354,26 @@ def calibrated_photometry(paths, photometrydata):
         logger.info("Calibrating Photometry")
         # Load in calibrated magnitudes and add them
         #logger.info(compFile.size)
-        if compFile.shape[0] == 5 and compFile.size != 25:
+        single_value = True if calibCompFile.shape[0] == 5 and compFile.size != 25 else False
+        if single_value:
             ensembleMag=calibCompFile[3]
         else:
             ensembleMag=calibCompFile[:,3]
         ensMag=0
 
-        if compFile.shape[0] == 5 and compFile.size != 25:
-            lenloop=1
+        if single_value:
+            ensMag=pow(10,-ensembleMag*0.4)
         else:
-            lenloop=len(calibCompFile[:,3])
-        for q in range(lenloop):
-            if compFile.shape[0] == 5 and compFile.size != 25:
-                ensMag=pow(10,-ensembleMag*0.4)
-            else:
+            for q in enumerate(calibCompFile[:,3]):
                 ensMag=ensMag+(pow(10,-ensembleMag[q]*0.4))
+
         #logger.info(ensMag)
         ensembleMag=-2.5*math.log10(ensMag)
         logger.info(f"Ensemble Magnitude: {ensembleMag}")
 
 
         #calculate error
-        if compFile.shape[0] == 5 and compFile.size !=25:
+        if single_value:
             ensembleMagError=calibCompFile[4]
             #ensembleMagError=average(ensembleMagError)*1/pow(ensembleMagError.size, 0.5)
         else:
