@@ -22,7 +22,7 @@ import logging
 logger = logging.getLogger('astrosource')
 
 
-def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5, thresholdCounts=1000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=1.0):
+def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5, thresholdCounts=10000000, variabilityMultiplier=2.5, removeTargets=1, acceptDistance=1.0):
     '''
     Find stable comparison stars for the target photometry
 
@@ -257,8 +257,9 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     compFile=delete(compFile, idx, axis=0)
     fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
 
+
     # Get Average RA and Dec from file
-    if compFile.shape[0] == 13:
+    if compFile.shape[0] == 13 and compFile.size == 13:
         logger.debug(compFile[0])
         logger.debug(compFile[1])
         avgCoord=SkyCoord(ra=(compFile[0])*degree, dec=(compFile[1]*degree))
@@ -318,24 +319,22 @@ def catalogue_call(avgCoord, opt, cat_name):
     TABLES = {'APASS':'II/336/apass9',
               'SDSS' :'V/147/sdss12',
               'PanSTARRS' : 'II/349/ps1',
+              'SkyMapper' : 'II/358/smss'
               }
+
     tbname = TABLES.get(cat_name, None)
-    SOURCE = ConeSearch if cat_name == 'SkyMapper' else Vizier
     kwargs = {'radius':'0.33 deg'}
-    if cat_name == 'SkyMapper':
-        ConeSearch.URL='http://skymapper.anu.edu.au/sm-cone/public/query?'
-    else:
-        kwargs['catalog'] = cat_name
+    kwargs['catalog'] = cat_name
 
     try:
-        query = SOURCE.query_region(avgCoord, **kwargs)
+        v=Vizier(columns=['all']) # Skymapper by default does not report the error columns
+        v.ROW_LIMIT=-1
+        query = v.query_region(avgCoord, **kwargs)
     except VOSError:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
 
-    if cat_name != 'SkyMapper' and query.keys():
+    if query.keys():
         resp = query[tbname]
-    elif cat_name == 'SkyMapper':
-        resp = query
     else:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
 
@@ -346,7 +345,7 @@ def catalogue_call(avgCoord, opt, cat_name):
     elif cat_name == 'SDSS':
         radecname = {'ra' :'RA_ICRS', 'dec': 'DE_ICRS'}
     elif cat_name == 'SkyMapper':
-        radecname = {'ra' :'ra', 'dec': 'dec'}
+        radecname = {'ra' :'RAICRS', 'dec': 'DEICRS'}
     else:
         radecname = {'ra' :'raj2000', 'dec': 'dej2000'}
 
@@ -355,6 +354,8 @@ def catalogue_call(avgCoord, opt, cat_name):
         resp = resp[where((resp['Qual'] == 52) | (resp['Qual'] == 60) | (resp['Qual'] == 61))]
     elif cat_name == 'SDSS':
         resp = resp[resp['Q'] == 3]
+    elif cat_name == 'SkyMapper':
+        resp = resp[resp['flags'] == 0]
 
     data.cat_name = cat_name
     data.ra = array(resp[radecname['ra']].data)
@@ -372,17 +373,19 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
                 'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag'}},
                 'V' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag'}},
                 'up' : {'SDSS' : {'filter' : 'umag', 'error' : 'e_umag'},
-                        'SkyMapper' : {'filter' : 'UMag', 'error' : 'UMagErr'},
+                        'SkyMapper' : {'filter' : 'uPSF', 'error' : 'e_uPSF'},
                         'PanSTARRS': {'filter' : 'umag', 'error' : 'e_umag'}},
                 'gp' : {'SDSS' : {'filter' : 'gmag', 'error' : 'e_mag'},
+                        'SkyMapper' : {'filter' : 'gPSF', 'error' : 'e_gPSF'},
                         'PanSTARRS': {'filter' : 'gmag', 'error' : 'e_gmag'}},
                 'rp' : {'SDSS' : {'filter' : 'rmag', 'error' : 'e_rmag'},
-                        'SkyMapper' : {'filter' : 'RMag', 'error' : 'RMagErr'},
+                        'SkyMapper' : {'filter' : 'rPSF', 'error' : 'e_rPSF'},
                         'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag'}},
                 'ip' : {'SDSS' : {'filter' : 'imag', 'error' : 'e_imag'},
-                        'SkyMapper' : {'filter' : 'IMag', 'error' : 'IMagErr'},
+                        'SkyMapper' : {'filter' : 'iPSF', 'error' : 'e_iPSF'},
                         'PanSTARRS': {'filter' : 'imag', 'error' : 'e_imag'}},
                 'zs' : {'SDSS' : {'filter' : 'zmag', 'error' : 'e_zmag'},
+                        'SkyMapper' : {'filter' : 'zPSF', 'error' : 'e_zPSF'},
                         'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag'}},
                 }
 
@@ -391,7 +394,7 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     if not calibPath.exists():
         os.makedirs(calibPath)
 
-    Vizier.ROW_LIMIT = -1
+    #Vizier.ROW_LIMIT = -1
 
     # Get List of Files Used
     fileList=[]
@@ -404,13 +407,13 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     compFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
     logger.debug(compFile.shape[0])
 
-    if compFile.shape[0] == 13:
+    if compFile.shape[0] == 13 and compFile.size == 13:
         compCoords=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
     else:
         compCoords=SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
 
     # Get Average RA and Dec from file
-    if compFile.shape[0] == 13:
+    if compFile.shape[0] == 13 and compFile.size == 13:
         logger.debug(compFile[0])
         logger.debug(compFile[1])
         avgCoord=SkyCoord(ra=(compFile[0])*degree, dec=(compFile[1]*degree))
@@ -429,10 +432,11 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     for cat_name, opt in catalogues.items():
         try:
             coords = catalogue_call(avgCoord, opt, cat_name)
-            if coords.cat_name == 'PanSTARRS':
+            if coords.cat_name == 'PanSTARRS' or coords.cat_name == 'APASS':
                 max_sep=2.5 * arcsecond
             else:
-                max_sep=1.0 * arcsecond
+                max_sep=1.5 * arcsecond
+
 
         except AstrosourceException as e:
             logger.debug(e)
@@ -446,23 +450,26 @@ def find_comparisons_calibrated(filterCode, paths=None, max_magerr=0.05, stdMult
     #Get calib mags for least variable IDENTIFIED stars.... not the actual stars in compUsed!! Brighter, less variable stars may be too bright for calibration!
     #So the stars that will be used to calibrate the frames to get the OTHER stars.
     calibStands=[]
-    if compFile.shape[0] ==13:
+
+    if compFile.shape[0] ==13 and compFile.size ==13:
         lenloop=1
     else:
         lenloop=len(compFile[:,0])
+
     for q in range(lenloop):
-        if compFile.shape[0] ==13:
+        if compFile.shape[0] ==13 and compFile.size ==13:
             compCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
         else:
             compCoord=SkyCoord(ra=compFile[q][0]*degree, dec=compFile[q][1]*degree)
         idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
-        if d2dcomp.arcsecond.any() < max_sep.value:
+        if d2dcomp < max_sep:
             if not isnan(coords.mag[idxcomp]):
-
-                if compFile.shape[0] ==13:
+                if compFile.shape[0] ==13 and compFile.size ==13:
                     calibStands.append([compFile[0],compFile[1],compFile[2],coords.mag[idxcomp],coords.emag[idxcomp]])
                 else:
                     calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],coords.mag[idxcomp],coords.emag[idxcomp]])
+    logger.info('Calibration Stars Identified below')
+    logger.info(calibStands)
 
     # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
     #logger.debug(asarray(calibStands).shape[0])

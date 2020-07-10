@@ -125,7 +125,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
         raise AstrosourceException("Check your images, the script detected multiple filters in your file list. Astrosource currently only does one filter at a time.")
     return phot_list, list(filters)[0]
 
-def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=2000, maximumCounts=1000000, imageFracReject=0.0, starFracReject=0.1, rejectStart=7, minCompStars=1):
+def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=2000, maximumCounts=3000000, imageFracReject=0.0, starFracReject=0.1, rejectStart=7, minCompStars=1):
     """
     Finds stars useful for photometry in each photometry/data file
 
@@ -171,7 +171,11 @@ def find_stars(targetStars, paths, fileList, acceptDistance=1.0, minimumCounts=2
 
     for file in fileList:
         photFile = load(paths['parent'] / file)
-        if (( asarray(photFile[:,0]) > 360).sum() > 0) :
+        if (photFile.size < 50):
+            logger.debug("REJECT")
+            logger.debug(file)
+            fileList.remove(file)
+        elif (( asarray(photFile[:,0]) > 360).sum() > 0) :
             logger.debug("REJECT")
             logger.debug(file)
             fileList.remove(file)

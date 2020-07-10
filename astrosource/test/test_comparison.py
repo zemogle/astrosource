@@ -5,14 +5,14 @@ from numpy import array as nparray
 import os
 import pytest
 from pathlib import Path
-from mock import patch
+from unittest.mock import patch, Mock
 
 from astrosource.identify import convert_photometry_files
 from astrosource.comparison import find_comparisons, read_data_files, find_reference_frame, \
     remove_stars_targets, find_comparisons_calibrated, catalogue_call
 
-from astrosource.test.mocks import mock_vizier_query_region_vsx, mock_vizier_query_region_apass_b,\
-    mock_vizier_query_region_apass_v, mock_vizier_query_region_ps_r, mock_vizier_query_region_sdss_r
+from astrosource.test.mocks import mock_vizier_query_region_vsx, mock_vizier_apass_v, mock_vizier_apass_b, \
+    mock_vizier_ps_r, mock_vizier_sdss_r
 
 
 TEST_PATH_PARENT = Path(os.path.dirname(__file__)) / 'test_files'
@@ -53,7 +53,7 @@ def test_comparison(targets):
     outfile, num_cands = find_comparisons(targets=targets, parentPath=TEST_PATHS['parent'], fileList=filelist)
 
     assert outfile == TEST_PATHS['parent'] / "compsUsed.csv"
-    assert num_cands == 2
+    assert num_cands == 11
 
 @patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_vsx)
 def test_remove_targets_calibrated(targets):
@@ -63,26 +63,27 @@ def test_remove_targets_calibrated(targets):
     assert compFile.shape == (60,2)
     compFile_out = remove_stars_targets(parentPath, compFile, acceptDistance=5.0, targetFile=targets, removeTargets=1)
     # 3 stars are removed because they are variable
-    assert compFile_out.shape == (56,2)
+    assert compFile_out.shape == (54,2)
 
-@patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_apass_b)
+@patch('astrosource.comparison.Vizier',mock_vizier_apass_b)
 def test_find_comparisons_calibrated_b():
     compFile = find_comparisons_calibrated('B', paths=TEST_PATHS)
-    assert compFile.shape == (2,5)
+    assert compFile.shape == (11,5)
 
-@patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_apass_v)
+@patch('astrosource.comparison.Vizier',mock_vizier_apass_v)
 def test_find_comparisons_calibrated_v():
     compFile = find_comparisons_calibrated('V', paths=TEST_PATHS)
-    assert compFile.shape == (2,5)
+    assert compFile.shape == (11,5)
 
-@patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_ps_r)
+@patch('astrosource.comparison.Vizier', mock_vizier_ps_r)
 def test_catalogue_call_panstarrs():
     coord=SkyCoord(ra=303.6184*degree, dec=(-13.8355*degree))
     resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag'},cat_name='PanSTARRS')
-    assert len(resp.ra) == 4
+    print(resp.ra.shape)
+    assert resp.ra.shape == (4,)
 
-@patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_sdss_r)
+@patch('astrosource.comparison.Vizier',mock_vizier_sdss_r)
 def test_catalogue_call_sdss():
     coord=SkyCoord(ra=303.6184*degree, dec=(-13.8355*degree))
     resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag'},cat_name='SDSS')
-    assert len(resp.ra) == 3
+    assert resp.ra.shape == (3,)

@@ -316,10 +316,11 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
             if isnan(outputPhot[j][11]):
                 imageReject.append(j)
         outputPhot=delete(outputPhot, imageReject, axis=0)
-
+        outputPhot=np.vstack(asarray(outputPhot))
+        
         ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
-        stdVar=nanstd(asarray(outputPhot)[:,10])
-        avgVar=nanmean(asarray(outputPhot)[:,10])
+        stdVar=nanstd((outputPhot)[:,10])
+        avgVar=nanmean((outputPhot)[:,10])
         starReject=[]
         stdevReject=0
         for j in range(asarray(outputPhot).shape[0]):
@@ -353,8 +354,8 @@ def calibrated_photometry(paths, photometrydata):
         compFile = genfromtxt(paths['parent'] / 'stdComps.csv', dtype=float, delimiter=',')
         logger.info("Calibrating Photometry")
         # Load in calibrated magnitudes and add them
-        #logger.info(compFile.size)
-        single_value = True if calibCompFile.shape[0] == 5 and compFile.size != 25 else False
+        single_value = True if calibCompFile.shape[0] == 5 and calibCompFile.size != 25 else False
+
         if single_value:
             ensembleMag=calibCompFile[3]
         else:
@@ -363,11 +364,10 @@ def calibrated_photometry(paths, photometrydata):
 
         if single_value:
             ensMag=pow(10,-ensembleMag*0.4)
-        else:
-            for q in enumerate(calibCompFile[:,3]):
+        else:            
+            for q in range(len(ensembleMag)):
                 ensMag=ensMag+(pow(10,-ensembleMag[q]*0.4))
-
-        #logger.info(ensMag)
+                    
         ensembleMag=-2.5*math.log10(ensMag)
         logger.info(f"Ensemble Magnitude: {ensembleMag}")
 
@@ -375,7 +375,6 @@ def calibrated_photometry(paths, photometrydata):
         #calculate error
         if single_value:
             ensembleMagError=calibCompFile[4]
-            #ensembleMagError=average(ensembleMagError)*1/pow(ensembleMagError.size, 0.5)
         else:
             ensembleMagError=calibCompFile[:,4]
             ensembleMagError=average(ensembleMagError)*1/pow(ensembleMagError.size, 0.5)

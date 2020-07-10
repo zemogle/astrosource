@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 from astropy.table import Table, Column
 import numpy as np
 
@@ -12,6 +14,7 @@ def create_coords():
     return ra, dec
 
 def mock_vizier_query_region(*args, **kwargs):
+    print('here******************(((((((((())))))))))')
     ra, dec = create_coords()
     return Table([ra, dec], names=('RAJ2000', 'DEJ2000'), dtype=('float64', 'float64'))
 
@@ -60,3 +63,19 @@ def mock_vizier_query_region_sdss_r(*args, **kwargs):
     t.add_column(qual, name='Q')
     q = {'V/147/sdss12' : t }
     return q
+
+def mock_vizier_apass_b(*args, **kwargs):
+    mock = MagicMock(query_region=mock_vizier_query_region_apass_b)
+    return mock
+
+def mock_vizier_apass_v(*args, **kwargs):
+    mock = MagicMock(query_region=mock_vizier_query_region_apass_v)
+    return mock
+
+def mock_vizier_ps_r(*args, **kwargs):
+    mock = MagicMock(query_region=mock_vizier_query_region_ps_r)
+    return mock
+
+def mock_vizier_sdss_r(*args, **kwargs):
+    mock = MagicMock(query_region=mock_vizier_query_region_sdss_r)
+    return mock
