@@ -63,7 +63,7 @@ def test_remove_targets_calibrated(targets):
     assert compFile.shape == (60,2)
     compFile_out = remove_stars_targets(parentPath, compFile, acceptDistance=5.0, targetFile=targets, removeTargets=1)
     # 3 stars are removed because they are variable
-    assert compFile_out.shape == (54,2)
+    assert compFile_out.shape == (55,2)
 
 @patch('astrosource.comparison.Vizier',mock_vizier_apass_b)
 def test_find_comparisons_calibrated_b():

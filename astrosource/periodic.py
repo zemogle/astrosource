@@ -104,10 +104,10 @@ def sum_stdevs (sortedPhases, sortedNormalizedFluxes, numBins):
 #########################################
 
 def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, numBins, periodPath, variableName):
-    numBins = 10
-    minperiod=0.2
-    maxperiod=1
-    periodsteps=10000
+    #numBins = 10
+    #minperiod=0.2
+    #maxperiod=1
+    #periodsteps=10000
     periodguess_array = []
     distance_results = []
     stdev_results = []
@@ -144,59 +144,46 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
 
     # Estimating the error
     # stdev method
-    #print (np.min(stdev_results))
-    #print (np.max(stdev_results))
     # Get deviation to the left
     totalRange=np.max(stdev_results) - np.min(stdev_results)
-    for q in range(len(periodguess_array)):
-        if periodguess_array[q]==pdm["stdev_minperiod"]:
-            beginIndex=q
-            beginValue=stdev_results[q]
-    #print (beginIndex)
-    #print (beginValue)
-    currentperiod=stdev_minperiod
-    stepper=0
-    thresholdvalue=beginValue+(0.5*totalRange)
-    while True:
-        #print (beginIndex-stepper)
-        #print (stdev_results[beginIndex-stepper])
-        if stdev_results[beginIndex-stepper] > thresholdvalue:
-            #print ("LEFTHAND PERIOD!")
-            #print (periodguess_array[beginIndex-stepper])
-            lefthandP=periodguess_array[beginIndex-stepper]
-            #print (distance_results)
-            break
-        stepper=stepper+1
+    
+    if np.isnan(pdm["stdev_results"][0]):
+        logger.info("Not enough datapoint coverage to undertake a Phase-Dispersion Minimization routine.")
+    else:
+        for q in range(len(periodguess_array)):
+            if periodguess_array[q]==pdm["stdev_minperiod"]:
+                beginIndex=q
+                beginValue=stdev_results[q]
 
-    stepper=0
-    thresholdvalue=beginValue+(0.5*totalRange)
-    #print (beginIndex)
-    #print (periodsteps)
-
-    while True:
-    #print (beginIndex+stepper)
-    #print (stdev_results[beginIndex+stepper])
-        if beginIndex+stepper+1 == periodsteps:
-            righthandP=periodguess_array[beginIndex+stepper]
-            logger.debug("Warning: Peak period for stdev method too close to top of range")
-            break
-        if stdev_results[beginIndex+stepper] > thresholdvalue:
-            #print ("RIGHTHAND PERIOD!")
-            #print (periodguess_array[beginIndex+stepper])
-            righthandP=periodguess_array[beginIndex+stepper]
-            #print (distance_results)
-            break
-        stepper=stepper+1
-
-
-    #print ("Stdev method error: " + str((righthandP - lefthandP)/2))
-    pdm["stdev_error"] = (righthandP - lefthandP)/2
+        currentperiod=stdev_minperiod
+        stepper=0
+        thresholdvalue=beginValue+(0.5*totalRange)
+        while True:
+            if stdev_results[beginIndex-stepper] > thresholdvalue:
+                lefthandP=periodguess_array[beginIndex-stepper]
+                break
+            stepper=stepper+1
+    
+        stepper=0
+        thresholdvalue=beginValue+(0.5*totalRange)
+    
+        while True:
+            if beginIndex+stepper+1 == periodsteps:
+                righthandP=periodguess_array[beginIndex+stepper]
+                logger.debug("Warning: Peak period for stdev method too close to top of range")
+                break
+            if stdev_results[beginIndex+stepper] > thresholdvalue:
+                righthandP=periodguess_array[beginIndex+stepper]
+                break
+            stepper=stepper+1
+    
+    
+        #print ("Stdev method error: " + str((righthandP - lefthandP)/2))
+        pdm["stdev_error"] = (righthandP - lefthandP)/2
 
 
     # Estimating the error
     # stdev method
-    #print (np.min(stdev_results))
-    #print (np.max(stdev_results))
     # Get deviation to the left
     totalRange=np.max(distance_results) - np.min(distance_results)
     for q in range(len(periodguess_array)):
@@ -337,15 +324,17 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         tempPeriodCatOut=asarray(tempPeriodCatOut)
         savetxt(periodPath / f"{variableName}_String_PhasedDiffMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
+        if np.isnan(pdm["stdev_results"][0]):
+            logger.info("No PDM results due to lack of datapoint coverage")
+        else:
+            logger.debug("PDM Method Estimate (days): "+ str(pdm["stdev_minperiod"]))
+            #logger.debug(pdm["stdev_minperiod"])
+            phaseTest=(varData[:,0] / (pdm["stdev_minperiod"])) % 1
+            logger.debug("PDM method error: " + str(pdm["stdev_error"]))
 
-        logger.debug("PDM Method Estimate (days): "+ str(pdm["stdev_minperiod"]))
-        #logger.debug(pdm["stdev_minperiod"])
-        phaseTest=(varData[:,0] / (pdm["stdev_minperiod"])) % 1
-        logger.debug("PDM method error: " + str(pdm["stdev_error"]))
-
-        with open(paths['parent'] / "periodEstimates.txt", "a+") as f:
-            f.write("PDM Method Estimate (days): "+ str(pdm["stdev_minperiod"])+"\n")
-            f.write("PDM method error: " + str(pdm["stdev_error"])+"\n\n")
+            with open(paths['parent'] / "periodEstimates.txt", "a+") as f:
+                f.write("PDM Method Estimate (days): "+ str(pdm["stdev_minperiod"])+"\n")
+                f.write("PDM method error: " + str(pdm["stdev_error"])+"\n\n")
 
 
         plt.plot(pdm["periodguess_array"], pdm["stdev_results"])

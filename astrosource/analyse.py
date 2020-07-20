@@ -198,7 +198,7 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
 
     allcountscount=0
 
-    if len(targets)== 4:
+    if len(targets)== 4 and targets.size == 4:
         loopLength=1
     else:
         loopLength=targets.shape[0]
@@ -208,15 +208,15 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
         starDistanceRejCount=0
         logger.debug("****************************")
         logger.debug("Processing Variable {}".format(q+1))
-        if int(len(targets)) == 4:
+        if int(len(targets)) == 4 and targets.size==4:
             logger.debug("RA {}".format(targets[0]))
         else:
             logger.debug("RA {}".format(targets[q][0]))
-        if int(len(targets)) == 4:
+        if int(len(targets)) == 4 and targets.size==4:
             logger.debug("Dec {}".format(targets[1]))
         else:
             logger.debug("Dec {}".format(targets[q][1]))
-        if int(len(targets)) == 4:
+        if int(len(targets)) == 4 and targets.size==4:
             varCoord = SkyCoord(targets[0],(targets[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
         else:
             varCoord = SkyCoord(targets[q][0],(targets[q][1]), frame='icrs', unit=degree) # Need to remove target stars from consideration

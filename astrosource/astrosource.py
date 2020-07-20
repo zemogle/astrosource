@@ -18,20 +18,34 @@ class TimeSeries:
         filelist=kwargs.get('filelist', None)
         self.format = kwargs.get('format','fz')
         self.imgreject = kwargs.get('imgreject',0.0)
+        self.periodupper = kwargs.get('periodupper',1.2)
+        self.periodlower = kwargs.get('periodlower',1.0)
+        self.periodtests = kwargs.get('periodtests',10000)
+        self.rejectbrighter = kwargs.get('rejectbrighter',99)
+        self.rejectdimmer = kwargs.get('rejectdimmer',99)
+        self.thresholdcounts = kwargs.get('thresholdcounts',1000000)
+        self.lowcounts = kwargs.get('lowcounts',1000)
+        self.starreject = kwargs.get('starreject',0.0)
+        self.nopanstarrs = kwargs.get('nopanstarrs', False)
+        self.nosdss = kwargs.get('nosdss', False)
         verbose = kwargs.get('verbose', False)
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
         logger = setup_logger('astrosource', verbose)
+        logger.info(self.rejectbrighter)
+        logger.info(self.rejectdimmer)
+        logger.info(self.thresholdcounts)
+        logger.info(self.nosdss)
         self.files, self.filtercode = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd)
 
     def analyse(self, calib=True):
-        self.usedimages, self.stars = find_stars(self.targets, self.paths, self.files, imageFracReject=self.imgreject)
-        find_comparisons(self.targets, self.indir, self.usedimages)
+        self.usedimages, self.stars = find_stars(targets=self.targets, paths=self.paths, fileList=self.files, imageFracReject=self.imgreject, starreject=self.starreject, thresholdcounts=self.thresholdcounts, lowcounts=self.lowcounts)
+        find_comparisons(self.targets, self.indir, self.usedimages, thresholdCounts=self.thresholdcounts)
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         self.calibrated = False
         if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
             try:
-                find_comparisons_calibrated(self.filtercode, self.paths)
+                find_comparisons_calibrated(self.filtercode, self.paths, self.nopanstarrs, self.nosdss, self.targets)
                 self.calibrated = True
             except AstrosourceException as e:
                 sys.stdout.write(f'🛑 {e}')
@@ -58,9 +72,10 @@ class TimeSeries:
             make_calibrated_plots(filterCode=self.filtercode, paths=self.paths, photometrydata=self.data)
         if detrend:
             detrend_data(filterCode=self.filtercode, paths=self.paths)
-        if period and self.calibrated:
-            self.period = plot_with_period(filterCode=self.filtercode, paths=self.paths)
-            phased_plots(filterCode=self.filtercode, paths=self.paths, targets=self.targets, period=self.period, phaseShift=phaseShift)
+        if period:
+            self.period = plot_with_period(filterCode=self.filtercode, paths=self.paths, minperiod=self.periodlower, maxperiod=self.periodupper, periodsteps=self.periodtests)
+            if self.calibrated:
+                phased_plots(filterCode=self.filtercode, paths=self.paths, targets=self.targets, period=self.period, phaseShift=phaseShift)
         if eebls:
             plot_bls(paths=self.paths)
 

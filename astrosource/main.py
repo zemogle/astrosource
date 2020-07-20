@@ -32,7 +32,17 @@ logger = logging.getLogger('astrosource')
 @click.option('--bjd', is_flag=True)
 @click.option('--clean', is_flag=True)
 @click.option('--verbose','-v', is_flag=True)
-def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, bjd, clean, verbose):
+@click.option('--periodlower','-pl', type=float, default=0.2)
+@click.option('--periodupper','-pu', type=float, default=1.0)
+@click.option('--periodtests','-pt', type=int, default=10000)
+@click.option('--rejectbrighter','-rb', type=float, default=99)
+@click.option('--rejectdimmer','-rd', type=float, default=99)
+@click.option('--thresholdcounts','-tc', type=int, default=1000000)
+@click.option('--lowcounts','-lc', type=int, default=1000)
+@click.option('--starreject','-sr', type=float, default=0.0)
+@click.option('--nopanstarrs','-np', is_flag=True)
+@click.option('--nosdss','-ns', is_flag=True)
+def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, starreject, lowcounts):
 
     try:
         parentPath = Path(indir)
@@ -50,7 +60,22 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
             target_file = parentPath / target_file
             targets = get_targets(target_file)
 
-        ts = TimeSeries(indir=parentPath, targets=targets, format=format, verbose=verbose)
+        ts = TimeSeries(indir=parentPath,
+                        targets=targets,
+                        format=format,
+                        imgreject=imgreject,
+                        periodupper=periodupper,
+                        periodlower=periodlower,
+                        periodtests=periodtests,
+                        rejectbrighter=rejectbrighter,
+                        rejectdimmer=rejectdimmer,
+                        thresholdcounts=thresholdcounts,
+                        lowcounts=lowcounts,
+                        starreject=starreject,
+                        nopanstarrs=nopanstarrs,
+                        nosdss=nosdss,
+                        verbose=verbose
+                        )
 
         if full or comparison:
             ts.analyse()
