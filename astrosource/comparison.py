@@ -408,12 +408,9 @@ def catalogue_call(avgCoord, opt, cat_name, targets):
         resp = resp[resp['flags'] == 0]
 
     # Remove any objects close to targets from potential calibrators
-    logger.critical(radecname)
-    logger.critical(targets)
-    if len(targets) == 4 and targets.size == 4:
+    if targets.shape == (4,):
         targets = [targets]
     for tg in targets:
-        logger.critical(resp)
         resp = resp[where(np.abs(resp[radecname['ra']]-tg[0]) > 0.0014) and where(np.abs(resp[radecname['dec']]-tg[1]) > 0.0014)]
 
     data.cat_name = cat_name
@@ -425,7 +422,7 @@ def catalogue_call(avgCoord, opt, cat_name, targets):
     data.emag = array(resp[opt['error']].data)
     return data
 
-def find_comparisons_calibrated(filterCode, paths,  nopanstarrs, nosdss, targets, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2):
+def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2):
     sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
 
     FILTERS = {
@@ -496,7 +493,7 @@ def find_comparisons_calibrated(filterCode, paths,  nopanstarrs, nosdss, targets
             elif cat_name == 'SDSS' and nosdss==True:
                 logger.info("Skipping SDSS")
             else:
-                coords = catalogue_call(avgCoord, opt, cat_name, targets)
+                coords = catalogue_call(avgCoord, opt, cat_name, targets=targets)
                 if coords.cat_name == 'PanSTARRS' or coords.cat_name == 'APASS':
                     max_sep=2.5 * arcsecond
                 else:

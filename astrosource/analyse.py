@@ -317,7 +317,7 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
                 imageReject.append(j)
         outputPhot=delete(outputPhot, imageReject, axis=0)
         outputPhot=np.vstack(asarray(outputPhot))
-        
+
         ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
         stdVar=nanstd((outputPhot)[:,10])
         avgVar=nanmean((outputPhot)[:,10])
@@ -364,10 +364,10 @@ def calibrated_photometry(paths, photometrydata):
 
         if single_value:
             ensMag=pow(10,-ensembleMag*0.4)
-        else:            
+        else:
             for q in range(len(ensembleMag)):
                 ensMag=ensMag+(pow(10,-ensembleMag[q]*0.4))
-                    
+
         ensembleMag=-2.5*math.log10(ensMag)
         logger.info(f"Ensemble Magnitude: {ensembleMag}")
 

@@ -19,24 +19,25 @@ TEST_PATH_PARENT = Path(os.path.dirname(__file__)) / 'test_files'
 
 TEST_PATHS = {'parent': TEST_PATH_PARENT / 'comparison'}
 
-@pytest.fixture
-def targets():
-    return nparray([2.92142, -1.74868,0.00000000,0.00000000])
+class TestSetup:
+    def __init__(self):
+        # Create tmp files we need
+        used_files = TEST_PATHS['parent'] / 'usedImages.txt'
+        if used_files.exists():
+            used_files.unlink()
+        files = TEST_PATHS['parent'].glob('*.psx')
+        files = convert_photometry_files(files)
+        with used_files.open(mode='w') as fid:
+            for f in files:
+                fid.write("{}\n".format(f))
+        # Add targets to the TestSetup object
+        self.targets = nparray([(2.92142, -1.74868,0.00000000,0.00000000)])
 
-def test_setup():
-    used_files = TEST_PATHS['parent'] / 'usedImages.txt'
-    if used_files.exists():
-        used_files.unlink()
-    files = TEST_PATHS['parent'].glob('*.psx')
-    files = convert_photometry_files(files)
-    with used_files.open(mode='w') as fid:
-        for f in files:
-            fid.write("{}\n".format(f))
+@pytest.fixture()
+def setup():
+    return TestSetup()
 
-# def test_ensemble():
-#     fileCount = [ 2797858.97, 3020751.97, 3111426.77, 3115947.86]
-
-def test_read_data_files():
+def test_read_data_files(setup):
     files = os.listdir(TEST_PATHS['parent'])
     fileslist = TEST_PATHS['parent'].glob('*.npy')
     assert 'screenedComps.csv' in files
@@ -47,43 +48,43 @@ def test_read_data_files():
     assert len(referenceFrame) == 227
     assert len(fileRaDec) == 227
 
-def test_comparison(targets):
+def test_comparison(setup):
     # All files are present so we are ready to continue
     filelist = TEST_PATHS['parent'].glob('*.npy')
-    outfile, num_cands = find_comparisons(targets=targets, parentPath=TEST_PATHS['parent'], fileList=filelist)
+    outfile, num_cands = find_comparisons(targets=setup.targets, parentPath=TEST_PATHS['parent'], fileList=filelist)
 
     assert outfile == TEST_PATHS['parent'] / "compsUsed.csv"
     assert num_cands == 11
 
 @patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_vsx)
-def test_remove_targets_calibrated(targets):
+def test_remove_targets_calibrated(setup):
     parentPath = TEST_PATHS['parent']
     fileslist = TEST_PATHS['parent'].glob('*.npy')
     compFile, photFileArray = read_data_files(parentPath, fileslist)
     assert compFile.shape == (60,2)
-    compFile_out = remove_stars_targets(parentPath, compFile, acceptDistance=5.0, targetFile=targets, removeTargets=1)
+    compFile_out = remove_stars_targets(parentPath, compFile, acceptDistance=5.0, targetFile=setup.targets, removeTargets=1)
     # 3 stars are removed because they are variable
     assert compFile_out.shape == (55,2)
 
 @patch('astrosource.comparison.Vizier',mock_vizier_apass_b)
-def test_find_comparisons_calibrated_b():
-    compFile = find_comparisons_calibrated('B', paths=TEST_PATHS)
+def test_find_comparisons_calibrated_b(setup):
+    compFile = find_comparisons_calibrated(filterCode='B', paths=TEST_PATHS, targets=setup.targets)
     assert compFile.shape == (11,5)
 
 @patch('astrosource.comparison.Vizier',mock_vizier_apass_v)
-def test_find_comparisons_calibrated_v():
-    compFile = find_comparisons_calibrated('V', paths=TEST_PATHS)
+def test_find_comparisons_calibrated_v(setup):
+    compFile = find_comparisons_calibrated(filterCode='V', paths=TEST_PATHS, targets=setup.targets)
     assert compFile.shape == (11,5)
 
 @patch('astrosource.comparison.Vizier', mock_vizier_ps_r)
-def test_catalogue_call_panstarrs():
+def test_catalogue_call_panstarrs(setup):
     coord=SkyCoord(ra=303.6184*degree, dec=(-13.8355*degree))
-    resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag'},cat_name='PanSTARRS')
+    resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag'},cat_name='PanSTARRS', targets=setup.targets)
     print(resp.ra.shape)
     assert resp.ra.shape == (4,)
 
 @patch('astrosource.comparison.Vizier',mock_vizier_sdss_r)
-def test_catalogue_call_sdss():
+def test_catalogue_call_sdss(setup):
     coord=SkyCoord(ra=303.6184*degree, dec=(-13.8355*degree))
-    resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag'},cat_name='SDSS')
+    resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag'},cat_name='SDSS', targets=setup.targets)
     assert resp.ra.shape == (3,)

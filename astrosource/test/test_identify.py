@@ -80,10 +80,9 @@ def test_gather_files():
     #     os.remove(tf)
 
 def test_find_stars():
-    target = [[117.0269708, 50.2258111, 0,0]]
+    targets = numpy.array([[117.0269708, 50.2258111, 0,0]])
     phot_files, filtercode = gather_files(TEST_PATHS, filetype="fits")
-    print(phot_files)
-    usedImages = find_stars(target, TEST_PATHS, phot_files)
+    usedImages = find_stars(targets, TEST_PATHS, phot_files)
     images_list = [str(u) for u in usedImages]
     # Check the right files are saved
     test_list = (TEST_PATHS['parent'] / 'usedImages_test.txt').read_text().strip().split('\n')

@@ -163,19 +163,10 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
 
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
-    #wcsReject=[]
-    #q=0
+
     fileSizer=0
     logger.info("Finding image with most stars detected and reject ones with bad WCS")
     referenceFrame = None
-
-    #logger.info(targets)
-    #sys.exit()
-    #logger.info(starreject)
-    #logger.info(thresholdcounts)
-    #logger.info(lowcounts)
-    #sys.exit()
-
 
     for file in fileList:
         photFile = load(paths['parent'] / file)
@@ -314,17 +305,9 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
 
     # Reject targetstars immediately
 
-
-    #fileRaDec = SkyCoord(ra=compFile[:,0]*u.degree, dec=compFile[:,1]*u.degree)
-    #print (len(targetFile))
-    #print (targetFile)
-
     # Remove targets from consideration
-    #print (targetFile.size)
-    if len(targets)== 4 and targets.size==4:
-        loopLength=1
-    else:
-        loopLength=targets.shape[0]
+    if targets.shape == (4,):
+        targets = [targets]
 
     while True:
         targetRejects=[]
@@ -332,19 +315,13 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
             fileRaDec=SkyCoord(ra=outputComps[0]*u.degree,dec=outputComps[1]*u.degree)
         else:
             fileRaDec=SkyCoord(ra=outputComps[:,0]*u.degree,dec=outputComps[:,1]*u.degree)
-        for q in range(loopLength):
-            #print (targets.shape[0])
 
-            if int(len(targets)) == 4 and targets.size==4:
-              varCoord = SkyCoord(targets[0],(targets[1]), frame='icrs', unit=u.deg) # Need to remove target stars from consideration
-            else:
-              varCoord = SkyCoord(targets[q][0],(targets[q][1]), frame='icrs', unit=u.deg) # Need to remove target stars from consideration
-            #print (varCoord)
-            #print (fileRaDec)
+        for target in targets:
+            varCoord = SkyCoord(target[0],(target[1]), frame='icrs', unit=u.deg) # Need to remove target stars from consideration
+
             idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
-            #print (d2d.arcsecond)
             if d2d.arcsecond < 5.0: # anything within 5 arcseconds of the target
-              targetRejects.append(idx)
+                targetRejects.append(idx)
 
         if targetRejects==[]:
             break

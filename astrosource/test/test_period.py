@@ -38,8 +38,8 @@ def test_pdm():
     periodPath = TEST_PATHS['periods']
     variableName = 'V1'
     pdm = phase_dispersion_minimization(vardata, num,  minperiod, maxperiod, numBins, periodPath, variableName)
-    assert 0.0047599999 == pytest.approx(pdm['stdev_error'])
-    assert 0.0051999999 == pytest.approx(pdm['distance_error'])
+    assert 0.0045 == pytest.approx(pdm['stdev_error'])
+    assert 0.0053 == pytest.approx(pdm['distance_error'])
     assert len(pdm['periodguess_array']) == num
     teardown_function()
 

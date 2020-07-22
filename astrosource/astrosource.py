@@ -32,10 +32,6 @@ class TimeSeries:
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
         logger = setup_logger('astrosource', verbose)
-        logger.info(self.rejectbrighter)
-        logger.info(self.rejectdimmer)
-        logger.info(self.thresholdcounts)
-        logger.info(self.nosdss)
         self.files, self.filtercode = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd)
 
     def analyse(self, calib=True):
@@ -45,7 +41,7 @@ class TimeSeries:
         self.calibrated = False
         if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
             try:
-                find_comparisons_calibrated(self.filtercode, self.paths, self.nopanstarrs, self.nosdss, self.targets)
+                find_comparisons_calibrated(targets=self.targets, filterCode=self.filtercode, paths=self.paths, nopanstarrs=self.nopanstarrs, nosdss=self.nosdss)
                 self.calibrated = True
             except AstrosourceException as e:
                 sys.stdout.write(f'🛑 {e}')
@@ -80,7 +76,7 @@ class TimeSeries:
             plot_bls(paths=self.paths)
 
     def output(self, mode, data):
-        output_files(self.paths, photometrydata=data, mode=mode)
+        output_files(paths=self.paths, photometrydata=data, mode=mode)
 
     def clean(self):
-        cleanup(self.paths['parent'])
+        cleanup(parentPath=self.paths['parent'])
