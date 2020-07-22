@@ -316,7 +316,10 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
             if isnan(outputPhot[j][11]):
                 imageReject.append(j)
         outputPhot=delete(outputPhot, imageReject, axis=0)
-        outputPhot=np.vstack(asarray(outputPhot))
+        try:
+            outputPhot=np.vstack(asarray(outputPhot))
+        except ValueError:
+            raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
 
         ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
         stdVar=nanstd((outputPhot)[:,10])
