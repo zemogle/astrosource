@@ -407,11 +407,32 @@ def catalogue_call(avgCoord, opt, cat_name, targets):
     elif cat_name == 'SkyMapper':
         resp = resp[resp['flags'] == 0]
 
+    logger.info("Original high quality sources in calibration catalogue: "+str(len(resp)))
+
     # Remove any objects close to targets from potential calibrators
     if targets.shape == (4,):
         targets = [targets]
     for tg in targets:
         resp = resp[where(np.abs(resp[radecname['ra']]-tg[0]) > 0.0014) and where(np.abs(resp[radecname['dec']]-tg[1]) > 0.0014)]
+
+    logger.info("Number of calibration sources after removal of sources near targets: "+str(len(resp)))
+
+    # Remove any star from calibration catalogue that has another star in the catalogue within 5 arcseconds of it. 
+    while True:
+        fileRaDec=SkyCoord(ra=resp[radecname['ra']],dec=resp[radecname['dec']])
+        idx, d2d, _ = fileRaDec.match_to_catalog_sky(fileRaDec, nthneighbor=2) # Closest matches that isn't itself.
+        catReject=[]
+        for q in range(len(d2d)):
+            if d2d[q] < 5*arcsecond:
+                catReject.append(q)
+        if catReject==[]:
+            break
+        #print (resp)
+        #resp=np.delete(resp, catReject, axis=0)
+        del resp[catReject]
+        logger.info("Stars rejected that are too close (<5arcsec) in calibration catalogue: " +str(len(catReject)))
+            
+    logger.info("Number of calibration sources after removal of sources near other sources: "+str(len(resp)))
 
     data.cat_name = cat_name
     data.ra = array(resp[radecname['ra']].data)
