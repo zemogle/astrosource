@@ -86,9 +86,9 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
         # Delete comparisons that have too high a variability
 
         starRejecter=[]
-        if min(stdCompStar) < 0.002:
+        if min(stdCompStar) > 0.002:
             for j in range(len(stdCompStar)):
-                logger.debug(stdCompStar[j])
+                #logger.debug(stdCompStar[j])
                 if ( stdCompStar[j] > (stdCompMed + (stdMultiplier*stdCompStd)) ):
                     logger.debug(f"Star {j} Rejected, Variability too high!")
                     starRejecter.append(j)
@@ -102,7 +102,6 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
                 logger.warning("Rejected {} stars".format(len(starRejecter)))
         else:
             logger.info("Minimum variability is too low for comparison star rejection by variability.")
-
 
 
         compFile = delete(compFile, starRejecter, axis=0)
