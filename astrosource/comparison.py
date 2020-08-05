@@ -507,19 +507,24 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     # Look up in online catalogues
 
+    coords=[]
     for cat_name, opt in catalogues.items():
         try:
-            if cat_name == 'PanSTARRS' and nopanstarrs==True:
-                logger.info("Skipping PanSTARRS")
-            elif cat_name == 'SDSS' and nosdss==True:
-                logger.info("Skipping SDSS")
-            else:
-                coords = catalogue_call(avgCoord, opt, cat_name, targets=targets)
-                if coords.cat_name == 'PanSTARRS' or coords.cat_name == 'APASS':
-                    max_sep=2.5 * arcsecond
+            if coords ==[]: #SALERT - Do not search if a suitable catalogue has already been found
+                logger.info("Searching " + str(cat_name))
+                if cat_name == 'PanSTARRS' and nopanstarrs==True:
+                    logger.info("Skipping PanSTARRS")
+                elif cat_name == 'SDSS' and nosdss==True:
+                    logger.info("Skipping SDSS")
                 else:
-                    max_sep=1.5 * arcsecond
-
+                    coords = catalogue_call(avgCoord, opt, cat_name, targets=targets)
+                    if coords.cat_name == 'PanSTARRS' or coords.cat_name == 'APASS':
+                        max_sep=2.5 * arcsecond
+                    else:
+                        max_sep=1.5 * arcsecond
+                    if coords !=[]:
+                        cat_used=cat_name
+                    
 
         except AstrosourceException as e:
             logger.debug(e)
@@ -561,6 +566,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     if asarray(calibStands).shape[0] == 0:
         logger.info("We could not find a suitable match between any of your stars and the calibration catalogue")
         logger.info("You might need to reduce the low value (usually 10000) to get some dimmer stars in script 1")
+        logger.info("You might also try using one of --nosdss or --nopanstarrs option (not both!) to prevent comparisons to these catalogues")
         raise AstrosourceException("Stars are too dim to calibrate to.")
 
     varimin=(min(asarray(calibStands)[:,2])) * variabilityMultiplier
@@ -666,7 +672,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     errCalib = median(sumStd) / pow((len(calibCompUsed[0,:])), 0.5)
 
-    #logger.debug(len(calibCompUsed[0,:]))
+    logger.debug("Comparison Catalogue: " + str(cat_used))
     if len(calibCompUsed[0,:]) == 1:
         logger.debug("As you only have one comparison, the uncertainty in the calibration is unclear")
         logger.debug("But we can take the catalogue value, although we should say this is a lower uncertainty")
@@ -676,6 +682,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         logger.debug("Standard Error/Uncertainty in Calibration: " +str(errCalib))
 
     with open(parentPath / "calibrationErrors.txt", "w") as f:
+        f.write("Comparison Catalogue: " + str(cat_used)+"\n")
         f.write("Median Standard Deviation of any one star: " + str(median(sumStd)) +"\n")
         f.write("Standard Error/Uncertainty in Calibration: " +str(errCalib))
 
