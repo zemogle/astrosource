@@ -6,6 +6,7 @@ from astropy.coordinates import SkyCoord
 import glob
 import sys
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 import math
 import os
@@ -168,6 +169,21 @@ def find_stable_comparisons(targets, acceptDistance=1.0, errorReject=0.05, paren
 
         if (  asarray(diffMagHolder).shape[0] > minimumNoOfObs):
             outputVariableHolder.append( [targetFile[q][0],targetFile[q][1],median(diffMagHolder), std(diffMagHolder), asarray(diffMagHolder).shape[0]])
+
+    # star Variability Plot
+
+    plt.cla()
+    outplotx=np.asarray(outputVariableHolder)[:,2]
+    outploty=np.asarray(outputVariableHolder)[:,3]
+    plt.xlabel('Mean Differential Magnitude of a Given Star')
+    plt.ylabel('Standard Deviation of Differential Magnitudes')
+    plt.plot(outplotx,outploty,'bo')
+    #plt.plot(linex,liney)
+    plt.ylim(min(outploty)-0.04,max(outploty)+0.04,'k-')
+    plt.xlim(min(outplotx)-0.1,max(outplotx)+0.1)
+    plt.grid(True)
+    plt.savefig(parentPath/ 'starVariability.png')
+    plt.savefig(parentPath / 'starVariability.eps')
 
     savetxt(parentPath / "starVariability.csv", outputVariableHolder, delimiter=",", fmt='%0.8f')
 

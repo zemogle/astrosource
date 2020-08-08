@@ -638,6 +638,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             if compUsedFile.shape[0] ==3 and compUsedFile.size ==3:
                 compUsedCoord=SkyCoord(ra=compUsedFile[0]*degree,dec=compUsedFile[1]*degree)
             else:
+                
                 compUsedCoord=SkyCoord(ra=compUsedFile[r][0]*degree,dec=compUsedFile[r][1]*degree)
             idx,d2d,d3d=compUsedCoord.match_to_catalog_sky(photCoords)
             lineCompUsed.append(photFile[idx,4])
@@ -660,6 +661,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     for r in range(len(calibCompUsed[0,:])):
         #Calculate magnitude and stdev
         sumStd.append(std(calibCompUsed[:,r]))
+
         if compUsedFile.shape[0] ==3  and compUsedFile.size ==3:
             finalCompUsedFile.append([compUsedFile[0],compUsedFile[1],compUsedFile[2],median(calibCompUsed[:,r]),asarray(calibStands[0])[4]])
         else:
