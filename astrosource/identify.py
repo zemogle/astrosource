@@ -125,7 +125,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
         raise AstrosourceException("Check your images, the script detected multiple filters in your file list. Astrosource currently only does one filter at a time.")
     return phot_list, list(filters)[0]
 
-def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, thresholdcounts=3000000, imageFracReject=0.0,  rejectStart=7, minCompStars=1):
+def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=7, minCompStars=1):
     """
     Finds stars useful for photometry in each photometry/data file
 
@@ -141,7 +141,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
             Furtherest distance in arcseconds for matches
     lowcounts : int
             look for comparisons brighter than this
-    thresholdcounts : int
+    hicounts : int
             look for comparisons dimmer than this
     imageFracReject: float
             This is a value which will reject images based on number of stars detected
@@ -160,7 +160,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
     sys.stdout.write("🌟 Identify comparison stars for photometry calculations\n")
     #Initialisation values
     usedImages=[]
-
+    
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
 
@@ -200,7 +200,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
     rejectStars=[]
     # Check star has adequate counts
     for j in range(referenceFrame.shape[0]):
-        if ( referenceFrame[j][4] < lowcounts or referenceFrame[j][4] > thresholdcounts ):
+        if ( referenceFrame[j][4] < lowcounts or referenceFrame[j][4] > hicounts ):
             rejectStars.append(int(j))
     logger.debug("Number of stars prior")
     logger.debug(referenceFrame.shape[0])

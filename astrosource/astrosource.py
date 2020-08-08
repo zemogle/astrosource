@@ -24,6 +24,7 @@ class TimeSeries:
         self.rejectbrighter = kwargs.get('rejectbrighter',99)
         self.rejectdimmer = kwargs.get('rejectdimmer',99)
         self.thresholdcounts = kwargs.get('thresholdcounts',1000000)
+        self.hicounts = kwargs.get('hicounts',1500000)
         self.lowcounts = kwargs.get('lowcounts',1000)
         self.starreject = kwargs.get('starreject',0.1)
         self.nopanstarrs = kwargs.get('nopanstarrs', False)
@@ -35,7 +36,7 @@ class TimeSeries:
         self.files, self.filtercode = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd)
 
     def analyse(self, calib=True):
-        self.usedimages, self.stars = find_stars(targets=self.targets, paths=self.paths, fileList=self.files, imageFracReject=self.imgreject, starreject=self.starreject, thresholdcounts=self.thresholdcounts, lowcounts=self.lowcounts)
+        self.usedimages, self.stars = find_stars(targets=self.targets, paths=self.paths, fileList=self.files, imageFracReject=self.imgreject, starreject=self.starreject, hicounts=self.hicounts, lowcounts=self.lowcounts)
         find_comparisons(self.targets, self.indir, self.usedimages, thresholdCounts=self.thresholdcounts)
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         self.calibrated = False
