@@ -362,7 +362,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     return compFile
 
 
-def catalogue_call(avgCoord, opt, cat_name, targets):
+def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
     data = namedtuple(typename='data',field_names=['ra','dec','mag','emag','cat_name'])
 
     TABLES = {'APASS':'II/336/apass9',
@@ -416,13 +416,13 @@ def catalogue_call(avgCoord, opt, cat_name, targets):
 
     logger.info("Number of calibration sources after removal of sources near targets: "+str(len(resp)))
 
-    # Remove any star from calibration catalogue that has another star in the catalogue within 5 arcseconds of it. 
+    # Remove any star from calibration catalogue that has another star in the catalogue within closerejectd arcseconds of it. 
     while True:
         fileRaDec=SkyCoord(ra=resp[radecname['ra']],dec=resp[radecname['dec']])
         idx, d2d, _ = fileRaDec.match_to_catalog_sky(fileRaDec, nthneighbor=2) # Closest matches that isn't itself.
         catReject=[]
         for q in range(len(d2d)):
-            if d2d[q] < 5*arcsecond:
+            if d2d[q] < closerejectd*arcsecond:
                 catReject.append(q)
         if catReject==[]:
             break
@@ -433,6 +433,7 @@ def catalogue_call(avgCoord, opt, cat_name, targets):
             
     logger.info("Number of calibration sources after removal of sources near other sources: "+str(len(resp)))
 
+
     data.cat_name = cat_name
     data.ra = array(resp[radecname['ra']].data)
     data.dec = array(resp[radecname['dec']].data)
@@ -442,7 +443,7 @@ def catalogue_call(avgCoord, opt, cat_name, targets):
     data.emag = array(resp[opt['error']].data)
     return data
 
-def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2):
+def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2):
     sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
 
     FILTERS = {
@@ -464,6 +465,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                         'SkyMapper' : {'filter' : 'zPSF', 'error' : 'e_zPSF'},
                         'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag'}},
                 }
+    
 
     parentPath = paths['parent']
     calibPath = parentPath / "calibcats"
@@ -516,7 +518,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 elif cat_name == 'SDSS' and nosdss==True:
                     logger.info("Skipping SDSS")
                 else:
-                    coords = catalogue_call(avgCoord, opt, cat_name, targets=targets)
+                    coords = catalogue_call(avgCoord, opt, cat_name, targets=targets, closerejectd=closerejectd)
                     if coords.cat_name == 'PanSTARRS' or coords.cat_name == 'APASS':
                         max_sep=2.5 * arcsecond
                     else:

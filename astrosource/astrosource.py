@@ -29,6 +29,7 @@ class TimeSeries:
         self.starreject = kwargs.get('starreject',0.1)
         self.nopanstarrs = kwargs.get('nopanstarrs', False)
         self.nosdss = kwargs.get('nosdss', False)
+        self.closerejectd = kwargs.get('closerejectd',5.0)
         self.skipvarsearch = kwargs.get('skipvarsearch', False)
         verbose = kwargs.get('verbose', False)
         bjd = kwargs.get('bjd', False)
@@ -43,7 +44,7 @@ class TimeSeries:
         self.calibrated = False
         if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
             try:
-                find_comparisons_calibrated(targets=self.targets, filterCode=self.filtercode, paths=self.paths, nopanstarrs=self.nopanstarrs, nosdss=self.nosdss)
+                find_comparisons_calibrated(targets=self.targets, filterCode=self.filtercode, paths=self.paths, nopanstarrs=self.nopanstarrs, nosdss=self.nosdss, closerejectd=self.closerejectd)
                 self.calibrated = True
             except AstrosourceException as e:
                 sys.stdout.write(f'🛑 {e}')

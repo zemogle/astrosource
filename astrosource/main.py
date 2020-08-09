@@ -41,10 +41,11 @@ logger = logging.getLogger('astrosource')
 @click.option('--hicounts','-hc', type=int, default=1500000)
 @click.option('--lowcounts','-lc', type=int, default=1000)
 @click.option('--starreject','-sr', type=float, default=0.1)
+@click.option('--closerejectd','-sr', type=float, default=5.0)
 @click.option('--nopanstarrs','-np', is_flag=True)
 @click.option('--nosdss','-ns', is_flag=True)
 @click.option('--skipvarsearch','-sv', is_flag=True)
-def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts):
+def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts):
 
     try:
         parentPath = Path(indir)
@@ -77,6 +78,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
                         starreject=starreject,
                         nopanstarrs=nopanstarrs,
                         nosdss=nosdss,
+                        closerejectd=closerejectd,
                         verbose=verbose
                         )
 
