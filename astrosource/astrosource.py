@@ -17,7 +17,7 @@ class TimeSeries:
         self.indir = Path(indir)
         filelist=kwargs.get('filelist', None)
         self.format = kwargs.get('format','fz')
-        self.imgreject = kwargs.get('imgreject',0.1)
+        self.imgreject = kwargs.get('imgreject',0.2)
         self.periodupper = kwargs.get('periodupper',1.2)
         self.periodlower = kwargs.get('periodlower',1.0)
         self.periodtests = kwargs.get('periodtests',10000)

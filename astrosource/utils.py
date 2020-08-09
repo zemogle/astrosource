@@ -107,7 +107,7 @@ def get_targets(targetfile):
     targets = genfromtxt(targetfile, dtype=float, delimiter=',')
     # Remove any nan rows from targets
     targetRejecter=[]
-    if not (targets.shape[0] == 4 and targets.size ==4):
+    if not (targets.shape[0] == 4 and targets.size == 4):
         for z in range(targets.shape[0]):
           if isnan(targets[z][0]):
             targetRejecter.append(z)
