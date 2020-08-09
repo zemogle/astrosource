@@ -2,7 +2,7 @@ from pathlib import Path
 import logging
 import sys
 
-from astrosource.analyse import find_stable_comparisons, photometric_calculations, calibrated_photometry
+from astrosource.analyse import find_variable_stars, photometric_calculations, calibrated_photometry
 from astrosource.comparison import find_comparisons, find_comparisons_calibrated
 from astrosource.detrend import detrend_data
 from astrosource.eebls import plot_bls
@@ -29,6 +29,7 @@ class TimeSeries:
         self.starreject = kwargs.get('starreject',0.1)
         self.nopanstarrs = kwargs.get('nopanstarrs', False)
         self.nosdss = kwargs.get('nosdss', False)
+        self.skipvarsearch = kwargs.get('skipvarsearch', False)
         verbose = kwargs.get('verbose', False)
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
@@ -49,8 +50,8 @@ class TimeSeries:
         elif calib:
             sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration')
 
-    def find_stable(self):
-        find_stable_comparisons(targets=self.targets, parentPath=self.paths['parent'])
+    def find_variables(self):
+        find_variable_stars(targets=self.targets, parentPath=self.paths['parent'])
 
     def photometry(self, filesave=False):
         data = photometric_calculations(targets=self.targets, paths=self.paths, filesave=filesave)

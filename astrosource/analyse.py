@@ -44,7 +44,7 @@ def get_total_counts(photFileArray, compFile, loopLength):
     logger.debug(allCountsArray)
     return allCountsArray
 
-def find_stable_comparisons(targets, acceptDistance=1.0, errorReject=0.05, parentPath = None):
+def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPath = None):
     '''
     Find stable comparison stars for the target photometry and remove variables
 

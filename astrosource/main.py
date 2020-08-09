@@ -43,7 +43,8 @@ logger = logging.getLogger('astrosource')
 @click.option('--starreject','-sr', type=float, default=0.1)
 @click.option('--nopanstarrs','-np', is_flag=True)
 @click.option('--nosdss','-ns', is_flag=True)
-def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, starreject, hicounts, lowcounts):
+@click.option('--skipvarsearch','-sv', is_flag=True)
+def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts):
 
     try:
         parentPath = Path(indir)
@@ -81,8 +82,8 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
 
         if full or comparison:
             ts.analyse()
-        if full or calc:
-            ts.find_stable()
+        if (full or calc) and not skipvarsearch:
+            ts.find_variables()
         if full or phot:
             ts.photometry(filesave=True)
         if full or plot:
