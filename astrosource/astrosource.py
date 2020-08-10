@@ -11,25 +11,26 @@ from astrosource.periodic import plot_with_period
 from astrosource.plots import make_plots, make_calibrated_plots, open_photometry_files, output_files, phased_plots
 from astrosource.utils import AstrosourceException, folder_setup, cleanup, setup_logger
 
+
 class TimeSeries:
     def __init__(self, targets, indir, **kwargs):
         self.targets = targets
         self.indir = Path(indir)
-        filelist=kwargs.get('filelist', None)
-        self.format = kwargs.get('format','fz')
-        self.imgreject = kwargs.get('imgreject',0.2)
-        self.periodupper = kwargs.get('periodupper',1.2)
-        self.periodlower = kwargs.get('periodlower',1.0)
-        self.periodtests = kwargs.get('periodtests',10000)
-        self.rejectbrighter = kwargs.get('rejectbrighter',99)
-        self.rejectdimmer = kwargs.get('rejectdimmer',99)
-        self.thresholdcounts = kwargs.get('thresholdcounts',1000000)
-        self.hicounts = kwargs.get('hicounts',1500000)
-        self.lowcounts = kwargs.get('lowcounts',1000)
-        self.starreject = kwargs.get('starreject',0.1)
+        filelist = kwargs.get('filelist', None)
+        self.format = kwargs.get('format', 'fz')
+        self.imgreject = kwargs.get('imgreject', 0.2)
+        self.periodupper = kwargs.get('periodupper', 1.2)
+        self.periodlower = kwargs.get('periodlower', 1.0)
+        self.periodtests = kwargs.get('periodtests', 10000)
+        self.rejectbrighter = kwargs.get('rejectbrighter', 99)
+        self.rejectdimmer = kwargs.get('rejectdimmer', 99)
+        self.thresholdcounts = kwargs.get('thresholdcounts', 1000000)
+        self.hicounts = kwargs.get('hicounts', 1500000)
+        self.lowcounts = kwargs.get('lowcounts', 1000)
+        self.starreject = kwargs.get('starreject', 0.1)
         self.nopanstarrs = kwargs.get('nopanstarrs', False)
         self.nosdss = kwargs.get('nosdss', False)
-        self.closerejectd = kwargs.get('closerejectd',5.0)
+        self.closerejectd = kwargs.get('closerejectd', 5.0)
         self.skipvarsearch = kwargs.get('skipvarsearch', False)
         verbose = kwargs.get('verbose', False)
         bjd = kwargs.get('bjd', False)
@@ -38,13 +39,24 @@ class TimeSeries:
         self.files, self.filtercode = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd)
 
     def analyse(self, calib=True):
-        self.usedimages, self.stars = find_stars(targets=self.targets, paths=self.paths, fileList=self.files, imageFracReject=self.imgreject, starreject=self.starreject, hicounts=self.hicounts, lowcounts=self.lowcounts)
+        self.usedimages, self.stars = find_stars(targets=self.targets,
+                                                 paths=self.paths,
+                                                 fileList=self.files,
+                                                 imageFracReject=self.imgreject,
+                                                 starreject=self.starreject,
+                                                 hicounts=self.hicounts,
+                                                 lowcounts=self.lowcounts)
         find_comparisons(self.targets, self.indir, self.usedimages, thresholdCounts=self.thresholdcounts)
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         self.calibrated = False
         if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
             try:
-                find_comparisons_calibrated(targets=self.targets, filterCode=self.filtercode, paths=self.paths, nopanstarrs=self.nopanstarrs, nosdss=self.nosdss, closerejectd=self.closerejectd)
+                find_comparisons_calibrated(targets=self.targets,
+                                            filterCode=self.filtercode,
+                                            paths=self.paths,
+                                            nopanstarrs=self.nopanstarrs,
+                                            nosdss=self.nosdss,
+                                            closerejectd=self.closerejectd)
                 self.calibrated = True
             except AstrosourceException as e:
                 sys.stdout.write(f'🛑 {e}')

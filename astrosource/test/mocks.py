@@ -14,7 +14,6 @@ def create_coords():
     return ra, dec
 
 def mock_vizier_query_region(*args, **kwargs):
-    print('here******************(((((((((())))))))))')
     ra, dec = create_coords()
     return Table([ra, dec], names=('RAJ2000', 'DEJ2000'), dtype=('float64', 'float64'))
 

@@ -19,6 +19,7 @@ TEST_PATH_PARENT = Path(os.path.dirname(__file__)) / 'test_files'
 
 TEST_PATHS = {'parent': TEST_PATH_PARENT / 'comparison'}
 
+
 class TestSetup:
     def __init__(self):
         # Create tmp files we need
@@ -31,7 +32,7 @@ class TestSetup:
             for f in files:
                 fid.write("{}\n".format(f))
         # Add targets to the TestSetup object
-        self.targets = nparray([(2.92142, -1.74868,0.00000000,0.00000000)])
+        self.targets = nparray([(2.92142, -1.74868, 0.00000000, 0.00000000)])
 
 @pytest.fixture()
 def setup():
@@ -54,7 +55,7 @@ def test_comparison(setup):
     outfile, num_cands = find_comparisons(targets=setup.targets, parentPath=TEST_PATHS['parent'], fileList=filelist)
 
     assert outfile == TEST_PATHS['parent'] / "compsUsed.csv"
-    assert num_cands == 11
+    assert num_cands == 10
 
 @patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_vsx)
 def test_remove_targets_calibrated(setup):
@@ -69,22 +70,22 @@ def test_remove_targets_calibrated(setup):
 @patch('astrosource.comparison.Vizier',mock_vizier_apass_b)
 def test_find_comparisons_calibrated_b(setup):
     compFile = find_comparisons_calibrated(filterCode='B', paths=TEST_PATHS, targets=setup.targets)
-    assert compFile.shape == (11,5)
+    assert compFile.shape == (10,5)
 
 @patch('astrosource.comparison.Vizier',mock_vizier_apass_v)
 def test_find_comparisons_calibrated_v(setup):
     compFile = find_comparisons_calibrated(filterCode='V', paths=TEST_PATHS, targets=setup.targets)
-    assert compFile.shape == (11,5)
+    assert compFile.shape == (10,5)
 
 @patch('astrosource.comparison.Vizier', mock_vizier_ps_r)
 def test_catalogue_call_panstarrs(setup):
     coord=SkyCoord(ra=303.6184*degree, dec=(-13.8355*degree))
-    resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag'},cat_name='PanSTARRS', targets=setup.targets)
+    resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag'},cat_name='PanSTARRS', targets=setup.targets, closerejectd=5.0)
     print(resp.ra.shape)
     assert resp.ra.shape == (4,)
 
 @patch('astrosource.comparison.Vizier',mock_vizier_sdss_r)
 def test_catalogue_call_sdss(setup):
     coord=SkyCoord(ra=303.6184*degree, dec=(-13.8355*degree))
-    resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag'},cat_name='SDSS', targets=setup.targets)
+    resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag'},cat_name='SDSS', targets=setup.targets, closerejectd=5.0)
     assert resp.ra.shape == (3,)

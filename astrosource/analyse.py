@@ -6,7 +6,6 @@ from astropy.coordinates import SkyCoord
 import glob
 import sys
 from pathlib import Path
-import matplotlib.pyplot as plt
 
 import math
 import os
@@ -14,37 +13,38 @@ import os
 import logging
 
 from astrosource.utils import photometry_files_to_array, AstrosourceException
+from astrosource.plots import plot_variability
 
 logger = logging.getLogger('astrosource')
 
 
 def get_total_counts(photFileArray, compFile, loopLength):
 
-    compArray=[]
-    allCountsArray=[]
+    compArray = []
+    allCountsArray = []
     logger.debug("***************************************")
     logger.debug("Calculating total counts")
     for photFile in photFileArray:
-        allCounts=0.0
-        allCountsErr=0.0
-        fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
+        allCounts = 0.0
+        allCountsErr = 0.0
+        fileRaDec = SkyCoord(ra=photFile[:, 0]*degree, dec=photFile[:, 1]*degree)
         #Array of comp measurements
         for j in range(loopLength):
             if compFile.size == 2 or (compFile.shape[0]== 3 and compFile.size ==3) or (compFile.shape[0]== 5 and compFile.size ==5):
-                matchCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+                matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
             else:
-                matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
+                matchCoord = SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
 
             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
             allCounts = add(allCounts, photFile[idx][4])
             allCountsErr = add(allCountsErr, photFile[idx][5])
-            if (compFile.shape[0]== 5 and compFile.size ==5) or (compFile.shape[0]== 3 and compFile.size ==3):
+            if (compFile.shape[0] == 5 and compFile.size == 5) or (compFile.shape[0] == 3 and compFile.size == 3):
                 break
-        allCountsArray.append([allCounts,allCountsErr])
+        allCountsArray.append([allCounts, allCountsErr])
     logger.debug(allCountsArray)
     return allCountsArray
 
-def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPath = None):
+def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPath=None):
     '''
     Find stable comparison stars for the target photometry and remove variables
 
@@ -63,18 +63,18 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
     -------
     outfile : str
     '''
-    minimumVariableCounts=10000  # Do not try to detect variables dimmer than this.
-    minimumNoOfObs=10 # Minimum number of observations to count as a potential variable.
+    minimumVariableCounts = 10000  # Do not try to detect variables dimmer than this.
+    minimumNoOfObs = 10 # Minimum number of observations to count as a potential variable.
 
 
     # Load in list of used files
-    fileList=[]
+    fileList = []
     with open(parentPath / "usedImages.txt", "r") as f:
-      for line in f:
-        fileList.append(line.strip())
+        for line in f:
+            fileList.append(line.strip())
 
     # LOAD Phot FILES INTO LIST
-    photFileArray=[]
+    photFileArray = []
     for file in fileList:
         photFileArray.append(load(parentPath / file))
 
@@ -84,36 +84,36 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
     # LOAD IN COMPARISON FILE
     preFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
 
-    if preFile.shape[0] !=13:
-        preFile=(preFile[preFile[:,2].argsort()])
+    if preFile.shape[0] != 13:
+        preFile=(preFile[preFile[:, 2].argsort()])
 
     # GET REFERENCE IMAGE
     # Sort through and find the largest file and use that as the reference file
-    fileSizer=0
+    fileSizer = 0
     logger.debug("Finding image with most stars detected")
     for photFile in photFileArray:
         if photFile.size > fileSizer:
-            referenceFrame=photFile
-            fileSizer=photFile.size
+            referenceFrame = photFile
+            fileSizer = photFile.size
 
-    compFile=genfromtxt(parentPath / "compsUsed.csv", dtype=float, delimiter=',')
+    compFile = genfromtxt(parentPath / "compsUsed.csv", dtype=float, delimiter=',')
     logger.debug("Stable Comparison Candidates below variability threshold")
-    outputPhot=[]
+    outputPhot = []
 
     # Get total counts for each file
 
-    allCountsArray = get_total_counts(photFileArray, compFile, loopLength= compFile.shape[0])
+    allCountsArray = get_total_counts(photFileArray, compFile, loopLength=compFile.shape[0])
 
     # Define targetlist as every star in referenceImage above a count threshold
     logger.debug("Setting up Variable Search List")
-    targetFile=referenceFrame
+    targetFile = referenceFrame
     # Although remove stars that are below the variable countrate
     starReject=[]
     for q in range(targetFile.shape[0]):
         if targetFile[q][4] < minimumVariableCounts:
             starReject.append(q)
     logger.debug("Total number of stars in reference Frame: {}".format(targetFile.shape[0]))
-    targetFile=delete(targetFile, starReject, axis=0)
+    targetFile = delete(targetFile, starReject, axis=0)
     logger.debug("Total number of stars with sufficient counts: {}".format(targetFile.shape[0]))
 
     ## NEED TO REMOVE COMPARISON STARS FROM TARGETLIST
@@ -121,12 +121,12 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
     allcountscount=0
     # For each variable calculate the variability
     outputVariableHolder=[]
-    for q in range(targetFile.shape[0]):
+    for target in targetFile:
         logger.debug("*********************")
         logger.debug("Processing Target {}".format(str(q+1)))
-        logger.debug("RA {}".format(targetFile[q][0]))
-        logger.debug("DEC {}".format(targetFile[q][1]))
-        varCoord = SkyCoord(targetFile[q][0],(targetFile[q][1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
+        logger.debug("RA {}".format(target[0]))
+        logger.debug("DEC {}".format(target[1]))
+        varCoord = SkyCoord(target[0],(target[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
         outputPhot=[]
         compArray=[]
         compList=[]
@@ -168,22 +168,9 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
         logger.debug("Number of Observations: {}".format(asarray(diffMagHolder).shape[0]))
 
         if (  asarray(diffMagHolder).shape[0] > minimumNoOfObs):
-            outputVariableHolder.append( [targetFile[q][0],targetFile[q][1],median(diffMagHolder), std(diffMagHolder), asarray(diffMagHolder).shape[0]])
+            outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), asarray(diffMagHolder).shape[0]])
 
-    # star Variability Plot
-
-    plt.cla()
-    outplotx=np.asarray(outputVariableHolder)[:,2]
-    outploty=np.asarray(outputVariableHolder)[:,3]
-    plt.xlabel('Mean Differential Magnitude of a Given Star')
-    plt.ylabel('Standard Deviation of Differential Magnitudes')
-    plt.plot(outplotx,outploty,'bo')
-    #plt.plot(linex,liney)
-    plt.ylim(min(outploty)-0.04,max(outploty)+0.04,'k-')
-    plt.xlim(min(outplotx)-0.1,max(outplotx)+0.1)
-    plt.grid(True)
-    plt.savefig(parentPath/ 'starVariability.png')
-    plt.savefig(parentPath / 'starVariability.eps')
+    plot_variability(outputVariableHolder, parentPath)
 
     savetxt(parentPath / "starVariability.csv", outputVariableHolder, delimiter=",", fmt='%0.8f')
 

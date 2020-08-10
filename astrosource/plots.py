@@ -34,6 +34,7 @@ def output_files(paths, photometrydata, mode='diff'):
         savetxt(paths['outcatPath'] / f'V{r}_{mode}AIJ.csv', outputaijCalib, delimiter=",", fmt='%0.8f')
     return
 
+
 def open_photometry_files(outcatPath):
     fileList = outcatPath.glob("doer*.csv")
     photometrydata = []
@@ -41,6 +42,25 @@ def open_photometry_files(outcatPath):
         outputPhot=genfromtxt(file, delimiter=",", dtype='float')
         photometrydata.append(outputPhot)
     return photometrydata
+
+
+def plot_variability(output, parentPath):
+    # star Variability Plot
+
+    plt.cla()
+    outplotx = asarray(output)[:, 2]
+    outploty = asarray(output)[:, 3]
+    plt.xlabel('Mean Differential Magnitude of a Given Star')
+    plt.ylabel('Standard Deviation of Differential Magnitudes')
+    plt.plot(outplotx, outploty, 'bo')
+    # plt.plot(linex, liney)
+    plt.ylim(min(outploty)-0.04, max(outploty)+0.04, 'k-')
+    plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
+    plt.grid(True)
+    plt.savefig(parentPath / 'starVariability.png')
+    plt.savefig(parentPath / 'starVariability.eps')
+    return
+
 
 def make_plots(filterCode, paths, photometrydata, fileformat='full'):
 
@@ -90,28 +110,30 @@ def make_plots(filterCode, paths, photometrydata, fileformat='full'):
 
     return
 
+
 def make_calibrated_plots(filterCode, paths, photometrydata):
     # Make a calibrated version
     # Need to shift the shape of the curve against the lowest error in the catalogue.
     for j, outputPhot in enumerate(photometrydata):
         plt.cla()
-        outplotx=asarray(outputPhot)[:,6]
-        outploty=asarray(outputPhot)[:,10]
+        outplotx = asarray(outputPhot)[:, 6]
+        outploty = asarray(outputPhot)[:, 10]
         plt.xlabel('BJD')
         plt.ylabel(f'Calibrated {filterCode} Mag')
-        plt.plot(outplotx,outploty,'bo')
-        plt.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
-        plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
+        plt.plot(outplotx, outploty, 'bo')
+        plt.ylim(max(outploty)+0.02, min(outploty)-0.02, 'k-')
+        plt.xlim(min(outplotx)-0.01, max(outplotx)+0.01)
         plt.grid(True)
         plt.savefig(paths['outputPath'] / f'V{j+1}_EnsembleVarCalibMag.png')
         plt.savefig(paths['outputPath'] / f'V{j+1}_EnsembleVarCalibMag.eps')
 
     return
 
+
 def phased_plots(paths, filterCode, targets, period, phaseShift):
 
     # Load in list of used files
-    fileList=[]
+    fileList = []
     for line in (paths['parent'] / "usedImages.txt").read_text():
         fileList.append(line.strip())
 
@@ -127,14 +149,14 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
         # Variable lightcurve
 
         plt.cla()
-        outplotx=calibFile[:,0]
-        outploty=calibFile[:,1]
+        outplotx = calibFile[:, 0]
+        outploty = calibFile[:, 1]
         plt.xlabel('BJD')
         plt.ylabel('Apparent {} Magnitude'.format(filterCode))
-        plt.plot(outplotx,outploty,'bo')
-        #plt.plot(linex,liney)
-        plt.ylim(max(outploty)-0.04,min(outploty)+0.04,'k-')
-        plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
+        plt.plot(outplotx, outploty, 'bo')
+        # plt.plot(linex, liney)
+        plt.ylim(max(outploty)-0.04, min(outploty)+0.04, 'k-')
+        plt.xlim(min(outplotx)-0.01, max(outplotx)+0.01)
         plt.grid(True)
         plt.savefig(outputPath / 'Variable{}_{}_Lightcurve.png'.format(q+1,filterCode))
         plt.savefig(outputPath / 'Variable{}_{}_Lightcurve.eps'.format(q+1,filterCode))
