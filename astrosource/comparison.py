@@ -338,7 +338,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
 
         logger.debug(d2dcomp)
         if d2dcomp != 9999:
-            if d2dcomp.arcsecond.any() < max_sep.value:
+            if d2dcomp.arcsecond[0] < max_sep.value:
                 logger.debug("match!")
                 varStarReject.append(t)
             else:
@@ -416,22 +416,20 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
 
     logger.info("Number of calibration sources after removal of sources near targets: "+str(len(resp)))
 
-    # Remove any star from calibration catalogue that has another star in the catalogue within closerejectd arcseconds of it. 
+    # Remove any star from calibration catalogue that has another star in the catalogue within closerejectd arcseconds of it.
     while True:
-        fileRaDec=SkyCoord(ra=resp[radecname['ra']],dec=resp[radecname['dec']])
+        fileRaDec = SkyCoord(ra=resp[radecname['ra']].data*degree, dec=resp[radecname['dec']].data*degree)
         idx, d2d, _ = fileRaDec.match_to_catalog_sky(fileRaDec, nthneighbor=2) # Closest matches that isn't itself.
-        catReject=[]
+        catReject = []
         for q in range(len(d2d)):
             if d2d[q] < closerejectd*arcsecond:
                 catReject.append(q)
-        if catReject==[]:
+        if catReject == []:
             break
-        #print (resp)
-        #resp=np.delete(resp, catReject, axis=0)
         del resp[catReject]
-        logger.info("Stars rejected that are too close (<5arcsec) in calibration catalogue: " +str(len(catReject)))
-            
-    logger.info("Number of calibration sources after removal of sources near other sources: "+str(len(resp)))
+        logger.info(f"Stars rejected that are too close (<5arcsec) in calibration catalogue: {len(catReject)}")
+
+    logger.info(f"Number of calibration sources after removal of sources near other sources: {len(resp)}")
 
 
     data.cat_name = cat_name
@@ -465,7 +463,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                         'SkyMapper' : {'filter' : 'zPSF', 'error' : 'e_zPSF'},
                         'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag'}},
                 }
-    
+
 
     parentPath = paths['parent']
     calibPath = parentPath / "calibcats"
@@ -525,7 +523,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                         max_sep=1.5 * arcsecond
                     if coords !=[]:
                         cat_used=cat_name
-                    
+
 
         except AstrosourceException as e:
             logger.debug(e)
@@ -640,7 +638,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             if compUsedFile.shape[0] ==3 and compUsedFile.size ==3:
                 compUsedCoord=SkyCoord(ra=compUsedFile[0]*degree,dec=compUsedFile[1]*degree)
             else:
-                
+
                 compUsedCoord=SkyCoord(ra=compUsedFile[r][0]*degree,dec=compUsedFile[r][1]*degree)
             idx,d2d,d3d=compUsedCoord.match_to_catalog_sky(photCoords)
             lineCompUsed.append(photFile[idx,4])

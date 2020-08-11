@@ -28,23 +28,23 @@ logger = logging.getLogger('astrosource')
 @click.option('--dec', type=float)
 @click.option('--target-file', default=None, type=str)
 @click.option('--format', default='fz', type=str)
-@click.option('--imgreject','-ir', type=float, default=0.2)
+@click.option('--imgreject', '-ir', type=float, default=0.2)
 @click.option('--bjd', is_flag=True)
 @click.option('--clean', is_flag=True)
-@click.option('--verbose','-v', is_flag=True)
-@click.option('--periodlower','-pl', type=float, default=0.2)
-@click.option('--periodupper','-pu', type=float, default=1.0)
-@click.option('--periodtests','-pt', type=int, default=10000)
-@click.option('--rejectbrighter','-rb', type=float, default=99)
-@click.option('--rejectdimmer','-rd', type=float, default=99)
-@click.option('--thresholdcounts','-tc', type=int, default=1000000)
-@click.option('--hicounts','-hc', type=int, default=1500000)
-@click.option('--lowcounts','-lc', type=int, default=1000)
-@click.option('--starreject','-sr', type=float, default=0.1)
-@click.option('--closerejectd','-sr', type=float, default=5.0)
-@click.option('--nopanstarrs','-np', is_flag=True)
-@click.option('--nosdss','-ns', is_flag=True)
-@click.option('--skipvarsearch','-sv', is_flag=True)
+@click.option('--verbose', '-v', is_flag=True)
+@click.option('--periodlower', '-pl', type=float, default=0.2)
+@click.option('--periodupper', '-pu', type=float, default=1.0)
+@click.option('--periodtests', '-pt', type=int, default=10000)
+@click.option('--rejectbrighter', '-rb', type=float, default=99)
+@click.option('--rejectdimmer', '-rd', type=float, default=99)
+@click.option('--thresholdcounts', '-tc', type=int, default=1000000)
+@click.option('--hicounts', '-hc', type=int, default=1500000)
+@click.option('--lowcounts',  '-lc', type=int, default=1000)
+@click.option('--starreject', '-sr', type=float, default=0.1)
+@click.option('--closerejectd', '-sr', type=float, default=5.0)
+@click.option('--nopanstarrs', '-np', is_flag=True)
+@click.option('--nosdss', '-ns', is_flag=True)
+@click.option('--skipvarsearch', '-sv', is_flag=True)
 def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts):
 
     try:
@@ -58,7 +58,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
             return
 
         if ra and dec:
-            targets = array([(ra,dec,0,0)])
+            targets = array([(ra, dec, 0, 0)])
         elif target_file:
             target_file = parentPath / target_file
             targets = get_targets(target_file)
@@ -91,12 +91,12 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
         if full or plot:
             ts.plot(detrend=detrend, period=period, eebls=eebls, filesave=True)
 
-
         sys.stdout.write("✅ AstroSource analysis complete\n")
 
     except AstrosourceException as e:
         logger.critical(e)
     return
+
 
 if __name__ == '__main__':
     main()
