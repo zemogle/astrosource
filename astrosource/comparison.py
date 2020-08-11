@@ -58,43 +58,34 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
 
     compFile = remove_stars_targets(parentPath, compFile, acceptDistance, targets, removeTargets)
 
+    # Add up all of the counts of all of the comparison stars
+    # To create a gigantic comparison star.
+    logger.debug("Please wait... calculating ensemble comparison star for each image")
+    comparisons, fileCount = ensemble_comparisons(photFileArray, compFile)
+
     while True:
-        # First half of Loop: Add up all of the counts of all of the comparison stars
-        # To create a gigantic comparison star.
 
-        logger.debug("Please wait... calculating ensemble comparison star for each image")
-        fileCount = ensemble_comparisons(photFileArray, compFile)
-
-        # Second half of Loop: Calculate the variation in each candidate comparison star in brightness
+        # Calculate the variation in each candidate comparison star in brightness
         # compared to this gigantic comparison star.
-        rejectStar=[]
-        stdCompStar, sortStars = calculate_comparison_variation(compFile, photFileArray, fileCount)
+        stdCompStar, sortStars = calculate_comparison_variation(comparisons, fileCount,numfiles=len(compFile))
 
         variabilityMax=(min(stdCompStar)*variabilityMultiplier)
 
-
-
         # Calculate and present the sample statistics
-        stdCompMed=median(stdCompStar)
-        stdCompStd=std(stdCompStar)
+        stdCompMed = median(stdCompStar)
+        stdCompStd = std(stdCompStar)
 
-        logger.debug(fileCount)
-        logger.debug(stdCompStar)
         logger.debug(f"Median of comparisons = {stdCompMed}")
         logger.debug(f"STD of comparisons = {stdCompStd}")
 
         # Delete comparisons that have too high a variability
 
-        starRejecter=[]
+        starRejecter = []
         if min(stdCompStar) > 0.002:
-            for j in range(len(stdCompStar)):
+            for j, stdComp in enumerate(stdCompStar):
                 #logger.debug(stdCompStar[j])
-                if ( stdCompStar[j] > (stdCompMed + (stdMultiplier*stdCompStd)) ):
-                    logger.debug(f"Star {j} Rejected, Variability too high!")
-                    starRejecter.append(j)
-
-                if ( isnan(stdCompStar[j]) ) :
-                    logger.debug("Star Rejected, Invalid Entry!")
+                if stdComp > (stdCompMed + (stdMultiplier*stdCompStd)) or isnan(stdComp):
+                    logger.debug(f"Star {j} Rejected, Variability too high")
                     starRejecter.append(j)
                 sys.stdout.write('.')
                 sys.stdout.flush()
@@ -106,13 +97,15 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
 
         compFile = delete(compFile, starRejecter, axis=0)
         sortStars = delete(sortStars, starRejecter, axis=0)
+        comparisons = delete(comparisons,starRejecter,axis=1)
+        fileCount = delete(fileCount, starRejecter, axis=0)
 
         # Calculate and present statistics of sample of candidate comparison stars.
         logger.info("Median variability {:.6f}".format(median(stdCompStar)))
         logger.info("Std variability {:.6f}".format(std(stdCompStar)))
         logger.info("Min variability {:.6f}".format(min(stdCompStar)))
         logger.info("Max variability {:.6f}".format(max(stdCompStar)))
-        logger.info("Number of Stable Comparison Candidates {}".format(compFile.shape[0]))
+        logger.info("Number of Stable Comparison Candidates {}".format(comparisons.shape[1]))
         # Once we have stopped rejecting stars, this is our final candidate catalogue then we start to select the subset of this final catalogue that we actually use.
         if (starRejecter == []):
             break
@@ -123,47 +116,37 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
 
     sys.stdout.write('\n')
     logger.info('Statistical stability reached.')
-    outfile, num_comparisons = final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCounts, variabilityMax)
+    # Sort through and find the largest file and use that as the reference file
+    frameid = find_reference_frame(photFileArray)
+    outfile, num_comparisons = final_candidate_catalogue(parentPath, photFileArray, frameid, sortStars, thresholdCounts, variabilityMax)
     return outfile, num_comparisons
 
-def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCounts, variabilityMax):
+def final_candidate_catalogue(parentPath, photFileArray, frameid, sortStars, thresholdCounts, variabilityMax):
 
+    referenceFrame = photFileArray[frameid]
     logger.info('List of stable comparison candidates output to stdComps.csv')
 
     savetxt(parentPath / "stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
 
-    # The following process selects the subset of the candidates that we will use (the least variable comparisons that hopefully get the request countrate)
-
-    # Sort through and find the largest file and use that as the reference file
-    referenceFrame, fileRaDec = find_reference_frame(photFileArray)
-
     # SORT THE COMP CANDIDATE FILE such that least variable comparison is first
-
-    sortStars=(sortStars[sortStars[:,2].argsort()])
+    sortorder=sortStars[:,2].argsort()
 
     # PICK COMPS UNTIL OVER THE THRESHOLD OF COUNTS OR VRAIABILITY ACCORDING TO REFERENCE IMAGE
     logger.debug("PICK COMPARISONS UNTIL OVER THE THRESHOLD ACCORDING TO REFERENCE IMAGE")
     compFile=[]
     tempCountCounter=0.0
     finalCountCounter=0.0
-    for j in range(sortStars.shape[0]):
-        if sortStars.size == 13 and sortStars.shape[0] == 1:
-            matchCoord=SkyCoord(ra=sortStars[0][0]*degree, dec=sortStars[0][1]*degree)
-        else:
-            matchCoord=SkyCoord(ra=sortStars[j][0]*degree, dec=sortStars[j][1]*degree)
+    for j in sortorder:
+        # match each star to star in reference frame
+        matchCoord=SkyCoord(ra=sortStars[j][0]*degree, dec=sortStars[j][1]*degree)
         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-
+        tempCountCounter=add(tempCountCounter,referenceFrame[idx][4])
+        
         if tempCountCounter < thresholdCounts:
-            if sortStars.size == 13 and sortStars.shape[0] == 1:
-                compFile.append([sortStars[0][0],sortStars[0][1],sortStars[0][2]])
-                logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[0][2]))
-                logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
-                finalCountCounter=add(finalCountCounter,referenceFrame[idx][4])
-
-            elif sortStars[j][2] < variabilityMax:
+            if sortStars[j][2] < variabilityMax or sortStars.shape[0] == 1:
                 compFile.append([sortStars[j][0],sortStars[j][1],sortStars[j][2]])
-                logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[j][2]))
-                logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
+                logger.debug(f"Comp {j+1} std: {sortStars[j][2]}")
+                logger.debug(f"Cumulative Counts thus far: {tempCountCounter}")
                 finalCountCounter=add(finalCountCounter,referenceFrame[idx][4])
 
         tempCountCounter=add(tempCountCounter,referenceFrame[idx][4])
@@ -171,10 +154,10 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
     logger.debug("Selected stars listed below:")
     logger.debug(compFile)
 
-    logger.info("Finale Ensemble Counts: " + str(finalCountCounter))
-    compFile=asarray(compFile)
+    logger.info(f"Finale Ensemble Counts: {finalCountCounter}")
+    compFile = asarray(compFile)
 
-    logger.info(str(compFile.shape[0]) + " Stable Comparison Candidates below variability threshold output to compsUsed.csv")
+    logger.info(f"{compFile.shape[0]} Stable Comparison Candidates below variability threshold output to compsUsed.csv")
 
     outfile = parentPath / "compsUsed.csv"
     savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
@@ -183,15 +166,14 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
 
 def find_reference_frame(photFileArray):
     fileSizer = 0
+    id = 0
     logger.info("Finding image with most stars detected")
-    for photFile in photFileArray:
+    for i, photFile in enumerate(photFileArray):
         if photFile.size > fileSizer:
-            referenceFrame = photFile
-            logger.debug(photFile.size)
+            id = i
             fileSizer = photFile.size
     logger.info("Setting up reference Frame")
-    fileRaDec = SkyCoord(ra=referenceFrame[:,0]*degree, dec=referenceFrame[:,1]*degree)
-    return referenceFrame, fileRaDec
+    return id
 
 def read_data_files(parentPath, fileList):
     # LOAD Phot FILES INTO LIST
@@ -206,58 +188,46 @@ def read_data_files(parentPath, fileList):
     return compFile, photFileArray
 
 def ensemble_comparisons(photFileArray, compFile):
+    """
+    For each image in photFileArray find matching compFile stars
+    """
     fileCount = []
+    comparisons = []
     for photFile in photFileArray:
         allCounts = 0.0
         fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
         if compFile.size ==2 and compFile.shape[0]==2:
-            matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+            compFile = [compFile]
+        img_catalogue = []
+        for cf in compFile:
+            matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
             allCounts = add(allCounts,photFile[idx][4])
-        else:
-            for cf in compFile:
-                matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
-                idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-                allCounts = add(allCounts,photFile[idx][4])
+            # Store comparisons
+            # RA, Dec, photometry
+            img_catalogue.append((cf[0], cf[1], photFile[idx][4]))
+        comparisons.append(img_catalogue)
         logger.debug("Total Counts in Image: {:.2f}".format(allCounts))
         fileCount.append(allCounts)
     logger.debug("Total total {}".format(np.sum(np.array(fileCount))))
-    return fileCount
+    return (array(comparisons), array(fileCount))
 
-def calculate_comparison_variation(compFile, photFileArray, fileCount):
+def calculate_comparison_variation(comparisons, fileCount, numfiles):
     stdCompStar=[]
     sortStars=[]
 
-    if compFile.size ==2 and compFile.shape[0]==2:
+    for j in range(numfiles):
         compDiffMags = []
         logger.debug("*************************")
-        logger.debug("RA : " + str(compFile[0]))
-        logger.debug("DEC: " + str(compFile[1]))
-        for q, photFile in enumerate(photFileArray):
-            fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-            matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-            idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-            compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
+        logger.debug(f"RA : {comparisons[0][j][0]}")
+        logger.debug(f"DEC: {comparisons[0][j][1]}")
+        for q, count in enumerate(fileCount):
+            calc = 2.5 * log10(comparisons[q][j][2]/count)
+            compDiffMags = append(compDiffMags,calc)
+
         logger.debug("VAR: " +str(std(compDiffMags)))
         stdCompStar.append(std(compDiffMags))
-        sortStars.append([compFile[0],compFile[1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-
-    else:
-        for cf in compFile:
-            compDiffMags = []
-            logger.debug("*************************")
-            logger.debug("RA : " + str(cf[0]))
-            logger.debug("DEC: " + str(cf[1]))
-            for q, photFile in enumerate(photFileArray):
-                fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-                matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
-                idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-                compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
-
-            logger.debug("VAR: " +str(std(compDiffMags)))
-            stdCompStar.append(std(compDiffMags))
-            sortStars.append([cf[0],cf[1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-
+        sortStars.append([comparisons[0][j][0], comparisons[0][j][1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
     return stdCompStar, sortStars
 
 def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, removeTargets):
@@ -276,27 +246,6 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
           if isnan(targetFile[z][0]):
             targetRejecter.append(z)
         targetFile=delete(targetFile, targetRejecter, axis=0)
-
-    # Remove targets from consideration
-    # if targetFile.shape[0] == 4 and targetFile.size ==4:
-    #     loopLength=1
-    # else:
-    #     loopLength=targetFile.shape[0]
-    # targetRejects=[]
-    # tg_file_len = len(targetFile)
-    # for tf in targetFile:
-    #     if tg_file_len == 4 and targetFile.size==4:
-    #         varCoord = SkyCoord(targetFile[0],(targetFile[1]), frame='icrs', unit=degree)
-    #     else:
-    #         varCoord = SkyCoord(tf[0],(tf[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
-    #     idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
-    #     if d2d.arcsecond < acceptDistance:
-    #         targetRejects.append(idx)
-    #     if tg_file_len == 4 and targetFile.size==4:
-    #         break
-    # compFile=delete(compFile, idx, axis=0)
-    # fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
-
 
     # Get Average RA and Dec from file
     if compFile.shape[0] == 2 and compFile.size == 2:

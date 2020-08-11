@@ -41,7 +41,6 @@ def get_total_counts(photFileArray, compFile, loopLength):
             if (compFile.shape[0] == 5 and compFile.size == 5) or (compFile.shape[0] == 3 and compFile.size == 3):
                 break
         allCountsArray.append([allCounts, allCountsErr])
-    logger.debug(allCountsArray)
     return allCountsArray
 
 def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPath=None):
