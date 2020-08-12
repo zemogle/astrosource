@@ -2,13 +2,16 @@ from pathlib import Path
 import logging
 import sys
 
-from astrosource.analyse import find_variable_stars, photometric_calculations, calibrated_photometry
-from astrosource.comparison import find_comparisons, find_comparisons_calibrated
+from astrosource.analyse import find_variable_stars, photometric_calculations, \
+    calibrated_photometry
+from astrosource.comparison import find_comparisons,\
+    find_comparisons_calibrated
 from astrosource.detrend import detrend_data
 from astrosource.eebls import plot_bls
 from astrosource.identify import find_stars, gather_files
 from astrosource.periodic import plot_with_period
-from astrosource.plots import make_plots, make_calibrated_plots, open_photometry_files, output_files, phased_plots
+from astrosource.plots import make_plots, make_calibrated_plots, \
+    open_photometry_files, output_files, phased_plots
 from astrosource.utils import AstrosourceException, folder_setup, cleanup, setup_logger
 
 

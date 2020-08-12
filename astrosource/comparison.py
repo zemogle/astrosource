@@ -435,20 +435,14 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     logger.debug(compFile.shape[0])
 
     if compFile.shape[0] == 13 and compFile.size == 13:
-        compCoords=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-    else:
-        compCoords=SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
+        compFile = [compFile]
+
+    compCoords = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
 
     # Get Average RA and Dec from file
-    if compFile.shape[0] == 13 and compFile.size == 13:
-        logger.debug(compFile[0])
-        logger.debug(compFile[1])
-        avgCoord=SkyCoord(ra=(compFile[0])*degree, dec=(compFile[1]*degree))
-
-    else:
-        logger.debug(average(compFile[:,0]))
-        logger.debug(average(compFile[:,1]))
-        avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
+    logger.debug(average(compFile[:,0]))
+    logger.debug(average(compFile[:,1]))
+    avgCoord = SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
 
     try:
         catalogues = FILTERS[filterCode]
@@ -489,27 +483,16 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     #So the stars that will be used to calibrate the frames to get the OTHER stars.
     calibStands=[]
 
-    if compFile.shape[0] ==13 and compFile.size ==13:
-        lenloop=1
-    else:
-        lenloop=len(compFile[:,0])
+    lenloop=len(compFile[:,0])
 
     for q in range(lenloop):
-        if compFile.shape[0] ==13 and compFile.size ==13:
-            compCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-        else:
-            compCoord=SkyCoord(ra=compFile[q][0]*degree, dec=compFile[q][1]*degree)
+        compCoord=SkyCoord(ra=compFile[q][0]*degree, dec=compFile[q][1]*degree)
         idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
         if d2dcomp < max_sep:
             if not isnan(coords.mag[idxcomp]):
-                if compFile.shape[0] ==13 and compFile.size ==13:
-                    calibStands.append([compFile[0],compFile[1],compFile[2],coords.mag[idxcomp],coords.emag[idxcomp]])
-                else:
-                    calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],coords.mag[idxcomp],coords.emag[idxcomp]])
+                calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],coords.mag[idxcomp],coords.emag[idxcomp]])
     logger.info('Calibration Stars Identified below')
     logger.info(calibStands)
-
-
 
     # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
     #logger.debug(asarray(calibStands).shape[0])
@@ -528,7 +511,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     calibStands=delete(calibStands, calibStandsReject, axis=0)
 
-    calibStand=asarray(calibStands)
+    calibStands=asarray(calibStands)
 
     savetxt(parentPath / "calibStands.csv", calibStands , delimiter=",", fmt='%0.8f')
     # Lets use this set to calibrate each datafile and pull out the calibrated compsused magnitudes
