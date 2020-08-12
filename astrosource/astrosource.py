@@ -18,7 +18,7 @@ class TimeSeries:
         self.indir = Path(indir)
         filelist = kwargs.get('filelist', None)
         self.format = kwargs.get('format', 'fz')
-        self.imgreject = kwargs.get('imgreject', 0.2)
+        self.imgreject = kwargs.get('imgreject', 0.05)
         self.periodupper = kwargs.get('periodupper', 1.2)
         self.periodlower = kwargs.get('periodlower', 1.0)
         self.periodtests = kwargs.get('periodtests', 10000)
@@ -27,11 +27,12 @@ class TimeSeries:
         self.thresholdcounts = kwargs.get('thresholdcounts', 1000000)
         self.hicounts = kwargs.get('hicounts', 1500000)
         self.lowcounts = kwargs.get('lowcounts', 1000)
-        self.starreject = kwargs.get('starreject', 0.1)
+        self.starreject = kwargs.get('starreject', 0.3)
         self.nopanstarrs = kwargs.get('nopanstarrs', False)
         self.nosdss = kwargs.get('nosdss', False)
         self.closerejectd = kwargs.get('closerejectd', 5.0)
         self.skipvarsearch = kwargs.get('skipvarsearch', False)
+        self.mincompstars = kwargs.get('mincompstars', 0.1)
         verbose = kwargs.get('verbose', False)
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
@@ -42,6 +43,7 @@ class TimeSeries:
         self.usedimages, self.stars = find_stars(targets=self.targets,
                                                  paths=self.paths,
                                                  fileList=self.files,
+                                                 mincompstars=self.mincompstars,
                                                  imageFracReject=self.imgreject,
                                                  starreject=self.starreject,
                                                  hicounts=self.hicounts,

@@ -336,13 +336,13 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
             if abs(compFile[0]-raCat[0]) > 0.0014 and abs(compFile[1]-decCat[0]) > 0.0014:
                 d2dcomp = 9999
 
-        logger.debug(d2dcomp)
+        #logger.debug(d2dcomp)
         if d2dcomp != 9999:
             if d2dcomp.arcsecond[0] < max_sep.value:
                 logger.debug("match!")
                 varStarReject.append(t)
-            else:
-                logger.debug("no match!")
+        #    else:
+        #        logger.debug("no match!")
 
     logger.debug("Number of stars prior to VSX reject")
     logger.debug(compFile.shape[0])
