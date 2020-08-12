@@ -132,6 +132,7 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
     referenceFrame, fileRaDec = find_reference_frame(photFileArray)
 
     # SORT THE COMP CANDIDATE FILE such that least variable comparison is first
+
     sortStars=(sortStars[sortStars[:,2].argsort()])
 
     # PICK COMPS UNTIL OVER THE THRESHOLD OF COUNTS OR VRAIABILITY ACCORDING TO REFERENCE IMAGE
@@ -140,16 +141,26 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
     tempCountCounter=0.0
     finalCountCounter=0.0
     for j in range(sortStars.shape[0]):
-        matchCoord=SkyCoord(ra=sortStars[j][0]*degree, dec=sortStars[j][1]*degree)
+        if sortStars.size == 13 and sortStars.shape[0] == 1:
+            matchCoord=SkyCoord(ra=sortStars[0][0]*degree, dec=sortStars[0][1]*degree)
+        else:
+            matchCoord=SkyCoord(ra=sortStars[j][0]*degree, dec=sortStars[j][1]*degree)
         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-        tempCountCounter=add(tempCountCounter,referenceFrame[idx][4])
 
         if tempCountCounter < thresholdCounts:
-            if sortStars[j][2] < variabilityMax:
+            if sortStars.size == 13 and sortStars.shape[0] == 1:
+                compFile.append([sortStars[0][0],sortStars[0][1],sortStars[0][2]])
+                logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[0][2]))
+                logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
+                finalCountCounter=add(finalCountCounter,referenceFrame[idx][4])
+
+            elif sortStars[j][2] < variabilityMax:
                 compFile.append([sortStars[j][0],sortStars[j][1],sortStars[j][2]])
                 logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[j][2]))
                 logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
                 finalCountCounter=add(finalCountCounter,referenceFrame[idx][4])
+
+        tempCountCounter=add(tempCountCounter,referenceFrame[idx][4])
 
     logger.debug("Selected stars listed below:")
     logger.debug(compFile)
@@ -158,11 +169,11 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
     compFile=asarray(compFile)
 
     logger.info(str(compFile.shape[0]) + " Stable Comparison Candidates below variability threshold output to compsUsed.csv")
-    #logger.info(compFile.shape[0])
 
     outfile = parentPath / "compsUsed.csv"
     savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
-
+    logger.critical(compFile)
+    sys.exit()
     return outfile, compFile.shape[0]
 
 def find_reference_frame(photFileArray):
