@@ -28,7 +28,11 @@ logger = logging.getLogger('astrosource')
 @click.option('--dec', type=float)
 @click.option('--target-file', default=None, type=str)
 @click.option('--format', default='fz', type=str)
+<<<<<<< HEAD
 @click.option('--imgreject', '-ir', type=float, default=0.2)
+=======
+@click.option('--imgreject', '-ir', type=float, default=0.05)
+>>>>>>> 551fc4a552d85554822e5a37135ddb9304faea4f
 @click.option('--bjd', is_flag=True)
 @click.option('--clean', is_flag=True)
 @click.option('--verbose', '-v', is_flag=True)
@@ -40,12 +44,22 @@ logger = logging.getLogger('astrosource')
 @click.option('--thresholdcounts', '-tc', type=int, default=1000000)
 @click.option('--hicounts', '-hc', type=int, default=1500000)
 @click.option('--lowcounts',  '-lc', type=int, default=1000)
+<<<<<<< HEAD
 @click.option('--starreject', '-sr', type=float, default=0.1)
 @click.option('--closerejectd', '-sr', type=float, default=5.0)
 @click.option('--nopanstarrs', '-np', is_flag=True)
 @click.option('--nosdss', '-ns', is_flag=True)
 @click.option('--skipvarsearch', '-sv', is_flag=True)
 def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts):
+=======
+@click.option('--starreject', '-sr', type=float, default=0.3)
+@click.option('--closerejectd', '-sr', type=float, default=5.0)
+@click.option('--nopanstarrs', '-np', is_flag=True)
+@click.option('--mincompstars', '-mc', type=float, default=0.1)
+@click.option('--nosdss', '-ns', is_flag=True)
+@click.option('--skipvarsearch', '-sv', is_flag=True)
+def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts):
+>>>>>>> 551fc4a552d85554822e5a37135ddb9304faea4f
 
     try:
         parentPath = Path(indir)
@@ -79,7 +93,8 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
                         nopanstarrs=nopanstarrs,
                         nosdss=nosdss,
                         closerejectd=closerejectd,
-                        verbose=verbose
+                        verbose=verbose,
+                        mincompstars=mincompstars
                         )
 
         if full or comparison:

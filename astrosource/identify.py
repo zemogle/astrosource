@@ -133,7 +133,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
         raise AstrosourceException("Check your images, the script detected multiple filters in your file list. Astrosource currently only does one filter at a time.")
     return phot_list, list(filters)[0]
 
-def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=7, minCompStars=1):
+def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=7):
     """
     Finds stars useful for photometry in each photometry/data file
 
@@ -167,7 +167,11 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
     """
     sys.stdout.write("🌟 Identify comparison stars for photometry calculations\n")
     #Initialisation values
+<<<<<<< HEAD
     usedImages=[]
+=======
+    
+>>>>>>> 551fc4a552d85554822e5a37135ddb9304faea4f
 
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
@@ -219,80 +223,127 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
     logger.debug("Number of stars post")
     logger.debug(referenceFrame.shape[0])
 
-    imgsize=imageFracReject * fileSizer # set threshold size
-    rejStartCounter = 0
-    imgReject = 0 # Number of images rejected due to high rejection rate
-    loFileReject = 0 # Number of images rejected due to too few stars in the photometry file
-    wcsFileReject=0
-    for file in fileList:
-        rejStartCounter = rejStartCounter +1
-        photFile = load(paths['parent'] / file)
-        logger.debug('Image Number: ' + str(rejStartCounter))
-        logger.debug(file)
-        logger.debug("Image threshold size: "+str(imgsize))
-        logger.debug("Image catalogue size: "+str(photFile.size))
-        if photFile.size > imgsize and photFile.size > 7:
-            phottmparr = asarray(photFile)
-            if (( phottmparr[:,0] > 360).sum() == 0) and ( phottmparr[0][0] != 'null') and ( phottmparr[0][0] != 0.0) :
-
-                # Checking existance of stars in all photometry files
-                rejectStars=[] # A list to hold what stars are to be rejected
-
-                # Find whether star in reference list is in this phot file, if not, reject star.
-                for j in range(referenceFrame.shape[0]):
-                    photRAandDec = SkyCoord(ra = photFile[:,0]*u.degree, dec = photFile[:,1]*u.degree)
-                    testStar = SkyCoord(ra = referenceFrame[j][0]*u.degree, dec = referenceFrame[j][1]*u.degree)
-                    # This is the function in the whole package which requires scipy
-                    idx, d2d, d3d = testStar.match_to_catalog_sky(photRAandDec)
-                    if (d2d.arcsecond > acceptDistance):
-                        #"No Match! Nothing within range."
-                        rejectStars.append(int(j))
-
-
-            # if the rejectstar list is not empty, remove the stars from the reference List
-            if rejectStars != []:
-
-                if not (((len(rejectStars) / referenceFrame.shape[0]) > starreject) and rejStartCounter > rejectStart):
-                    referenceFrame = delete(referenceFrame, rejectStars, axis=0)
-                    logger.debug('**********************')
-                    logger.debug('Stars Removed  : ' +str(len(rejectStars)))
-                    logger.debug('Remaining Stars: ' +str(referenceFrame.shape[0]))
-                    logger.debug('**********************')
-                    usedImages.append(file)
+    originalReferenceFrame=referenceFrame
+    originalfileList=fileList
+    compchecker=0
+    
+    mincompstars=int(referenceFrame.shape[0]*mincompstars) # Transform mincompstars variable from fraction of stars into number of stars.
+    if mincompstars < 10: # Always try to get at least ten comp candidates initially -- just because having a bunch is better than having 1.
+        mincompstars=10
+    ##### Looper function to automatically cycle through more restrictive values for imageFracReject and starreject
+    while (compchecker < mincompstars): # Keep going until you get the minimum number of Comp Stars
+        imgsize=imageFracReject * fileSizer # set threshold size
+        rejStartCounter = 0
+        usedImages=[] # Set up used images array
+        imgReject = 0 # Number of images rejected due to high rejection rate
+        loFileReject = 0 # Number of images rejected due to too few stars in the photometry file
+        wcsFileReject=0
+        for file in fileList:
+            if ( not referenceFrame.shape[0] < mincompstars):
+                rejStartCounter = rejStartCounter +1
+                photFile = load(paths['parent'] / file)
+                logger.debug('Image Number: ' + str(rejStartCounter))
+                logger.debug(file)
+                logger.debug("Image threshold size: "+str(imgsize))
+                logger.debug("Image catalogue size: "+str(photFile.size))
+                if photFile.size > imgsize and photFile.size > 7 :
+                    phottmparr = asarray(photFile)
+                    if (( phottmparr[:,0] > 360).sum() == 0) and ( phottmparr[0][0] != 'null') and ( phottmparr[0][0] != 0.0) :
+        
+                        # Checking existance of stars in all photometry files
+                        rejectStars=[] # A list to hold what stars are to be rejected
+        
+                        # Find whether star in reference list is in this phot file, if not, reject star.
+                        for j in range(referenceFrame.shape[0]):
+                            photRAandDec = SkyCoord(ra = photFile[:,0]*u.degree, dec = photFile[:,1]*u.degree)
+                            testStar = SkyCoord(ra = referenceFrame[j][0]*u.degree, dec = referenceFrame[j][1]*u.degree)
+                            # This is the function in the whole package which requires scipy
+                            idx, d2d, d3d = testStar.match_to_catalog_sky(photRAandDec)
+                            if (d2d.arcsecond > acceptDistance):
+                                #"No Match! Nothing within range."
+                                rejectStars.append(int(j))
+        
+        
+                    # if the rejectstar list is not empty, remove the stars from the reference List
+                    if rejectStars != []:
+        
+                        if not (((len(rejectStars) / referenceFrame.shape[0]) > starreject) and rejStartCounter > rejectStart):
+                            referenceFrame = delete(referenceFrame, rejectStars, axis=0)
+                            logger.debug('**********************')
+                            logger.debug('Stars Removed  : ' +str(len(rejectStars)))
+                            logger.debug('Remaining Stars: ' +str(referenceFrame.shape[0]))
+                            logger.debug('**********************')
+                            usedImages.append(file)
+                        else:
+                            logger.debug('**********************')
+                            logger.debug('Image Rejected due to too high a fraction of rejected stars')
+                            logger.debug(len(rejectStars) / referenceFrame.shape[0])
+                            logger.debug('**********************')
+                            imgReject=imgReject+1
+                            fileList.remove(file)
+                    else:
+                        logger.debug('**********************')
+                        logger.debug('All Stars Present')
+                        logger.debug('**********************')
+                        usedImages.append(file)
+        
+                    # If we have removed all stars, we have failed!
+                    if (referenceFrame.shape[0]==0):
+                        logger.error("Problem file - {}".format(file))
+                        logger.error("Running Loop again")
+                        #raise AstrosourceException("All Stars Removed. Try removing problematic files or raising --imgreject value")
+        
+                    # if (referenceFrame.shape[0]< mincompstars):
+                    #     logger.error("Problem file - {}".format(file))
+                    #     raise AstrosourceException("There are fewer than the requested number of Comp Stars. Try removing problematic files or raising --imgreject value")
+        
+                elif photFile.size < 7:
+                    logger.error('**********************')
+                    logger.error("WCS Coordinates broken")
+                    logger.error('**********************')
+                    wcsFileReject=wcsFileReject+1
+                    fileList.remove(file)
                 else:
-                    logger.debug('**********************')
-                    logger.debug('Image Rejected due to too high a fraction of rejected stars')
-                    logger.debug(len(rejectStars) / referenceFrame.shape[0])
-                    logger.debug('**********************')
-                    imgReject=imgReject+1
-            else:
-                logger.debug('**********************')
-                logger.debug('All Stars Present')
-                logger.debug('**********************')
-                usedImages.append(file)
-
-            # If we have removed all stars, we have failed!
-            if (referenceFrame.shape[0]==0):
-                logger.error("Problem file - {}".format(file))
-                raise AstrosourceException("All Stars Removed. Try removing problematic files or raising --imgreject value")
-
-            if (referenceFrame.shape[0]< minCompStars):
-                logger.error("Problem file - {}".format(file))
-                raise AstrosourceException("There are fewer than the requested number of Comp Stars. Try removing problematic files or raising --imgreject value")
-
-        elif photFile.size < 7:
-            logger.error('**********************')
-            logger.error("WCS Coordinates broken")
-            logger.error('**********************')
-            wcsFileReject=wcsFileReject+1
-        else:
-            logger.error('**********************')
-            logger.error("CONTAINS TOO FEW STARS")
-            logger.error('**********************')
-            loFileReject=loFileReject+1
-        sys.stdout.write('.')
-        sys.stdout.flush()
-
+                    logger.error('**********************')
+                    logger.error("CONTAINS TOO FEW STARS")
+                    logger.error('**********************')
+                    loFileReject=loFileReject+1
+                    fileList.remove(file)
+                sys.stdout.write('.')
+                sys.stdout.flush()
+            
+        # Raise values of imgreject and starreject for next attempt
+        starreject=starreject-0.025
+        imageFracReject=imageFracReject+0.05
+        compchecker = referenceFrame.shape[0]
+        if starreject < 0.15:
+            starreject=0.15
+        if imageFracReject > 0.8:
+            imageFracReject = 0.8
+            
+        if starreject == 0.05 and imageFracReject == 0.8 and mincompstars ==1:            
+            logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
+            logger.error("Failed to find any comparison candidates with the maximum restrictions. There is something terribly wrong!")
+            raise AstrosourceException("Unable to find sufficient comparison stars with the most stringent conditions in this dataset. Try reducing the --mincompstars value")
+        
+        if starreject == 0.05 and imageFracReject == 0.8 and mincompstars !=1:
+            logger.error("Maximum number of Candidate Comparison Stars found this cycle: " + str(compchecker))
+            logger.error("Failed to find sufficient comparison candidates with the maximum restrictions, trying with a lower value for mincompstars")
+            mincompstars=int(mincompstars*0.8)
+            if mincompstars < 1:
+                mincompstars =1
+            starreject=0.3
+            imageFracReject=0.05
+            referenceFrame=originalReferenceFrame
+            fileList=originalfileList
+        elif (compchecker < mincompstars):
+            logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
+            logger.error("Failed to find sufficient comparison candidates, adjusting starreject and imgreject and trying again.")
+            logger.error("Now trying starreject " +str(starreject) + " and imgreject " +str(imageFracReject))
+            referenceFrame=originalReferenceFrame
+  
+            
+            
     # Construct the output file containing candidate comparison stars
     outputComps=[]
     for j in range (referenceFrame.shape[0]):
@@ -350,4 +401,5 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
             f.write(str(filename) +"\n")
 
     sys.stdout.write('\n')
+
     return usedImages, outputComps
