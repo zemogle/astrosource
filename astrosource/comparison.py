@@ -96,7 +96,6 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
 
 
         compFile = delete(compFile, starRejecter, axis=0)
-        sortStars = delete(sortStars, starRejecter, axis=0)
         comparisons = delete(comparisons,starRejecter,axis=1)
         fileCount = delete(fileCount, starRejecter, axis=0)
 
@@ -241,7 +240,7 @@ def calculate_comparison_variation(comparisons, fileCount, numfiles):
         logger.debug("VAR: " +str(std(compDiffMags)))
         stdCompStar.append(std(compDiffMags))
         sortStars.append([comparisons[0][j][0], comparisons[0][j][1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-    return stdCompStar, sortStars
+    return stdCompStar, array(sortStars)
 
 def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, removeTargets):
     max_sep=acceptDistance * arcsecond
@@ -547,14 +546,9 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         tempDiff=[]
 
         for q in range(len(calibStands[:,0])):
-            if calibStands.size == 13 and calibStands.shape[0]== 13:
-                calibCoord=SkyCoord(ra=calibStand[0]*degree,dec=calibStand[1]*degree)
-                idx,d2d,d3d=calibCoord.match_to_catalog_sky(photCoords)
-                tempDiff.append(calibStand[3]-photFile[idx,4])
-            else:
-                calibCoord=SkyCoord(ra=calibStand[q][0]*degree,dec=calibStand[q][1]*degree)
-                idx,d2d,d3d=calibCoord.match_to_catalog_sky(photCoords)
-                tempDiff.append(calibStand[q,3]-photFile[idx,4])
+            calibCoord=SkyCoord(ra=calibStands[q][0]*degree,dec=calibStands[q][1]*degree)
+            idx,d2d,d3d=calibCoord.match_to_catalog_sky(photCoords)
+            tempDiff.append(calibStands[q,3] - photFile[idx,4])
 
         #logger.debug(tempDiff)
         tempZP= (median(tempDiff))
