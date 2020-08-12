@@ -117,47 +117,48 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
     sys.stdout.write('\n')
     logger.info('Statistical stability reached.')
     # Sort through and find the largest file and use that as the reference file
-    frameid = find_reference_frame(photFileArray)
-    outfile, num_comparisons = final_candidate_catalogue(parentPath, photFileArray, frameid, sortStars, thresholdCounts, variabilityMax)
+    outfile, num_comparisons = final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCounts, variabilityMax)
     return outfile, num_comparisons
 
-def final_candidate_catalogue(parentPath, photFileArray, frameid, sortStars, thresholdCounts, variabilityMax):
+def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCounts, variabilityMax):
 
-    referenceFrame = photFileArray[frameid]
     logger.info('List of stable comparison candidates output to stdComps.csv')
 
     savetxt(parentPath / "stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
 
+    # The following process selects the subset of the candidates that we will use (the least variable comparisons that hopefully get the request countrate)
+
+    # Sort through and find the largest file and use that as the reference file
+    referenceFrame, fileRaDec = find_reference_frame(photFileArray)
+
     # SORT THE COMP CANDIDATE FILE such that least variable comparison is first
-    sortorder=sortStars[:,2].argsort()
+    sortStars=(sortStars[sortStars[:,2].argsort()])
 
     # PICK COMPS UNTIL OVER THE THRESHOLD OF COUNTS OR VRAIABILITY ACCORDING TO REFERENCE IMAGE
     logger.debug("PICK COMPARISONS UNTIL OVER THE THRESHOLD ACCORDING TO REFERENCE IMAGE")
     compFile=[]
     tempCountCounter=0.0
     finalCountCounter=0.0
-    for j in sortorder:
-        # match each star to star in reference frame
+    for j in range(sortStars.shape[0]):
         matchCoord=SkyCoord(ra=sortStars[j][0]*degree, dec=sortStars[j][1]*degree)
         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
         tempCountCounter=add(tempCountCounter,referenceFrame[idx][4])
-        
-        if tempCountCounter < thresholdCounts:
-            if sortStars[j][2] < variabilityMax or sortStars.shape[0] == 1:
-                compFile.append([sortStars[j][0],sortStars[j][1],sortStars[j][2]])
-                logger.debug(f"Comp {j+1} std: {sortStars[j][2]}")
-                logger.debug(f"Cumulative Counts thus far: {tempCountCounter}")
-                finalCountCounter=add(finalCountCounter,referenceFrame[idx][4])
 
-        tempCountCounter=add(tempCountCounter,referenceFrame[idx][4])
+        if tempCountCounter < thresholdCounts:
+            if sortStars[j][2] < variabilityMax:
+                compFile.append([sortStars[j][0],sortStars[j][1],sortStars[j][2]])
+                logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[j][2]))
+                logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
+                finalCountCounter=add(finalCountCounter,referenceFrame[idx][4])
 
     logger.debug("Selected stars listed below:")
     logger.debug(compFile)
 
-    logger.info(f"Finale Ensemble Counts: {finalCountCounter}")
-    compFile = asarray(compFile)
+    logger.info("Finale Ensemble Counts: " + str(finalCountCounter))
+    compFile=asarray(compFile)
 
-    logger.info(f"{compFile.shape[0]} Stable Comparison Candidates below variability threshold output to compsUsed.csv")
+    logger.info(str(compFile.shape[0]) + " Stable Comparison Candidates below variability threshold output to compsUsed.csv")
+    #logger.info(compFile.shape[0])
 
     outfile = parentPath / "compsUsed.csv"
     savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
@@ -166,14 +167,15 @@ def final_candidate_catalogue(parentPath, photFileArray, frameid, sortStars, thr
 
 def find_reference_frame(photFileArray):
     fileSizer = 0
-    id = 0
     logger.info("Finding image with most stars detected")
-    for i, photFile in enumerate(photFileArray):
+    for photFile in photFileArray:
         if photFile.size > fileSizer:
-            id = i
+            referenceFrame = photFile
+            logger.debug(photFile.size)
             fileSizer = photFile.size
     logger.info("Setting up reference Frame")
-    return id
+    fileRaDec = SkyCoord(ra=referenceFrame[:,0]*degree, dec=referenceFrame[:,1]*degree)
+    return referenceFrame, fileRaDec
 
 def read_data_files(parentPath, fileList):
     # LOAD Phot FILES INTO LIST
