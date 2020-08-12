@@ -132,28 +132,21 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
 
     # SORT THE COMP CANDIDATE FILE such that least variable comparison is first
 
-    sortStars=(sortStars[sortStars[:,2].argsort()])
+    sortorder=sortStars[:,2].argsort()
+    if sortStars.size == 13 and sortStars.shape[0] == 1:
+        sortStars = [sortStars]
 
     # PICK COMPS UNTIL OVER THE THRESHOLD OF COUNTS OR VRAIABILITY ACCORDING TO REFERENCE IMAGE
     logger.debug("PICK COMPARISONS UNTIL OVER THE THRESHOLD ACCORDING TO REFERENCE IMAGE")
     compFile=[]
     tempCountCounter=0.0
     finalCountCounter=0.0
-    for j in range(sortStars.shape[0]):
-        if sortStars.size == 13 and sortStars.shape[0] == 1:
-            matchCoord=SkyCoord(ra=sortStars[0][0]*degree, dec=sortStars[0][1]*degree)
-        else:
-            matchCoord=SkyCoord(ra=sortStars[j][0]*degree, dec=sortStars[j][1]*degree)
+    for j in sortorder:
+        matchCoord=SkyCoord(ra=sortStars[j][0]*degree, dec=sortStars[j][1]*degree)
         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
 
         if tempCountCounter < thresholdCounts:
-            if sortStars.size == 13 and sortStars.shape[0] == 1:
-                compFile.append([sortStars[0][0],sortStars[0][1],sortStars[0][2]])
-                logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[0][2]))
-                logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
-                finalCountCounter=add(finalCountCounter,referenceFrame[idx][4])
-
-            elif sortStars[j][2] < variabilityMax:
+            if len(sortorder) == 1 or sortStars[j][2] < variabilityMax:
                 compFile.append([sortStars[j][0],sortStars[j][1],sortStars[j][2]])
                 logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[j][2]))
                 logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
