@@ -231,7 +231,39 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
 #########################################
 
 def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1.2, periodsteps=10000):
+    
+    if minperiod==-99.9:
+            minperiod=0.05
+    
+    if maxperiod==-99.9:
+        # Load in list of used files
+        fileList = []
+        with open(paths['parent'] / "usedImages.txt", "r") as f:
+            for line in f:
+                fileList.append(line.strip())
+        
+        dateList=[]
+        for file in fileList:
+            dateList.append(file.split('_')[2].replace('d','.'))
+        dateList=np.asarray(dateList,dtype=float)
+        maxperiod=(np.max(dateList)-np.min(dateList))/3 # At least three periods should fit into the dataset.
+    
+    if periodsteps == -99:
+        periodsteps=int(maxperiod/0.001)
+        if periodsteps < 10000:
+            periodsteps = 10000
+        
+        if periodsteps > 1000000:
+            periodsteps = 1000000
+    
+    
+    logger.info("Minimum Period Tested  : " +str(minperiod))
+    logger.info("Maximum Period Tested  : " +str(maxperiod))
+    logger.info("Number of Period Trials: " +str(periodsteps))
+        
 
+    
+    
     trialRange=[minperiod, maxperiod]
 
     # Get list of phot files
