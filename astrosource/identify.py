@@ -120,7 +120,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
         phot_list_temp = export_photometry_files(filelist, paths['parent'], bjd)
         #Convert phot_list from dict to list
         phot_list_temp = phot_list_temp.keys()
-        phot_list = []        
+        phot_list = []
         for key in phot_list_temp:
             phot_list.append(key) #SLAERT: convert dict to just the list of npy files.
 
@@ -167,7 +167,6 @@ def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDi
     """
     sys.stdout.write("🌟 Identify comparison stars for photometry calculations\n")
     #Initialisation values
-    
 
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
@@ -222,7 +221,7 @@ def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDi
     originalReferenceFrame=referenceFrame
     originalfileList=fileList
     compchecker=0
-    
+
     mincompstars=int(referenceFrame.shape[0]*mincompstars) # Transform mincompstars variable from fraction of stars into number of stars.
     if mincompstars < 10: # Always try to get at least ten comp candidates initially -- just because having a bunch is better than having 1.
         mincompstars=10
@@ -245,10 +244,10 @@ def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDi
                 if photFile.size > imgsize and photFile.size > 7 :
                     phottmparr = asarray(photFile)
                     if (( phottmparr[:,0] > 360).sum() == 0) and ( phottmparr[0][0] != 'null') and ( phottmparr[0][0] != 0.0) :
-        
+
                         # Checking existance of stars in all photometry files
                         rejectStars=[] # A list to hold what stars are to be rejected
-        
+
                         # Find whether star in reference list is in this phot file, if not, reject star.
                         for j in range(referenceFrame.shape[0]):
                             photRAandDec = SkyCoord(ra = photFile[:,0]*u.degree, dec = photFile[:,1]*u.degree)
@@ -258,11 +257,11 @@ def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDi
                             if (d2d.arcsecond > acceptDistance):
                                 #"No Match! Nothing within range."
                                 rejectStars.append(int(j))
-        
-        
+
+
                     # if the rejectstar list is not empty, remove the stars from the reference List
                     if rejectStars != []:
-        
+
                         if not (((len(rejectStars) / referenceFrame.shape[0]) > starreject) and rejStartCounter > rejectStart):
                             referenceFrame = delete(referenceFrame, rejectStars, axis=0)
                             logger.debug('**********************')
@@ -282,17 +281,17 @@ def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDi
                         logger.debug('All Stars Present')
                         logger.debug('**********************')
                         usedImages.append(file)
-        
+
                     # If we have removed all stars, we have failed!
                     if (referenceFrame.shape[0]==0):
                         logger.error("Problem file - {}".format(file))
                         logger.error("Running Loop again")
                         #raise AstrosourceException("All Stars Removed. Try removing problematic files or raising --imgreject value")
-        
+
                     # if (referenceFrame.shape[0]< mincompstars):
                     #     logger.error("Problem file - {}".format(file))
                     #     raise AstrosourceException("There are fewer than the requested number of Comp Stars. Try removing problematic files or raising --imgreject value")
-        
+
                 elif photFile.size < 7:
                     logger.error('**********************')
                     logger.error("WCS Coordinates broken")
@@ -307,7 +306,7 @@ def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDi
                     fileList.remove(file)
                 sys.stdout.write('.')
                 sys.stdout.flush()
-            
+
         # Raise values of imgreject and starreject for next attempt
         starreject=starreject-0.025
         imageFracReject=imageFracReject+0.05
@@ -316,12 +315,12 @@ def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDi
             starreject=0.15
         if imageFracReject > 0.8:
             imageFracReject = 0.8
-            
-        if starreject == 0.05 and imageFracReject == 0.8 and mincompstars ==1:            
+
+        if starreject == 0.05 and imageFracReject == 0.8 and mincompstars ==1:
             logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
             logger.error("Failed to find any comparison candidates with the maximum restrictions. There is something terribly wrong!")
             raise AstrosourceException("Unable to find sufficient comparison stars with the most stringent conditions in this dataset. Try reducing the --mincompstars value")
-        
+
         if starreject == 0.05 and imageFracReject == 0.8 and mincompstars !=1:
             logger.error("Maximum number of Candidate Comparison Stars found this cycle: " + str(compchecker))
             logger.error("Failed to find sufficient comparison candidates with the maximum restrictions, trying with a lower value for mincompstars")
@@ -337,9 +336,9 @@ def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDi
             logger.error("Failed to find sufficient comparison candidates, adjusting starreject and imgreject and trying again.")
             logger.error("Now trying starreject " +str(starreject) + " and imgreject " +str(imageFracReject))
             referenceFrame=originalReferenceFrame
-  
-            
-            
+
+
+
     # Construct the output file containing candidate comparison stars
     outputComps=[]
     for j in range (referenceFrame.shape[0]):
