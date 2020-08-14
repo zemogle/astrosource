@@ -234,8 +234,6 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
 
     logger.debug("Number of stars post")
     logger.debug(referenceFrame.shape[0])
-    originalFrame = []
-    originalFrame[:] = referenceFrame
 
     imgsize=imageFracReject * fileSizer # set threshold size
     imgReject = 0 # Number of images rejected due to high rejection rate
@@ -249,8 +247,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
         logger.debug(f"Image threshold size: {imgsize}")
         logger.debug(f"Image catalogue size: {photFile.size}")
         if photFile.size > imgsize and photFile.size > 7:
-            phottmparr = asarray(photFile)
-            if (( phottmparr[:,0] > 360).sum() == 0) and ( phottmparr[0][0] != 'null') and ( phottmparr[0][0] != 0.0) :
+            if (( photFile[:,0] > 360).sum() == 0) and ( photFile[0][0] != 'null') and ( photFile[0][0] != 0.0) :
 
                 # Checking existence of stars in all photometry files
                 tmpmask = []
@@ -258,9 +255,9 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
                  # Find whether star in reference list is in this phot file, if not, reject star.
                 img_catalogue = []
                 rejectStars = 0 # A list to hold what stars are to be rejected
-
+                logger.debug(f'No. potential comparisons {sum(mask)}')
                 for j, rf in enumerate(referenceFrame):
-                    if not mask[j]:
+                    if not mask[j] and fileid > rejectStart:
                         img_catalogue.append(zeros(8))
                         continue
                     photRAandDec = SkyCoord(ra = photFile[:,0]*u.degree, dec = photFile[:,1]*u.degree)
@@ -276,12 +273,12 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
                         tmpmask[j] = True
 
             # if the rejectstar list is not empty, remove the stars from the reference List
-            if rejectStars!=[]:
-
-                if not (((rejectStars / referenceFrame.shape[0]) > starreject) and fileid > rejectStart):
+            if rejectStars > 0:
+                rejectfrac = rejectStars / sum(mask)
+                if not (rejectfrac > starreject and fileid > rejectStart):
                     logger.debug('**********************')
                     logger.debug(f'Stars Removed  : {rejectStars}')
-                    logger.debug(f'Remaining Stars: {referenceFrame.shape[0]}')
+                    logger.debug(f'Remaining Stars: {sum(mask)}')
                     logger.debug('**********************')
                     mask[:] = tmpmask
                     usedImages.append(fileList[fileid-1])
@@ -289,7 +286,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
                 else:
                     logger.debug('**********************')
                     logger.debug('Image Rejected due to too high a fraction of rejected stars')
-                    logger.debug(rejectStars / referenceFrame.shape[0])
+                    logger.debug(rejectfrac)
                     logger.debug('**********************')
                     imgReject += 1
             else:
@@ -301,7 +298,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
                 comparisons.append(asarray(img_catalogue))
 
             # If we have removed all stars, we have failed!
-            if (referenceFrame.shape[0]==0):
+            if (sum(mask) == 0):
                 logger.error("Problem file - {}".format(fileList[fileid-1]))
                 raise AstrosourceException("All Stars Removed. Try removing problematic files or raising --imgreject value")
 
