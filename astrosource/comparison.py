@@ -72,8 +72,6 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
 
         variabilityMax=(min(stdCompStar)*variabilityMultiplier)
 
-    
-
         # Calculate and present the sample statistics
         stdCompMed=median(stdCompStar)
         stdCompStd=std(stdCompStar)
@@ -123,6 +121,7 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
 
     sys.stdout.write('\n')
     logger.info('Statistical stability reached.')
+    
     outfile, num_comparisons = final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCounts, variabilityMax)
     return outfile, num_comparisons
 
@@ -268,7 +267,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
                 logger.error("Star Variability non rejected")
                 stdCompDiffMags=99
             stdCompStar.append(stdCompDiffMags)
-            sortStars.append([compFile[0],compFile[1],stdCompDiffMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+            sortStars.append([cf[0],cf[1],stdCompDiffMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
 
     return stdCompStar, sortStars
@@ -289,27 +288,6 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
           if isnan(targetFile[z][0]):
             targetRejecter.append(z)
         targetFile=delete(targetFile, targetRejecter, axis=0)
-
-    # Remove targets from consideration
-    # if targetFile.shape[0] == 4 and targetFile.size ==4:
-    #     loopLength=1
-    # else:
-    #     loopLength=targetFile.shape[0]
-    # targetRejects=[]
-    # tg_file_len = len(targetFile)
-    # for tf in targetFile:
-    #     if tg_file_len == 4 and targetFile.size==4:
-    #         varCoord = SkyCoord(targetFile[0],(targetFile[1]), frame='icrs', unit=degree)
-    #     else:
-    #         varCoord = SkyCoord(tf[0],(tf[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
-    #     idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
-    #     if d2d.arcsecond < acceptDistance:
-    #         targetRejects.append(idx)
-    #     if tg_file_len == 4 and targetFile.size==4:
-    #         break
-    # compFile=delete(compFile, idx, axis=0)
-    # fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
-
 
     # Get Average RA and Dec from file
     if compFile.shape[0] == 2 and compFile.size == 2:
