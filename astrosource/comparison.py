@@ -238,10 +238,16 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
             matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
             compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
-        logger.debug("VAR: " +str(std(compDiffMags)))
-        if std(compDiffMags) != np.nan:
-            stdCompStar.append(std(compDiffMags))
-            sortStars.append([compFile[0],compFile[1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+        
+        stdCompDiffMags=std(compDiffMags)
+        logger.debug("VAR: " +str(stdCompDiffMags))
+        if np.isnan(stdCompDiffMags) :
+            logger.error("Star Variability non rejected")
+            stdCompDiffMags=99
+        stdCompStar.append(stdCompDiffMags)
+        sortStars.append([compFile[0],compFile[1],stdCompDiffMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+
+            
 
     else:
         for cf in compFile:
@@ -255,10 +261,15 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
                 idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
                 compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
 
-            logger.debug("VAR: " +str(std(compDiffMags)))
-            if std(compDiffMags) != np.nan:
-                stdCompStar.append(std(compDiffMags))
-                sortStars.append([cf[0],cf[1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+            stdCompDiffMags=std(compDiffMags)
+            logger.debug("VAR: " +str(stdCompDiffMags))
+            
+            if np.isnan(stdCompDiffMags) :
+                logger.error("Star Variability non rejected")
+                stdCompDiffMags=99
+            stdCompStar.append(stdCompDiffMags)
+            sortStars.append([compFile[0],compFile[1],stdCompDiffMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+
 
     return stdCompStar, sortStars
 
