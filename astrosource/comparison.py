@@ -72,7 +72,7 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
 
         variabilityMax=(min(stdCompStar)*variabilityMultiplier)
 
-
+    
 
         # Calculate and present the sample statistics
         stdCompMed=median(stdCompStar)
@@ -239,8 +239,9 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
             compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
         logger.debug("VAR: " +str(std(compDiffMags)))
-        stdCompStar.append(std(compDiffMags))
-        sortStars.append([compFile[0],compFile[1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+        if std(compDiffMags) != np.nan:
+            stdCompStar.append(std(compDiffMags))
+            sortStars.append([compFile[0],compFile[1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
     else:
         for cf in compFile:
@@ -255,8 +256,9 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
                 compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
 
             logger.debug("VAR: " +str(std(compDiffMags)))
-            stdCompStar.append(std(compDiffMags))
-            sortStars.append([cf[0],cf[1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+            if std(compDiffMags) != np.nan:
+                stdCompStar.append(std(compDiffMags))
+                sortStars.append([cf[0],cf[1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
     return stdCompStar, sortStars
 
