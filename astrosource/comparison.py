@@ -22,7 +22,7 @@ import logging
 logger = logging.getLogger('astrosource')
 
 
-def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5, thresholdCounts=10000000, variabilityMultiplier=2.5, removeTargets=True, acceptDistance=1.0):
+def find_comparisons(targets, parentPath=None, fileList=None, photlist=[], stdMultiplier=2.5, thresholdCounts=10000000, variabilityMultiplier=2.5, removeTargets=True, acceptDistance=1.0):
     '''
     Find stable comparison stars for the target photometry
 
@@ -54,9 +54,7 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
     if type(parentPath) == 'str':
         parentPath = Path(parentPath)
 
-    compFile, photFileArray = read_data_files(parentPath, fileList)
-
-    compFile = remove_stars_targets(parentPath, compFile, acceptDistance, targets, removeTargets)
+    compFile = remove_stars_targets(parentPath, acceptDistance, targets, removeTargets)
 
     # Add up all of the counts of all of the comparison stars
     # To create a gigantic comparison star.
@@ -164,33 +162,7 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
 
     outfile = parentPath / "compsUsed.csv"
     savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
-    logger.critical(compFile)
-    sys.exit()
     return outfile, compFile.shape[0]
-
-def find_reference_frame(photFileArray):
-    fileSizer = 0
-    logger.info("Finding image with most stars detected")
-    for photFile in photFileArray:
-        if photFile.size > fileSizer:
-            referenceFrame = photFile
-            logger.debug(photFile.size)
-            fileSizer = photFile.size
-    logger.info("Setting up reference Frame")
-    fileRaDec = SkyCoord(ra=referenceFrame[:,0]*degree, dec=referenceFrame[:,1]*degree)
-    return referenceFrame, fileRaDec
-
-def read_data_files(parentPath, fileList):
-    # LOAD Phot FILES INTO LIST
-    photFileArray = []
-    for file in fileList:
-        photFileArray.append(load(parentPath / file))
-    photFileArray = asarray(photFileArray)
-
-    #Grab the candidate comparison stars
-    screened_file = parentPath / "screenedComps.csv"
-    compFile = genfromtxt(screened_file, dtype=float, delimiter=',')
-    return compFile, photFileArray
 
 def ensemble_comparisons(photFileArray, compFile):
     """
@@ -235,9 +207,12 @@ def calculate_comparison_variation(comparisons, fileCount, numfiles):
         sortStars.append([comparisons[0][j][0], comparisons[0][j][1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
     return stdCompStar, array(sortStars)
 
-def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, removeTargets):
+def remove_stars_targets(parentPath, acceptDistance, targetFile, removeTargets):
     max_sep=acceptDistance * arcsecond
-    logger.info("Removing Target Stars from potential Comparisons")
+    logger.info("Removing Variable Stars from potential Comparisons")
+
+    screened_file = parentPath / "screenedComps.csv"
+    compFile = genfromtxt(screened_file, dtype=float, delimiter=',')
 
     if not (compFile.shape[0] == 2 and compFile.size ==2):
         fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
@@ -285,7 +260,13 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
             idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
         elif not (raCat.shape[0] == 1 and raCat.size == 1): ### this is effictively the same as below
             catCoords=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-            idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
+            try:
+                idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
+            except ValueError as e:
+                logger.critical(e)
+                logger.critical(compCoord)
+                logger.critical(catCoords)
+                sys.exit()
         else:
             if abs(compFile[0]-raCat[0]) > 0.0014 and abs(compFile[1]-decCat[0]) > 0.0014:
                 d2dcomp = 9999
