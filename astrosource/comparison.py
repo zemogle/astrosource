@@ -302,7 +302,23 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
 
 
     # Check VSX for any known variable stars and remove them from the list
-    variableResult=Vizier.query_region(avgCoord, '0.33 deg', catalog='VSX')['B/vsx/vsx']
+    try:
+        v=Vizier(columns=['all']) # Skymapper by default does not report the error columns
+        v.ROW_LIMIT=-1
+        variableResult=v.query_region(avgCoord, '0.33 deg', catalog='VSX')['B/vsx/vsx']
+    except ConnectionError:
+        connected=False
+        logger.info("Connection failed, waiting and trying again")
+        while connected==False:
+            try:
+                v=Vizier(columns=['all']) # Skymapper by default does not report the error columns
+                v.ROW_LIMIT=-1
+                variableResult=v.query_region(avgCoord, '0.33 deg', catalog='VSX')['B/vsx/vsx']
+                connected=True
+            except ConnectionError:
+                time.sleep(10)
+                logger.info("Failed again.")
+                connected=False
 
     logger.debug(variableResult)
 
@@ -372,6 +388,19 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
         query = v.query_region(avgCoord, **kwargs)
     except VOSError:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
+    except ConnectionError:
+        connected=False
+        logger.info("Connection failed, waiting and trying again")
+        while connected==False:
+            try:
+                v=Vizier(columns=['all']) # Skymapper by default does not report the error columns
+                v.ROW_LIMIT=-1
+                query = v.query_region(avgCoord, **kwargs)
+                connected=True
+            except ConnectionError:
+                time.sleep(10)
+                logger.info("Failed again.")
+                connected=False
 
     if query.keys():
         resp = query[tbname]
