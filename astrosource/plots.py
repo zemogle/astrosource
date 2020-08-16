@@ -1,4 +1,4 @@
-from numpy import genfromtxt, savetxt, asarray, average, isnan, delete, min, max
+from numpy import genfromtxt, savetxt, asarray, average, isnan, delete, min, max, median
 from astropy.coordinates import SkyCoord
 from pathlib import Path
 import matplotlib
@@ -26,6 +26,20 @@ def output_files(paths, photometrydata, mode='diff'):
 
         savetxt(paths['outcatPath'] / f'V{r}_{mode}Peranso.txt', outputPeransoCalib, delimiter=" ", fmt='%0.8f')
         savetxt(paths['outcatPath'] / f'V{r}_{mode}Excel.csv', outputPeransoCalib, delimiter=",", fmt='%0.8f')
+
+        #output for EXOTIC modelling
+        outputEXOTICCalib = [x for x in zip(outputPhot[:,6],outputPhot[:,10],outputPhot[:,11],outputPhot[:,7])]
+
+       
+        outputEXOTICCalib=asarray(outputEXOTICCalib)
+        exoMedian=median(outputEXOTICCalib[:,1])
+        #outputEXOTICCalib[:,1]=(outputEXOTICCalib[:,1]-numpy.median(outputEXOTICCalib[:,1]))
+        for q in range (outputEXOTICCalib.shape[0]):
+            #print (PhotFile[q][0])
+            outputEXOTICCalib[q][1]=(1-pow(10,((outputEXOTICCalib[q][1]-exoMedian)/2.5)))+1
+            outputEXOTICCalib[q][2]=(outputEXOTICCalib[q][2]/1.0857)*outputEXOTICCalib[q][1]
+
+        savetxt(paths['outcatPath'] / f'V{r}_{mode}EXOTIC.csv', outputEXOTICCalib, delimiter=",", fmt='%0.8f')
 
         # Output Differential astroImageJ file
         outputaijCalib = [x for x in zip(outputPhot[:,6]-2450000.0,outputPhot[:,10],outputPhot[:,11])]
