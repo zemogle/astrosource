@@ -72,8 +72,6 @@ def find_comparisons(targets, parentPath=None, fileList=None, photlist=[], stdMu
         stdCompStar, sortStars = calculate_comparison_variation(comparisons, fileCount)
 
         variabilityMax=(min(stdCompStar)*variabilityMultiplier)
-        logger.critical(stdCompStar)
-        logger.critical(variabilityMax)
 
         # Calculate and present the sample statistics
         stdCompMed = median(stdCompStar)
@@ -117,8 +115,8 @@ def find_comparisons(targets, parentPath=None, fileList=None, photlist=[], stdMu
     sys.stdout.write('\n')
     logger.info('Statistical stability reached.')
     # Sort through and find the largest file and use that as the reference file
-    outfile, num_comparisons = final_candidate_catalogue(parentPath, comparisons, sortStars, thresholdCounts, variabilityMax)
-    return outfile, num_comparisons
+    final_comparisons = final_candidate_catalogue(parentPath, comparisons, sortStars, thresholdCounts, variabilityMax)
+    return comparisons[:,final_comparisons,:]
 
 def final_candidate_catalogue(parentPath, comparisons, sortStars, thresholdCounts, variabilityMax):
 
@@ -129,7 +127,6 @@ def final_candidate_catalogue(parentPath, comparisons, sortStars, thresholdCount
     # The following process selects the subset of the candidates that we will use (the least variable comparisons that hopefully get the request countrate)
 
     referenceFrame = comparisons[0]
-    fileRaDec = SkyCoord(ra=referenceFrame[:,0]*degree, dec=referenceFrame[:,1]*degree, frame='icrs', unit=degree)
 
     # SORT THE COMP CANDIDATE FILE such that least variable comparison is first
 
@@ -140,34 +137,31 @@ def final_candidate_catalogue(parentPath, comparisons, sortStars, thresholdCount
 
     # PICK COMPS UNTIL OVER THE THRESHOLD OF COUNTS OR VARIABILITY ACCORDING TO REFERENCE IMAGE
     logger.debug("PICK COMPARISONS UNTIL OVER THE THRESHOLD ACCORDING TO REFERENCE IMAGE")
-    compFile=[]
+    selected_comps=[]
     tempCountCounter=0.0
     finalCountCounter=0.0
     for j in sortorder:
-        matchCoord=SkyCoord(ra=sortStars[j][0]*degree, dec=sortStars[j][1]*degree)
-        idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-        logger.info(f"{sortStars[j][2]} {variabilityMax}")
+
         if tempCountCounter < thresholdCounts:
             if len(sortorder) == 1 or sortStars[j][2] < variabilityMax:
-                compFile.append([sortStars[j][0],sortStars[j][1],sortStars[j][2]])
-                logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[j][2]))
-                logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
-                finalCountCounter=add(finalCountCounter,referenceFrame[idx][4])
-                logger.info(f"{idx} {j}")
+                selected_comps.append(j)
+                logger.debug(f"Comp {j+1} std: {sortStars[j][2]}")
+                logger.debug(f"Cumulative Counts thus far: {tempCountCounter}")
+                finalCountCounter=add(finalCountCounter,referenceFrame[j][4])
 
-        tempCountCounter=add(tempCountCounter,referenceFrame[idx][4])
+        tempCountCounter=add(tempCountCounter,referenceFrame[j][4])
 
+    compsused = asarray(comparisons[0][selected_comps][:,[0,1]])
     logger.debug("Selected stars listed below:")
-    logger.debug(compFile)
+    logger.debug(compsused)
 
-    logger.info("Finale Ensemble Counts: " + str(finalCountCounter))
-    compFile=asarray(compFile)
+    logger.info(f"Finale Ensemble Counts: {finalCountCounter}")
 
-    logger.info(str(compFile.shape[0]) + " Stable Comparison Candidates below variability threshold output to compsUsed.csv")
+    logger.info(f"{len(selected_comps)} Stable Comparison Candidates below variability threshold output to compsUsed.csv")
 
     outfile = parentPath / "compsUsed.csv"
-    savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
-    return outfile, compFile.shape[0]
+    savetxt(outfile, compsused, delimiter=",", fmt='%0.8f')
+    return selected_comps
 
 def calculate_comparison_variation(comparisons, fileCount):
     stdCompStar=[]
@@ -182,11 +176,9 @@ def calculate_comparison_variation(comparisons, fileCount):
         for q, count in enumerate(fileCount):
             calc = 2.5 * log10(comparisons[q][j][4]/count)
             compDiffMags = append(compDiffMags,calc)
-            logger.critical(comparisons[q][j])
-            logger.critical(count)
 
         logger.debug("VAR: " +str(std(compDiffMags)))
-        if std(compDiffMags) == np.nan:
+        if np.isnan(std(compDiffMags)):
             sys.exit()
         stdCompStar.append(std(compDiffMags))
         sortStars.append([comparisons[0][j][0], comparisons[0][j][1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
@@ -388,7 +380,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, nopanstarr
     logger.debug("Filter Set: " + filterCode)
 
     # Load compsused
-    compFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
+    # compFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
+    compFile = photlist[0]
     logger.debug(compFile.shape[0])
 
     if compFile.shape[0] == 13 and compFile.size == 13:
@@ -407,7 +400,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, nopanstarr
         raise AstrosourceException(f"{filterCode} is not accepted at present")
 
     # Look up in online catalogues
-
     coords=[]
     for cat_name, opt in catalogues.items():
         try:
@@ -472,7 +464,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, nopanstarr
 
     savetxt(parentPath / "calibStands.csv", calibStands , delimiter=",", fmt='%0.8f')
     # Lets use this set to calibrate each datafile and pull out the calibrated compsused magnitudes
-
     calibCompUsed=[]
 
     logger.debug("CALIBRATING EACH FILE")
@@ -510,21 +501,15 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, nopanstarr
         #Save the calibrated photfiles to the calib directory
         savetxt(calibPath / "{}.calibrated.{}".format(file.stem, file.suffix), photFile, delimiter=",", fmt='%0.8f')
 
-
-
         #Look within photfile for ACTUAL usedcomps.csv and pull them out
         lineCompUsed=[]
-        if compUsedFile.shape[0] ==3 and compUsedFile.size == 3:
+        if photlist.shape[0] ==3 and photlist.size == 3:
             lenloop=1
         else:
-            lenloop=len(compUsedFile[:,0])
-        #logger.debug(compUsedFile.size)
+            lenloop=len(photlist[:,0])
+        #logger.debug(photlist.size)
         for r in range(lenloop):
-            if compUsedFile.shape[0] ==3 and compUsedFile.size ==3:
-                compUsedCoord=SkyCoord(ra=compUsedFile[0]*degree,dec=compUsedFile[1]*degree)
-            else:
-
-                compUsedCoord=SkyCoord(ra=compUsedFile[r][0]*degree,dec=compUsedFile[r][1]*degree)
+            compUsedCoord=SkyCoord(ra=photlist[r][0]*degree,dec=photlist[r][1]*degree)
             idx,d2d,d3d=compUsedCoord.match_to_catalog_sky(photCoords)
             lineCompUsed.append(photFile[idx,4])
 
@@ -547,10 +532,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, nopanstarr
         #Calculate magnitude and stdev
         sumStd.append(std(calibCompUsed[:,r]))
 
-        if compUsedFile.shape[0] ==3  and compUsedFile.size ==3:
-            finalCompUsedFile.append([compUsedFile[0],compUsedFile[1],compUsedFile[2],median(calibCompUsed[:,r]),asarray(calibStands[0])[4]])
-        else:
-            finalCompUsedFile.append([compUsedFile[r][0],compUsedFile[r][1],compUsedFile[r][2],median(calibCompUsed[:,r]),std(calibCompUsed[:,r])])
+        finalCompUsedFile.append([photlist[r][0],photlist[r][1],photlist[r][4],median(calibCompUsed[:,r]),std(calibCompUsed[:,r])])
 
     #logger.debug(finalCompUsedFile)
     logger.debug(" ")

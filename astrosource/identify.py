@@ -143,19 +143,18 @@ def read_data_files(parentPath, fileList):
             logger.debug("REJECT")
             logger.debug(file)
             fileList.remove(file)
-        elif (( asarray(photFile[:,0]) > 360).sum() > 0) :
+        elif (( photFile[:,0] > 360).sum() > 0) :
             logger.debug("REJECT")
             logger.debug(file)
             fileList.remove(file)
-        elif (( asarray(photFile[:,1]) > 90).sum() > 0) :
+        elif (( photFile[:,1] > 90).sum() > 0) :
             logger.debug("REJECT")
             logger.debug(file)
             fileList.remove(file)
         else:
-            photFileArray.append(load(parentPath / file))
-    photFileArray = asarray(photFileArray)
+            photFileArray.append(photFile)
 
-    return photFileArray, fileList
+    return asarray(photFileArray), fileList
 
 def find_reference_frame(photFileArray):
     fileSizer = 0
@@ -168,7 +167,32 @@ def find_reference_frame(photFileArray):
             fileSizer = photFile.size
     return referenceFrame, rfid
 
-def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=7, minCompStars=1):
+def match_ref_to_potentials(referenceFrame, photFile, mask, tmpmask, rejectStart, acceptDistance, fileid):
+     # Find whether star in reference list is in this phot file, if not, reject star.
+    img_catalogue = []
+    rejectStars = 0 # A list to hold what stars are to be rejected
+    photRAandDec = SkyCoord(ra = photFile[:,0]*u.degree, dec = photFile[:,1]*u.degree)
+    for j, rf in enumerate(referenceFrame):
+        if not mask[j]:
+            # Skip stars in mask
+            img_catalogue.append(zeros(8))
+            continue
+
+        testStar = SkyCoord(ra = rf[0]*u.degree, dec = rf[1]*u.degree)
+        idx, d2d, d3d = testStar.match_to_catalog_sky(photRAandDec)
+        if (d2d.arcsecond > acceptDistance):
+            #"No Match! Nothing within range."
+            rejectStars += 1
+            img_catalogue.append(zeros(8))
+            tmpmask[j] = False
+
+        else:
+            img_catalogue.append(asarray(photFile[idx]))
+            tmpmask[j] = True
+
+    return img_catalogue, tmpmask, rejectStars
+
+def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lowcounts=1000, hicounts=3000000, imageFracReject=0.0,  rejectStart=7, minCompStars=1):
     """
     Finds stars useful for photometry in each photometry/data file
 
@@ -222,8 +246,8 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
     logger.debug("Setting up reference Frame")
 
     logger.debug("Removing stars with low or high counts")
-    rejectStars=[]
     # Check star has adequate counts
+    rejectStars = []
     for j in range(referenceFrame.shape[0]):
         if ( referenceFrame[j][4] < lowcounts or referenceFrame[j][4] > hicounts ):
             rejectStars.append(int(j))
@@ -247,31 +271,12 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
         logger.debug(f"Image threshold size: {imgsize}")
         logger.debug(f"Image catalogue size: {photFile.size}")
         if photFile.size > imgsize and photFile.size > 7:
-            if (( photFile[:,0] > 360).sum() == 0) and ( photFile[0][0] != 'null') and ( photFile[0][0] != 0.0) :
-
+            if (photFile[:,0] > 360).sum() == 0 and ( photFile[0][0] != 'null') and ( photFile[0][0] != 0.0) :
                 # Checking existence of stars in all photometry files
                 tmpmask = []
                 tmpmask[:] = mask
-                 # Find whether star in reference list is in this phot file, if not, reject star.
-                img_catalogue = []
-                rejectStars = 0 # A list to hold what stars are to be rejected
                 logger.debug(f'No. potential comparisons {sum(mask)}')
-                for j, rf in enumerate(referenceFrame):
-                    if not mask[j] and fileid > rejectStart:
-                        img_catalogue.append(zeros(8))
-                        continue
-                    photRAandDec = SkyCoord(ra = photFile[:,0]*u.degree, dec = photFile[:,1]*u.degree)
-                    testStar = SkyCoord(ra = rf[0]*u.degree, dec = rf[1]*u.degree)
-                    idx, d2d, d3d = testStar.match_to_catalog_sky(photRAandDec)
-                    if (d2d.arcsecond > acceptDistance):
-                        #"No Match! Nothing within range."
-                        rejectStars += 1
-                        img_catalogue.append(zeros(8))
-                        tmpmask[j] = False
-                    else:
-                        img_catalogue.append(asarray(photFile[idx]))
-                        tmpmask[j] = True
-
+                img_catalogue, tmpmask, rejectStars = match_ref_to_potentials(referenceFrame, photFile, mask, tmpmask, rejectStart, acceptDistance, fileid)
             # if the rejectstar list is not empty, remove the stars from the reference List
             if rejectStars > 0:
                 rejectfrac = rejectStars / sum(mask)
@@ -279,7 +284,6 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
                     logger.debug('**********************')
                     logger.debug(f'Stars Removed  : {rejectStars}')
                     logger.debug(f'Remaining Stars: {sum(mask)}')
-                    logger.debug('**********************')
                     mask[:] = tmpmask
                     usedImages.append(fileList[fileid-1])
                     comparisons.append(asarray(img_catalogue))
@@ -287,13 +291,9 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
                     logger.debug('**********************')
                     logger.debug('Image Rejected due to too high a fraction of rejected stars')
                     logger.debug(rejectfrac)
-                    logger.debug('**********************')
                     imgReject += 1
             else:
-                logger.debug('**********************')
-                logger.debug('All Stars Present')
-                logger.debug('**********************')
-                mask[:] = tmpmask
+                logger.debug('**** All Stars Present ****')
                 usedImages.append(fileList[fileid-1])
                 comparisons.append(asarray(img_catalogue))
 
@@ -323,7 +323,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
     if targets.shape == (4,):
         targets = [targets]
 
-    flag = True
+    flag = False
     while not flag:
         fileRaDec=SkyCoord(ra=referenceFrame[:,0]*u.degree,dec=referenceFrame[:,1]*u.degree)
 
@@ -333,7 +333,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
             idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
             if d2d.arcsecond < 5.0: # anything within 5 arcseconds of the target
                 if not mask[idx]:
-                    flag = False
+                    flag = True
                     break
                 else:
                     mask[idx] = False
@@ -368,4 +368,4 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
             f.write(str(filename) +"\n")
 
     sys.stdout.write('\n')
-    return usedImages, comparisons
+    return usedImages, asarray(comparisons)
