@@ -7,7 +7,7 @@ tags:
   - photometry
   - periodicity
 authors:
-  - name: Michael T Fitzgerald^[mfitzasp@gmail.com]
+  - name: Michael T Fitzgerald^[Corresponding author]
     orcid: 0000-0001-6554-1826
     affiliation: 1 # 
   - name: Edward Gomez
