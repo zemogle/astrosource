@@ -479,9 +479,9 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 'ip' : {'SDSS' : {'filter' : 'imag', 'error' : 'e_imag'},
                         'SkyMapper' : {'filter' : 'iPSF', 'error' : 'e_iPSF'},
                         'PanSTARRS': {'filter' : 'imag', 'error' : 'e_imag'}},
-                'zs' : {'SDSS' : {'filter' : 'zmag', 'error' : 'e_zmag'},
+                'zs' : {'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag'},
                         'SkyMapper' : {'filter' : 'zPSF', 'error' : 'e_zPSF'},
-                        'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag'}},
+                        'SDSS' : {'filter' : 'zmag', 'error' : 'e_zmag'}},
                 }
 
 
