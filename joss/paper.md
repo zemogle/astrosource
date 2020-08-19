@@ -35,7 +35,7 @@ Variable star photometry is often promoted as a key research area where non-prof
 
 There have been many claims over the last few decades that access to remote and robotic observatories
 would be a game-changer in allowing potential contributions to astronomical research by those without
-formal postgraduate training (e.g. [@gomez2017robotic; @fitzgerald2014review]). Whilst access to, and use,
+formal postgraduate training (e.g. @gomez2017robotic; @fitzgerald2014review). Whilst access to, and use,
 of such telescopes to gather observations has become sufficiently streamlined and accessible, especially
 over the last five years, the data - once collected - still needs to be analysed.
 
