@@ -7,9 +7,9 @@ tags:
   - photometry
   - periodicity
 authors:
-  - name: Michael T Fitzgerald^[Custom footnotes for e.g. denoting who the corresponding author is can be included like this.]
+  - name: Michael T Fitzgerald^[corresponding author: mfitzasp@gmail.com]
     orcid: 0000-0001-6554-1826
-    affiliation: "1, 2" # (Multiple affiliations must be quoted)
+    affiliation: 1 # 
   - name: Edward Gomez
     orcid: 0000-0001-5749-1507
     affiliation: 2
@@ -39,7 +39,7 @@ formal postgraduate training (e.g. [@gomez2017robotic; @fitzgerald2014review]). 
 of such telescopes to gather observations has become sufficiently streamlined and accessible, especially
 over the last five years, the data - once collected - still needs to be analysed.
 
-There are certain pieces of accessible software that will undertake at least some of the analysis functionality in terms of image processing (e.g. Maxim DL\footnote{https://diffractionlimited.com/product/maxim-dl/}, photometric analysis (e.g. Muniwin\footnote{http://c-munipack.sourceforge.net/}), period finding (e.g. Peranso, [@paunzen2016peranso]) or multiple uses (AstroImageJ, [@collins2017astroimagej]). Most of the time a human must undertake each step of the procedure in a manual manner. Each step in the procedure is prone to “human error” or decisions are made by the user based on an incomplete understanding, or alternative conception, of the scientific assumptions underlying the decision. At worst, these decisions can be made on the basis of incomplete or misleading information from other non-professionals. Such a process, undertaken manually, can take hours to weeks of time by the user. If an incorrect decision or calculation is made at any stage, not only does the process need to be repeated, it can generally be unclear to the non-expert why the results are not meeting expectations.
+There are certain pieces of accessible software that will undertake at least some of the analysis functionality in terms of image processing (e.g. Maxim DL\footnote{https://diffractionlimited.com/product/maxim-dl/}, photometric analysis (e.g. Muniwin\footnote{http://c-munipack.sourceforge.net/}), period finding (e.g. Peranso, [@paunzen2016peranso]) or multiple uses (AstroImageJ, [@collins2017astroimagej]). Most of the time a user must undertake each step of the procedure in a manual manner. Each step in the procedure is prone to problematic decisions that are made by the user based on an incomplete understanding, or alternative conception, of the scientific assumptions underlying the decision. At worst, these decisions can be made on the basis of incomplete or misleading information from other non-professionals. Such a process, undertaken manually, can take hours to weeks of time by the user. If an incorrect decision or calculation is made at any stage, not only does the process need to be repeated, it can generally be unclear to the non-expert why the results are not meeting expectations.
 
 What is more, most of the steps, typically undertaken manually, are relatively straightforward decisions that can be boiled down to algorithms that can be undertaken more completely and robustly in an automated manner. Take, for instance, choosing  an appropriate comparison star. Many observer guides outline the considerations and rules of thumb to make a "best guess" for the most appropriate comparison star from the analysis of a single image. Given any dataset though, the most appropriate comparison star can be chosen directly and automatically from analysis of the dataset itself. Rather than a human making a "best guess" at an appropriate comparison star, an algorithm can pick out the most objectively appropriate comparison star for any given dataset based on an analysis of the dataset itself and what information may be drawn in from online databases.
 
@@ -51,7 +51,7 @@ There are, of course, many fully featured pipelines in existence for general pro
 
 Astrosource has 2 main goals: to provide a fast route to high quality analysed data; to calculate the optimal settings for the data analysis.
 
-Currently ``astrosource`` requires input files with source brightness data, provided in either ``csv`` format, in the form RA, Dec, XPixel, YPixel. counts and error in counts, or FITS table data. ``astrosource`` will currently only process multiextension FITS data, such as from Las Cumbres Observatory (@brown2013cumbres), that contain embedded SEP photometry ([@sep2016]), such as provided by the BANZAI pipeline (@mccully2018real).
+Currently ``astrosource`` requires input files with source brightness data, provided in either ``csv`` format, in the form RA, Dec, XPixel, YPixel. counts and error in counts, or FITS table data. ``astrosource`` will currently only process multiextension FITS data, such as from Las Cumbres Observatory ([@brown2013cumbres]), that contain embedded SEP photometry ([@sep2016]), such as provided by the BANZAI pipeline ([@mccully2018real]).
 
 Astrosource can also be used, in a non-intended manner, to calibrate photometry of non-varying target
 sources as long as a sufficient number of images is taken, over time, in order to select appropriate
@@ -73,8 +73,8 @@ in data analysis.
 \item Provide the variability of all stars within the dataset as a catalogue to facilitate variable source identification.
 \item Calibrate the ensemble set to known stars in the field from APASS ([@henden2015apass]), SDSS ([@alam2015eleventh]), PanSTARRS ([@magnier2016pan]) or Skymapper ([@wolf2018skymapper]) depending on filter selection and declination.
 \item Extract the photometric measurements and plot lightcurves of provided target stars.
-\item Use period-search algorithms to find periodicity in the extracted lightcurves.
-\item Use box-finding algorithms to find transit-like features in the extracted lightcurves
+\item Use period-search algorithms to find periodicity in the extracted lightcurves. Currently using Phase-Dispersion Minimization and String-Length algorithms writing by [altunin2020period] with more planned.
+\item Use box-finding algorithms ([kovacs2002box]) to find transit-like features in the extracted lightcurves. 
 \item Produce labelled and annotated output plots and a variety of data-files allowing further analysis and reporting.
 
 \end{itemize}
