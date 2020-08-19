@@ -66,18 +66,18 @@ limited set of inputs (``astrosource/CLI``); a Python package (``astrosource/PKG
 The basic functionality of ``astrosource`` algorithmically encodes the previously manual steps undertaken
 in data analysis.
 
-\begin{itemize}
 
-\item Identify stars of sufficient signal-to-noise that exist within the linear range of the observing camera that are in every frame
-\item Calculate the variability of all of these identified stars to extract the least variable stars to be used as an ensemble set of comparison stars.
-\item Provide the variability of all stars within the dataset as a catalogue to facilitate variable source identification.
-\item Calibrate the ensemble set to known stars in the field from APASS (@henden2015apass), SDSS (@alam2015eleventh), PanSTARRS (@magnier2016pan) or Skymapper (@wolf2018skymapper) depending on filter selection and declination.
-\item Extract the photometric measurements and plot lightcurves of provided target stars.
-\item Use period-search algorithms to find periodicity in the extracted lightcurves. Currently using Phase-Dispersion Minimization and String-Length algorithms writing by [altunin2020period] with more planned.
-\item Use box-finding algorithms (@kovacs2002box) to find transit-like features in the extracted lightcurves. 
-\item Produce labelled and annotated output plots and a variety of data-files allowing further analysis and reporting.
 
-\end{itemize}
+* Identify stars of sufficient signal-to-noise that exist within the linear range of the observing camera that are in every frame
+* Calculate the variability of all of these identified stars to extract the least variable stars to be used as an ensemble set of comparison stars.
+* Provide the variability of all stars within the dataset as a catalogue to facilitate variable source identification.
+* Calibrate the ensemble set to known stars in the field from APASS (@henden2015apass), SDSS (@alam2015eleventh), PanSTARRS (@magnier2016pan) or Skymapper (@wolf2018skymapper) depending on filter selection and declination.
+* Extract the photometric measurements and plot lightcurves of provided target stars.
+* Use period-search algorithms to find periodicity in the extracted lightcurves. Currently using Phase-Dispersion Minimization and String-Length algorithms writing by [altunin2020period] with more planned.
+* Use box-finding algorithms (@kovacs2002box) to find transit-like features in the extracted lightcurves. 
+* Produce labelled and annotated output plots and a variety of data-files allowing further analysis and reporting.
+
+
 
 
 ``astrosource`` makes use of ``NumPy``[@numpy] for reading and storing photometry files, ``astropy`` (@astropy:2013; @astropy:2018) for fits handling and source identifications, ``astroquery`` for source and catalogue matching, and ``matplotlib`` [@matplotlib] for plotting
@@ -95,17 +95,17 @@ code, but would likely be cumbersome to explain manually in any given observer g
 
 Some examples of the output of ``astrosource`` are:
 
-\begin{itemize}
 
-\item An RRc type RR Lyrae star folded lightcurve in zs calibrated to PanSTARRS shown in \autoref{fig:rrc}
 
-\item A Phase-Dispersion-Minimization (PDM) likelihood plot for a Cepheid variable with a 20 day period shown in \autoref{fig:pdm}
+* An RRc type RR Lyrae star folded lightcurve in zs calibrated to PanSTARRS shown in \autoref{fig:rrc}
 
-\item A plot of the standard deviation variability of each star in the data set compared to the ensemble comparison star a shown in \autoref{fig:starvar}. An RRab type RR Lyrae stands out as an identified variable star from the other constant stars in the dataset.
+* A Phase-Dispersion-Minimization (PDM) likelihood plot for a Cepheid variable with a 20 day period shown in \autoref{fig:pdm}
 
-\item A transit model fit using EXOTIC to data produced by ``astrosource`` as shown in \autoref{fig:exotic}.
+* A plot of the standard deviation variability of each star in the data set compared to the ensemble comparison star a shown in \autoref{fig:starvar}. An RRab type RR Lyrae stands out as an identified variable star from the other constant stars in the dataset.
 
-\end{itemize}
+* A transit model fit using EXOTIC to data produced by ``astrosource`` as shown in \autoref{fig:exotic}.
+
+
 
 ![RRc-type RR Lyrae phased lightcurve in zs \label{fig:rrc}](Variable1_zs_PhasedLightcurve.png)
 ![A Phase-Dispersion-Minimization Likelihood plot for a 20 day period Cepheid Variable. \label{fig:pdm}](V2_PDMLikelihoodPlot.png)
