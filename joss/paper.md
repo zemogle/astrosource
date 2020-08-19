@@ -51,7 +51,7 @@ There are, of course, many fully featured pipelines in existence for general pro
 
 Astrosource has 2 main goals: to provide a fast route to high quality analysed data; to calculate the optimal settings for the data analysis.
 
-Currently ``astrosource`` requires input files with source brightness data, provided in either ``csv`` format, in the form RA, Dec, XPixel, YPixel. counts and error in counts, or FITS table data. ``astrosource`` will currently only process multiextension FITS data, such as from Las Cumbres Observatory (@brown2013cumbres), that contain embedded SEP photometry, such as provided by the BANZAI pipeline (@mccully2018real).
+Currently ``astrosource`` requires input files with source brightness data, provided in either ``csv`` format, in the form RA, Dec, XPixel, YPixel. counts and error in counts, or FITS table data. ``astrosource`` will currently only process multiextension FITS data, such as from Las Cumbres Observatory (@brown2013cumbres), that contain embedded SEP photometry ([@sep2016]), such as provided by the BANZAI pipeline (@mccully2018real).
 
 Astrosource can also be used, in a non-intended manner, to calibrate photometry of non-varying target
 sources as long as a sufficient number of images is taken, over time, in order to select appropriate
