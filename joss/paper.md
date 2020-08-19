@@ -1,3 +1,4 @@
+---
 title: 'astrosource: automating optical astronomy measurement, calibration and analysis for variable stellar sources from provided photometry'
 tags:
   - Python
@@ -24,7 +25,7 @@ affiliations:
    index: 3
 date: 20 August 2020
 bibliography: paper.bib
-
+---
 
 # Summary
 
