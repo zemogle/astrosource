@@ -7,9 +7,9 @@ tags:
   - photometry
   - periodicity
 authors:
-  - name: Michael T Fitzgerald^[Custom footnotes for e.g. denoting who the corresponding author is can be included like this.]
+  - name: Michael T Fitzgerald^[Corresponding author]
     orcid: 0000-0001-6554-1826
-    affiliation: "1, 2" # (Multiple affiliations must be quoted)
+    affiliation: 1 # 
   - name: Edward Gomez
     orcid: 0000-0001-5749-1507
     affiliation: 2
@@ -35,15 +35,15 @@ Variable star photometry is often promoted as a key research area where non-prof
 
 There have been many claims over the last few decades that access to remote and robotic observatories
 would be a game-changer in allowing potential contributions to astronomical research by those without
-formal postgraduate training (e.g. [@gomez2017robotic; @fitzgerald2014review]). Whilst access to, and use,
+formal postgraduate training (e.g. @gomez2017robotic; @fitzgerald2014review). Whilst access to, and use,
 of such telescopes to gather observations has become sufficiently streamlined and accessible, especially
 over the last five years, the data - once collected - still needs to be analysed.
 
-There are certain pieces of accessible software that will undertake at least some of the analysis functionality in terms of image processing (e.g. Maxim DL\footnote{https://diffractionlimited.com/product/maxim-dl/}, photometric analysis (e.g. Muniwin\footnote{http://c-munipack.sourceforge.net/}), period finding (e.g. Peranso, [@paunzen2016peranso]) or multiple uses (AstroImageJ, [@collins2017astroimagej]). Most of the time a human must undertake each step of the procedure in a manual manner. Each step in the procedure is prone to “human error” or decisions are made by the user based on an incomplete understanding, or alternative conception, of the scientific assumptions underlying the decision. At worst, these decisions can be made on the basis of incomplete or misleading information from other non-professionals. Such a process, undertaken manually, can take hours to weeks of time by the user. If an incorrect decision or calculation is made at any stage, not only does the process need to be repeated, it can generally be unclear to the non-expert why the results are not meeting expectations.
+There are certain pieces of accessible software that will undertake at least some of the analysis functionality in terms of image processing (such as image reduction (e.g. Maxim DL\footnote{https://diffractionlimited.com/product/maxim-dl/}), photometric analysis (e.g. Muniwin\footnote{http://c-munipack.sourceforge.net/}), period finding (e.g. Peranso, @paunzen2016peranso) or multiple uses (e.g. AstroImageJ, @collins2017astroimagej). Most of the time a user must undertake each step of the procedure in a manual manner. Each step in the procedure is prone to problematic decisions that are made by the user based on an incomplete understanding, or alternative conception, of the scientific assumptions underlying the decision. At worst, these decisions can be made on the basis of incomplete or misleading information from other non-professionals. Such a process, undertaken manually, can take hours to weeks of time by the user. If an incorrect decision or calculation is made at any stage, not only does the process need to be repeated, it can generally be unclear to the non-expert why the results are not meeting expectations.
 
 What is more, most of the steps, typically undertaken manually, are relatively straightforward decisions that can be boiled down to algorithms that can be undertaken more completely and robustly in an automated manner. Take, for instance, choosing  an appropriate comparison star. Many observer guides outline the considerations and rules of thumb to make a "best guess" for the most appropriate comparison star from the analysis of a single image. Given any dataset though, the most appropriate comparison star can be chosen directly and automatically from analysis of the dataset itself. Rather than a human making a "best guess" at an appropriate comparison star, an algorithm can pick out the most objectively appropriate comparison star for any given dataset based on an analysis of the dataset itself and what information may be drawn in from online databases.
 
-Algorithmically automating processes that are typically, but needlessly, undertaken manually by the observer is one of the key aims of ``astrosource``. While other automated timeseries analysis pipelines do exist, ``astrosource`` aims to fill a niche for the non-expert observer, while still providing high quality, publication-appropriate analysis. ``astrosource`` is aimed to be a general purpose tool for any set of varying typical astronomical data, unlike, for example the EXOTIC pipeline (e.g. [@zellem2020utilizing; @exotic]), which although has a similar philosophy is focussed solely on exoplanets with a transit model-fit being their ultimate goal.
+Algorithmically automating processes that are typically, but needlessly, undertaken manually by the observer is one of the key aims of ``astrosource``. While other automated timeseries analysis pipelines do exist, ``astrosource`` aims to fill a niche for the non-expert observer, while still providing high quality, publication-appropriate analysis. ``astrosource`` is aimed to be a general purpose tool for any set of varying typical astronomical data, unlike, for example the EXOTIC pipeline (e.g. @zellem2020utilizing; @exotic), which although has a similar philosophy is focussed solely on exoplanets with a transit model-fit being their ultimate goal.
 
 There are, of course, many fully featured pipelines in existence for general professional use, however they require significant expertise to set up, usually on OS’s or codebases quite alien to the non-professional, as well as requiring sufficient knowledge on the part of the user to set the initial parameters. This presents a barrier to use orders of magnitudes larger for the uninitiated. Some of the tentativeness of professionals to trust data from non-professional astronomers is that typically such data is treated in a heterogenous, idiosyncratic manner from observer to observer with no guarantee of quality. Having a tool such as ``astrosource`` that can homogenise and standardise such data analysis while making non-professional observations more accessible and trustable to professional observers is an important contribution to astronomical citizen science as well as amateur and professional research.
 
@@ -51,7 +51,7 @@ There are, of course, many fully featured pipelines in existence for general pro
 
 Astrosource has 2 main goals: to provide a fast route to high quality analysed data; to calculate the optimal settings for the data analysis.
 
-Currently ``astrosource`` requires input files with source brightness data, provided in either ``csv`` format, in the form RA, Dec, XPixel, YPixel. counts and error in counts, or FITS table data. ``astrosource`` will currently only process multiextension FITS data, such as from Las Cumbres Observatory (@brown2013cumbres), that contain embedded SEP photometry ([@sep2016]), such as provided by the BANZAI pipeline (@mccully2018real).
+Currently ``astrosource`` requires input files with source brightness data, provided in either ``csv`` format, in the form RA, Dec, XPixel, YPixel. counts and error in counts, or FITS table data. ``astrosource`` will currently only process multiextension FITS data, such as from Las Cumbres Observatory (@brown2013cumbres), that contain embedded SEP photometry (@sep2016), such as provided by the BANZAI pipeline (@mccully2018real).
 
 Astrosource can also be used, in a non-intended manner, to calibrate photometry of non-varying target
 sources as long as a sufficient number of images is taken, over time, in order to select appropriate
@@ -66,21 +66,21 @@ limited set of inputs (``astrosource/CLI``); a Python package (``astrosource/PKG
 The basic functionality of ``astrosource`` algorithmically encodes the previously manual steps undertaken
 in data analysis.
 
-\begin{itemize}
-
-\item Identify stars of sufficient signal-to-noise that exist within the linear range of the observing camera that are in every frame
-\item Calculate the variability of all of these identified stars to extract the least variable stars to be used as an ensemble set of comparison stars.
-\item Provide the variability of all stars within the dataset as a catalogue to facilitate variable source identification.
-\item Calibrate the ensemble set to known stars in the field from APASS ([@henden2015apass]), SDSS ([@alam2015eleventh]), PanSTARRS ([@magnier2016pan]) or Skymapper ([@wolf2018skymapper]) depending on filter selection and declination.
-\item Extract the photometric measurements and plot lightcurves of provided target stars.
-\item Use period-search algorithms to find periodicity in the extracted lightcurves.
-\item Use box-finding algorithms to find transit-like features in the extracted lightcurves
-\item Produce labelled and annotated output plots and a variety of data-files allowing further analysis and reporting.
-
-\end{itemize}
 
 
-``astrosource`` makes use of ``NumPy``[@numpy] for reading and storing photometry files, ``astropy``([@astropy:2013], [@astropy:2018]) for fits handling and source identifications, ``astroquery`` for source and catalogue matching, and ``matplotlib`` [@matplotlib] for plotting
+* Identify stars of sufficient signal-to-noise that exist within the linear range of the observing camera that are in every frame
+* Calculate the variability of all of these identified stars to extract the least variable stars to be used as an ensemble set of comparison stars.
+* Provide the variability of all stars within the dataset as a catalogue to facilitate variable source identification.
+* Calibrate the ensemble set to known stars in the field from APASS (@henden2015apass), SDSS (@alam2015eleventh), PanSTARRS (@magnier2016pan) or Skymapper (@wolf2018skymapper) depending on filter selection and declination.
+* Extract the photometric measurements and plot lightcurves of provided target stars.
+* Use period-search algorithms to find periodicity in the extracted lightcurves. Currently using Phase-Dispersion Minimization and String-Length algorithms writing by [altunin2020period] with more planned.
+* Use box-finding algorithms (@kovacs2002box) to find transit-like features in the extracted lightcurves. 
+* Produce labelled and annotated output plots and a variety of data-files allowing further analysis and reporting.
+
+
+
+
+``astrosource`` makes use of ``NumPy``[@numpy] for reading and storing photometry files, ``astropy`` (@astropy:2013; @astropy:2018) for fits handling and source identifications, ``astroquery`` for source and catalogue matching, and ``matplotlib`` [@matplotlib] for plotting
 (only if using CLI). Leveraging these highly developed and well supported packages allows ``astrosource``
 to be fast and efficient at time-series analysis.
 
@@ -95,22 +95,22 @@ code, but would likely be cumbersome to explain manually in any given observer g
 
 Some examples of the output of ``astrosource`` are:
 
-\begin{itemize}
 
-\item An RRc type RR Lyrae star folded lightcurve in zs calibrated to PanSTARRS shown in \autoref{fig:rrc}
 
-\item A Phase-Dispersion-Minimization (PDM) likelihood plot for a Cepheid variable with a 20 day period shown in \autoref{fig:pdm}
+* An RRc type RR Lyrae star folded lightcurve in zs calibrated to PanSTARRS shown in \autoref{fig:rrc}
 
-\item A plot of the standard deviation variability of each star in the data set compared to the ensemble comparison star a shown in \autoref{fig:starvar}. An RRab type RR Lyrae stands out as an identified variable star from the other constant stars in the dataset.
+* A Phase-Dispersion-Minimization (PDM) likelihood plot for a Cepheid variable with a 20 day period shown in \autoref{fig:pdm}
 
-\item A transit model fit using EXOTIC to data produced by ``astrosource`` as shown in \autoref{fig:exotic}.
+* A plot of the standard deviation variability of each star in the data set compared to the ensemble comparison star a shown in \autoref{fig:starvar}. An RRab type RR Lyrae stands out as an identified variable star from the other constant stars in the dataset.
 
-\end{itemize}
+* A transit model fit using EXOTIC to data produced by ``astrosource`` as shown in \autoref{fig:exotic}.
 
-![RRc-type RR Lyrae phased lightcurve in zs\label{fig:rrc}](Variable1_zs_PhasedLightcurve.png)
-![A Phase-Dispersion-Minimization Likelihood plot for a 20 day period Cepheid Variable.\label{fig:pdm}](V2_PDMLikelihoodPlot.png)
-![The standard deviation variability of each star in the dataset compared to the ensemble comparison star.\label{fig:starvar}](starVariability.png)
-![An EXOTIC transit model fit to ``astrosource`` processed data.\label{fig:exotic}](EXOTICfit.png)
+
+
+![RRc-type RR Lyrae phased lightcurve in zs \label{fig:rrc}](Variable1_zs_PhasedLightcurve.png)
+![A Phase-Dispersion-Minimization Likelihood plot for a 20 day period Cepheid Variable. \label{fig:pdm}](V2_PDMLikelihoodPlot.png)
+![The standard deviation variability of each star in the dataset compared to the ensemble comparison star. \label{fig:starvar}](starVariability.png)
+![An EXOTIC transit model fit to ``astrosource`` processed data. \label{fig:exotic}](EXOTICfit.png)
 
 
 ``astrosource`` is under continual development and is responsive to new situations where new glitches occur
