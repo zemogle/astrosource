@@ -117,7 +117,7 @@ def find_comparisons(targets, parentPath=None, fileList=None, photlist=[], stdMu
     # Sort through and find the largest file and use that as the reference file
     final_comparisons = final_candidate_catalogue(parentPath, comparisons, sortStars, thresholdCounts, variabilityMax)
     # return comparisons[:,final_comparisons,:]
-    return comparisons, final_comparisons
+    return comparisons, final_comparisons, sortStars
 
 def final_candidate_catalogue(parentPath, comparisons, sortStars, thresholdCounts, variabilityMax):
 
@@ -165,6 +165,9 @@ def final_candidate_catalogue(parentPath, comparisons, sortStars, thresholdCount
     return selected_comps
 
 def calculate_comparison_variation(comparisons, fileCount):
+    """
+    Calculate the variation of each star across the all files
+    """
     stdCompStar=[]
     sortStars=[]
     numfiles, numstars, el = asarray(comparisons).shape
@@ -342,9 +345,7 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
     data.emag = array(resp[opt['error']].data)
     return data
 
-def find_comparisons_calibrated(targets, paths, filterCode, photlist, comparisons, nopanstarrs=False, nosdss=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2):
-    sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
-
+def calibrate_photometry(targets, filterCode, compFile, closerejectd, variabilityMultiplier, nopanstarrs=False, nosdss=False):
     FILTERS = {
                 'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag'}},
                 'V' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag'}},
@@ -365,24 +366,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, comparison
                         'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag'}},
                 }
 
-
-    parentPath = paths['parent']
-    calibPath = parentPath / "calibcats"
-    if not calibPath.exists():
-        os.makedirs(calibPath)
-
     #Vizier.ROW_LIMIT = -1
-
-    # Get List of Files Used
-    fileList=[]
-    for line in (parentPath / "usedImages.txt").read_text().strip().split('\n'):
-        fileList.append(line.strip())
 
     logger.debug("Filter Set: " + filterCode)
 
-    # Load compsused
-    # compFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
-    compFile = photlist[0]
     logger.debug(compFile.shape[0])
 
     compCoords = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
@@ -431,8 +418,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, comparison
     # So the stars that will be used to calibrate the frames to get the OTHER stars.
     calibStands=[]
 
-    lenloop=len(compFile[:,0])
-
     for compstar in compFile:
         # Match each potential comparison star to star in online catalogue
         compCoord=SkyCoord(ra=compstar[0]*degree, dec=compstar[1]*degree)
@@ -445,36 +430,48 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, comparison
         calibStands.append(tmpphot)
     logger.info('Calibration Stars Identified below')
     logger.info(calibStands)
-    calibStands = asarray(calibStands)
 
-    # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
-    #logger.debug(asarray(calibStands).shape[0])
-    if calibStands.shape[0] == 0:
+    if len(calibStands) == 0:
         logger.info("We could not find a suitable match between any of your stars and the calibration catalogue")
         logger.info("You might need to reduce the low value (usually 10000) to get some dimmer stars in script 1")
         logger.info("You might also try using one of --nosdss or --nopanstarrs option (not both!) to prevent comparisons to these catalogues")
         raise AstrosourceException("Stars are too dim to calibrate to.")
 
+    calibStands = asarray(calibStands)
     varimin=(np.nanmin(calibStands[:,2])) * variabilityMultiplier
 
     goodcalib=[]
     for q, stand in enumerate(calibStands):
         if stand[2] < varimin and not np.isnan(stand[2]):
             goodcalib.append(q)
-    logger.critical(photlist[0,goodcalib,:])
+    return calibStands, goodcalib, cat_used
+
+
+def find_comparisons_calibrated(targets, paths, filterCode, photlist, comparisons, compFile, nopanstarrs=False, nosdss=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2):
+    sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
+
+    calibStands, goodcalib, cat_used = calibrate_photometry(targets=targets, filterCode=filterCode, compFile=compFile, closerejectd=closerejectd, nopanstarrs=nopanstarrs, nosdss=nosdss, variabilityMultiplier=variabilityMultiplier)
+
+    parentPath = paths['parent']
+    calibPath = parentPath / "calibcats"
+    if not calibPath.exists():
+        os.makedirs(calibPath)
+
+    # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
+    #logger.debug(asarray(calibStands).shape[0])
 
     # savetxt(parentPath / "calibStands.csv", photlist[0,goodcalib,:] , delimiter=",", fmt='%0.8f')
     # Lets use this set to calibrate each datafile and pull out the calibrated compsused magnitudes
     calibCompUsed=[]
 
     logger.debug("CALIBRATING EACH FILE")
+    #Pull out the CalibStands out of each file
     for photFile in photlist:
 
         #Convert the phot file into instrumental magnitudes
         photFile[:,5]= 1.0857 * (photFile[:,5]/photFile[:,4])
         photFile[:,4] = -2.5*log10(photFile[:,4])
 
-        #Pull out the CalibStands out of each file
         zeropoints = median(calibStands[goodcalib,3] - photFile[goodcalib,4])
 
         #Shift the magnitudes in the phot file by the zeropoint
@@ -502,7 +499,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, comparison
         finalCompUsedFile.append(starphot)
 
     #logger.debug(finalCompUsedFile)
-    sumStd = std(photlist[:])
+    sumStd = std(calibphot[0,:,4])
     errCalib = median(sumStd) / pow((len(goodcalib)), 0.5)
 
     logger.debug("Comparison Catalogue: " + str(cat_used))

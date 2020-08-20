@@ -49,7 +49,7 @@ class TimeSeries:
                                                  starreject=self.starreject,
                                                  hicounts=self.hicounts,
                                                  lowcounts=self.lowcounts)
-        self.stars, self.comparisons = find_comparisons(self.targets, self.indir, self.usedimages, thresholdCounts=self.thresholdcounts, photlist=self.stars)
+        self.stars, self.comparisons, self.starvar = find_comparisons(self.targets, self.indir, self.usedimages, thresholdCounts=self.thresholdcounts, photlist=self.stars)
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         self.calibrated = False
         if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
@@ -61,7 +61,8 @@ class TimeSeries:
                                             nosdss=self.nosdss,
                                             closerejectd=self.closerejectd,
                                             photlist=self.stars,
-                                            comparisons=self.comparisons)
+                                            comparisons=self.comparisons,
+                                            compFile=self.starvar)
                 self.calibrated = True
             except AstrosourceException as e:
                 sys.stdout.write(f'🛑 {e}')
