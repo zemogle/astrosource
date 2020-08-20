@@ -6,7 +6,7 @@ from collections import namedtuple
 import numpy as np
 
 from numpy import min, max, median, std, isnan, delete, genfromtxt, savetxt, load, \
-    asarray, add, append, log10, average, array, where
+    asarray, add, append, log10, average, array, where, zeros, nonzero
 from astropy.units import degree, arcsecond
 from astropy.coordinates import SkyCoord
 from astroquery.sdss import SDSS
@@ -116,7 +116,8 @@ def find_comparisons(targets, parentPath=None, fileList=None, photlist=[], stdMu
     logger.info('Statistical stability reached.')
     # Sort through and find the largest file and use that as the reference file
     final_comparisons = final_candidate_catalogue(parentPath, comparisons, sortStars, thresholdCounts, variabilityMax)
-    return comparisons[:,final_comparisons,:]
+    # return comparisons[:,final_comparisons,:]
+    return comparisons, final_comparisons
 
 def final_candidate_catalogue(parentPath, comparisons, sortStars, thresholdCounts, variabilityMax):
 
@@ -341,7 +342,7 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
     data.emag = array(resp[opt['error']].data)
     return data
 
-def find_comparisons_calibrated(targets, paths, filterCode, photlist, nopanstarrs=False, nosdss=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2):
+def find_comparisons_calibrated(targets, paths, filterCode, photlist, comparisons, nopanstarrs=False, nosdss=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2):
     sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
 
     FILTERS = {
@@ -384,9 +385,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, nopanstarr
     compFile = photlist[0]
     logger.debug(compFile.shape[0])
 
-    if compFile.shape[0] == 13 and compFile.size == 13:
-        compFile = [compFile]
-
     compCoords = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
 
     # Get Average RA and Dec from file
@@ -403,7 +401,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, nopanstarr
     coords=[]
     for cat_name, opt in catalogues.items():
         try:
-            if coords ==[]: #SALERT - Do not search if a suitable catalogue has already been found
+            if coords ==[]: # ALERT - Do not search if a suitable catalogue has already been found
                 logger.info("Searching " + str(cat_name))
                 if cat_name == 'PanSTARRS' and nopanstarrs==True:
                     logger.info("Skipping PanSTARRS")
@@ -425,123 +423,90 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, nopanstarr
     if not coords:
         raise AstrosourceException(f"Could not find coordinate match in any catalogues for {filterCode}")
 
-    #Setup standard catalogue coordinates
+    # Setup standard catalogue coordinates
     catCoords=SkyCoord(ra=coords.ra*degree, dec=coords.dec*degree)
 
-    #Get calib mags for least variable IDENTIFIED stars.... not the actual stars in compUsed!! Brighter, less variable stars may be too bright for calibration!
-    #So the stars that will be used to calibrate the frames to get the OTHER stars.
+    # Get calib mags for least variable IDENTIFIED stars.... not the actual stars in compUsed!!
+    # Brighter, less variable stars may be too bright for calibration!
+    # So the stars that will be used to calibrate the frames to get the OTHER stars.
     calibStands=[]
 
     lenloop=len(compFile[:,0])
 
-    for q in range(lenloop):
-        compCoord=SkyCoord(ra=compFile[q][0]*degree, dec=compFile[q][1]*degree)
+    for compstar in compFile:
+        # Match each potential comparison star to star in online catalogue
+        compCoord=SkyCoord(ra=compstar[0]*degree, dec=compstar[1]*degree)
         idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
+        tmpphot = np.empty(5)
+        tmpphot[:] = np.nan
         if d2dcomp < max_sep:
             if not isnan(coords.mag[idxcomp]):
-                calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],coords.mag[idxcomp],coords.emag[idxcomp]])
+                tmpphot = np.array([compstar[0],compstar[1],compstar[2],coords.mag[idxcomp],coords.emag[idxcomp]])
+        calibStands.append(tmpphot)
     logger.info('Calibration Stars Identified below')
     logger.info(calibStands)
+    calibStands = asarray(calibStands)
 
     # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
     #logger.debug(asarray(calibStands).shape[0])
-    if asarray(calibStands).shape[0] == 0:
+    if calibStands.shape[0] == 0:
         logger.info("We could not find a suitable match between any of your stars and the calibration catalogue")
         logger.info("You might need to reduce the low value (usually 10000) to get some dimmer stars in script 1")
         logger.info("You might also try using one of --nosdss or --nopanstarrs option (not both!) to prevent comparisons to these catalogues")
         raise AstrosourceException("Stars are too dim to calibrate to.")
 
-    varimin=(min(asarray(calibStands)[:,2])) * variabilityMultiplier
+    varimin=(np.nanmin(calibStands[:,2])) * variabilityMultiplier
 
-    calibStandsReject=[]
-    for q in range(len(asarray(calibStands)[:,0])):
-        if calibStands[q][2] > varimin:
-            calibStandsReject.append(q)
+    goodcalib=[]
+    for q, stand in enumerate(calibStands):
+        if stand[2] < varimin and not np.isnan(stand[2]):
+            goodcalib.append(q)
+    logger.critical(photlist[0,goodcalib,:])
 
-    calibStands=delete(calibStands, calibStandsReject, axis=0)
-
-    calibStands=asarray(calibStands)
-
-    savetxt(parentPath / "calibStands.csv", calibStands , delimiter=",", fmt='%0.8f')
+    # savetxt(parentPath / "calibStands.csv", photlist[0,goodcalib,:] , delimiter=",", fmt='%0.8f')
     # Lets use this set to calibrate each datafile and pull out the calibrated compsused magnitudes
     calibCompUsed=[]
 
     logger.debug("CALIBRATING EACH FILE")
-    for file in fileList:
-        logger.debug(file)
-
-        #Get the phot file into memory
-        photFile = load(parentPath / file)
-        photCoords=SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
+    for photFile in photlist:
 
         #Convert the phot file into instrumental magnitudes
-        for r in range(len(photFile[:,0])):
-            photFile[r,5]=1.0857 * (photFile[r,5]/photFile[r,4])
-            photFile[r,4]=-2.5*log10(photFile[r,4])
+        photFile[:,5]= 1.0857 * (photFile[:,5]/photFile[:,4])
+        photFile[:,4] = -2.5*log10(photFile[:,4])
 
         #Pull out the CalibStands out of each file
-        tempDiff=[]
-
-        for q in range(len(calibStands[:,0])):
-            calibCoord=SkyCoord(ra=calibStands[q][0]*degree,dec=calibStands[q][1]*degree)
-            idx,d2d,d3d=calibCoord.match_to_catalog_sky(photCoords)
-            tempDiff.append(calibStands[q,3] - photFile[idx,4])
-
-        #logger.debug(tempDiff)
-        tempZP= (median(tempDiff))
-        #logger.debug(std(tempDiff))
-
+        zeropoints = median(calibStands[goodcalib,3] - photFile[goodcalib,4])
 
         #Shift the magnitudes in the phot file by the zeropoint
-        for r in range(len(photFile[:,0])):
-            photFile[r,4]=photFile[r,4]+tempZP
+        photFile[:,4] = photFile[:,4] + zeropoints
 
-
-        file = Path(file)
+        # file = Path(file)
         #Save the calibrated photfiles to the calib directory
-        savetxt(calibPath / "{}.calibrated.{}".format(file.stem, file.suffix), photFile, delimiter=",", fmt='%0.8f')
+        # savetxt(calibPath / "{}.calibrated.{}".format(file.stem, file.suffix), photFile, delimiter=",", fmt='%0.8f')
 
-        #Look within photfile for ACTUAL usedcomps.csv and pull them out
-        lineCompUsed=[]
-        if photlist.shape[0] ==3 and photlist.size == 3:
-            lenloop=1
-        else:
-            lenloop=len(photlist[:,0])
-        #logger.debug(photlist.size)
-        for r in range(lenloop):
-            compUsedCoord=SkyCoord(ra=photlist[r][0]*degree,dec=photlist[r][1]*degree)
-            idx,d2d,d3d=compUsedCoord.match_to_catalog_sky(photCoords)
-            lineCompUsed.append(photFile[idx,4])
-
-        #logger.debug(lineCompUsed)
-        calibCompUsed.append(lineCompUsed)
         sys.stdout.write('.')
         sys.stdout.flush()
 
-
-
     # Finalise calibcompsusedfile
-    #logger.debug(calibCompUsed)
-
-    calibCompUsed=asarray(calibCompUsed)
-    #logger.debug(calibCompUsed[0,:])
-
-    finalCompUsedFile=[]
+    finalCompUsedFile = []
     sumStd=[]
-    for r in range(len(calibCompUsed[0,:])):
+    calibphot = photlist[:,goodcalib,:]
+    # logger.critical(photlist)
+    for photfile in calibphot:
         #Calculate magnitude and stdev
-        sumStd.append(std(calibCompUsed[:,r]))
 
-        finalCompUsedFile.append([photlist[r][0],photlist[r][1],photlist[r][4],median(calibCompUsed[:,r]),std(calibCompUsed[:,r])])
+        # ***** this is not quite right *****
+        starphot = []
+        for star in photfile:
+            starphot.append(array([star[0],star[1],star[4],median(photfile[:,4]),std(photfile[:,4])]))
+        finalCompUsedFile.append(starphot)
 
     #logger.debug(finalCompUsedFile)
-    logger.debug(" ")
-    sumStd=asarray(sumStd)
-
-    errCalib = median(sumStd) / pow((len(calibCompUsed[0,:])), 0.5)
+    sumStd = std(photlist[:])
+    errCalib = median(sumStd) / pow((len(goodcalib)), 0.5)
 
     logger.debug("Comparison Catalogue: " + str(cat_used))
-    if len(calibCompUsed[0,:]) == 1:
+    if len(goodcalib) == 1:
         logger.debug("As you only have one comparison, the uncertainty in the calibration is unclear")
         logger.debug("But we can take the catalogue value, although we should say this is a lower uncertainty")
         logger.debug("Error/Uncertainty in Calibration: " +str(asarray(calibStands[0])[4]))
@@ -556,6 +521,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, nopanstarr
 
     #logger.debug(finalCompUsedFile)
     compFile = asarray(finalCompUsedFile)
-    savetxt(parentPath / "calibCompsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
+    # savetxt(parentPath / "calibCompsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
     sys.stdout.write('\n')
     return compFile
