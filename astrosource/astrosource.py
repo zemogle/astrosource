@@ -62,7 +62,7 @@ class TimeSeries:
                                             closerejectd=self.closerejectd,
                                             photlist=self.stars,
                                             comparisons=self.comparisons,
-                                            compFile=self.starvar)
+                                            starvar=self.starvar)
                 self.calibrated = True
             except AstrosourceException as e:
                 sys.stdout.write(f'🛑 {e}')
