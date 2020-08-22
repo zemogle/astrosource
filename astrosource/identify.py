@@ -176,8 +176,7 @@ def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDi
     referenceFrame = None
 
     for file in fileList:
-
-        photFile = load(paths['parent'] / file)
+        photFile = load(paths['parent'] / file)      
         if (photFile.size < 50):
             logger.debug("REJECT")
             logger.debug(file)
@@ -316,14 +315,15 @@ def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDi
         if imageFracReject > 0.8:
             imageFracReject = 0.8
 
-        if starreject == 0.05 and imageFracReject == 0.8 and mincompstars ==1:
+        if starreject == 0.15 and imageFracReject == 0.8 and mincompstars ==1:
             logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
             logger.error("Failed to find any comparison candidates with the maximum restrictions. There is something terribly wrong!")
             raise AstrosourceException("Unable to find sufficient comparison stars with the most stringent conditions in this dataset. Try reducing the --mincompstars value")
 
-        if starreject == 0.05 and imageFracReject == 0.8 and mincompstars !=1:
+        if starreject == 0.15 and imageFracReject == 0.8 and mincompstars !=1:
             logger.error("Maximum number of Candidate Comparison Stars found this cycle: " + str(compchecker))
             logger.error("Failed to find sufficient comparison candidates with the maximum restrictions, trying with a lower value for mincompstars")
+            compchecker=0
             mincompstars=int(mincompstars*0.8)
             if mincompstars < 1:
                 mincompstars =1
@@ -331,6 +331,7 @@ def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDi
             imageFracReject=0.05
             referenceFrame=originalReferenceFrame
             fileList=originalfileList
+            
         elif (compchecker < mincompstars):
             logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
             logger.error("Failed to find sufficient comparison candidates, adjusting starreject and imgreject and trying again.")
