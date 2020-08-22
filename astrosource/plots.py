@@ -22,13 +22,22 @@ def output_files(paths, photometrydata, mode='diff'):
         r = j+1
         logger.info("Outputting files Variable " + str(r))
 
-        outputPeransoCalib = [x for x in zip(outputPhot[:,6],outputPhot[:,10],outputPhot[:,11])]
+        if mode =='calib':
+            calibIndex=asarray(outputPhot).shape[1]-1
+            magColumn=outputPhot[:,calibIndex-1]
+            magerrColumn=outputPhot[:,calibIndex]
+        else:
+            magColumn=outputPhot[:,10]
+            magerrColumn=outputPhot[:,11]
+            
+
+        outputPeransoCalib = [x for x in zip(outputPhot[:,6],magColumn,magerrColumn)]
 
         savetxt(paths['outcatPath'] / f'V{r}_{mode}Peranso.txt', outputPeransoCalib, delimiter=" ", fmt='%0.8f')
         savetxt(paths['outcatPath'] / f'V{r}_{mode}Excel.csv', outputPeransoCalib, delimiter=",", fmt='%0.8f')
 
         #output for EXOTIC modelling
-        outputEXOTICCalib = [x for x in zip(outputPhot[:,6],outputPhot[:,10],outputPhot[:,11],outputPhot[:,7])]
+        outputEXOTICCalib = [x for x in zip(outputPhot[:,6],magColumn,magerrColumn,outputPhot[:,7])]
 
        
         outputEXOTICCalib=asarray(outputEXOTICCalib)
@@ -42,7 +51,7 @@ def output_files(paths, photometrydata, mode='diff'):
         savetxt(paths['outcatPath'] / f'V{r}_{mode}EXOTIC.csv', outputEXOTICCalib, delimiter=",", fmt='%0.8f')
 
         # Output Differential astroImageJ file
-        outputaijCalib = [x for x in zip(outputPhot[:,6]-2450000.0,outputPhot[:,10],outputPhot[:,11])]
+        outputaijCalib = [x for x in zip(outputPhot[:,6]-2450000.0,magColumn,magerrColumn)]
 
         savetxt(paths['outcatPath'] / f'V{r}_{mode}AIJ.txt', outputaijCalib, delimiter=" ", fmt='%0.8f')
         savetxt(paths['outcatPath'] / f'V{r}_{mode}AIJ.csv', outputaijCalib, delimiter=",", fmt='%0.8f')
@@ -129,9 +138,10 @@ def make_calibrated_plots(filterCode, paths, photometrydata):
     # Make a calibrated version
     # Need to shift the shape of the curve against the lowest error in the catalogue.
     for j, outputPhot in enumerate(photometrydata):
+        calibIndex=asarray(outputPhot).shape[1]-2
         plt.cla()
         outplotx = asarray(outputPhot)[:, 6]
-        outploty = asarray(outputPhot)[:, 10]
+        outploty = asarray(outputPhot)[:, calibIndex]
         plt.xlabel('BJD')
         plt.ylabel(f'Calibrated {filterCode} Mag')
         plt.plot(outplotx, outploty, 'bo')
@@ -192,7 +202,7 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
         plt.errorbar(outplotx, outploty, yerr=3*calibFile[:,2], fmt='-o', linestyle='None')
         plt.errorbar(outplotxrepeat, outploty, yerr=3*calibFile[:,2], fmt='-o', linestyle='None')
         plt.grid(True)
-        plt.subplots_adjust(left=0.12, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+        plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
         fig.set_size_inches(6,3)
         plt.savefig(outputPath / 'Variable{}_{}_PhasedLightcurve.png'.format(q+1,filterCode))
         plt.savefig(outputPath / 'Variable{}_{}_PhasedLightcurve.eps'.format(q+1,filterCode))

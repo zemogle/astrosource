@@ -342,6 +342,10 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
         logger.info("Stdev   : {}".format(stdVar))
 
         outputPhot=delete(outputPhot, starReject, axis=0)
+        
+        # Add calibration columns
+        outputPhot= np.c_[outputPhot, np.ones(outputPhot.shape[0]),np.ones(outputPhot.shape[0])]
+        
         if outputPhot.shape[0] > 2:
             savetxt(paths['outcatPath'] / f"doerPhot_V{str(q+1)}.csv", outputPhot, delimiter=",", fmt='%0.8f')
             logger.debug('Saved doerPhot_V')
@@ -385,9 +389,20 @@ def calibrated_photometry(paths, photometrydata):
             ensembleMagError=calibCompFile[:,4]
             ensembleMagError=average(ensembleMagError)*1/pow(ensembleMagError.size, 0.5)
 
-        #for file in fileList:
+
+        calibIndex=np.asarray(outputPhot).shape[1]-1
+
+        #errCalib = median(calibCompFile[:,4]) / pow((len(calibCompFile[:,0])), 0.5)
+        
         for i in range(outputPhot.shape[0]):
-            outputPhot[i][10]+=ensembleMag
+            outputPhot[i][calibIndex-1]=ensembleMag+outputPhot[i][10] # Calibrated Magnitude
+            #outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(errCalib,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error
+            outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error
+            
         # Write back to photometry data
         pdata.append(outputPhot)
+
+        #update doerphot on disk
+        savetxt(paths['outcatPath'] / f"doerPhot_V{str(j+1)}.csv", outputPhot, delimiter=",", fmt='%0.8f')
+
     return pdata
