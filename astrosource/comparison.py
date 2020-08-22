@@ -336,7 +336,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         if not (compFile.shape[0] == 2 and compFile.size == 2):
             catCoords=SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
             idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
-        elif not (raCat.shape[0] == 1 and raCat.size == 1): ### this is effictively the same as below
+        elif not (raCat.shape[0] == 2 and raCat.size == 2): ### this is effictively the same as below
             catCoords=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
             idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
         else:
