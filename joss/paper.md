@@ -16,6 +16,8 @@ authors:
   - name: Saeed Salimpour
     orcid: 0000-0002-0387-3152
     affiliation: 3
+  - name: Ridlo W. Wibowo
+    affiliation: 4
 affiliations:
  - name: Edith Cowan University, Perth, Australia
    index: 1
@@ -23,6 +25,8 @@ affiliations:
    index: 2
  - name: Deakin University, Melbourne, Australia
    index: 3
+ - name: Institut Teknologi Bandung, Bandung, Indonesia
+   index: 4
 date: 20 August 2020
 bibliography: paper.bib
 ---
