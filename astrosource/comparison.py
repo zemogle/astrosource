@@ -22,7 +22,7 @@ import logging
 logger = logging.getLogger('astrosource')
 
 
-def find_comparisons(targets, parentPath=None, fileList=None, photlist=[], stdMultiplier=2.5, thresholdCounts=10000000, variabilityMultiplier=2.5, removeTargets=True, acceptDistance=1.0):
+def find_comparisons(targets, parentPath=None, fileList=None, photlist=[], stdMultiplier=2.5, thresholdCounts=1000000, variabilityMultiplier=2.5, removeTargets=True, acceptDistance=1.0):
     '''
     Find stable comparison stars for the target photometry
 
@@ -154,7 +154,6 @@ def final_candidate_catalogue(parentPath, comparisons, sortStars, thresholdCount
 
     compsused = asarray(comparisons[0][selected_comps][:,[0,1]])
     logger.debug("Selected stars listed below:")
-    logger.debug(compsused)
 
     logger.info(f"Finale Ensemble Counts: {finalCountCounter}")
 
@@ -450,7 +449,7 @@ def calibrate_photometry(targets, filterCode, starvar, closerejectd, variability
 def find_comparisons_calibrated(targets, paths, filterCode, photlist, comparisons, starvar, nopanstarrs=False, nosdss=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2):
     sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
     compsused = photlist[0][comparisons][:,[0,1]]
-    logger.critical(compsused)
+
     calibStands, goodcalib, cat_used = calibrate_photometry(targets=targets, filterCode=filterCode, starvar=starvar, closerejectd=closerejectd, nopanstarrs=nopanstarrs, nosdss=nosdss, variabilityMultiplier=variabilityMultiplier)
 
     parentPath = paths['parent']
@@ -468,14 +467,17 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, comparison
     logger.debug("CALIBRATING EACH FILE")
     #Pull out the CalibStands out of each file
 
-    calibphot = photlist[:,goodcalib,:]
+    # Find the intersection of compsused and goodcalib
+    calibcomps = list(set(goodcalib) & set(comparisons))
+
+    calibphot = photlist[:,calibcomps,:]
     for photFile in calibphot:
 
         #Convert the phot file into instrumental magnitudes
         photFile[:,5]= 1.0857 * (photFile[:,5]/photFile[:,4])
         photFile[:,4] = -2.5*log10(photFile[:,4])
 
-        zeropoints = median(calibStands[goodcalib,3] - photFile[:,4])
+        zeropoints = median(calibStands[calibcomps,3] - photFile[:,4])
 
         #Shift the magnitudes in the phot file by the zeropoint
         photFile[:,4] = photFile[:,4] + zeropoints
@@ -491,14 +493,14 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, comparison
 
     ra = calibphot[0,:,0]
     dec = calibphot[0,:,1]
-    err = starvar[goodcalib,2]
+    err = starvar[calibcomps,2]
     sumStd = std(calibphot[:,:,4], axis=0)
     mag = median(calibphot[:,:,4], axis=0)
     finalComp = np.array([ra, dec, err, sumStd, mag]).T
 
     logger.critical(finalComp)
 
-    errCalib = median(sumStd) / pow((len(goodcalib)), 0.5)
+    errCalib = median(sumStd) / pow((len(calibcomps)), 0.5)
 
     logger.debug("Comparison Catalogue: " + str(cat_used))
     if len(goodcalib) == 1:
