@@ -642,8 +642,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
         file = Path(file)
         #Save the calibrated photfiles to the calib directory
-        savetxt(calibPath / "{}.calibrated.{}".format(file.stem, file.suffix), photFile, delimiter=",", fmt='%0.8f')
-
+        #savetxt(calibPath / "{}.calibrated.{}".format(file.stem, file.suffix), photFile, delimiter=",", fmt='%0.8f')
+        savetxt(calibPath / "{}.calibrated.{}".format(file.stem, 'csv'), photFile, delimiter=",", fmt='%0.8f')
 
 
         #Look within photfile for ACTUAL usedcomps.csv and pull them out
