@@ -5,6 +5,10 @@ from pathlib import Path
 from collections import namedtuple
 import numpy as np
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 from numpy import min, max, median, std, isnan, delete, genfromtxt, savetxt, load, \
     asarray, add, append, log10, average, array, where
 from astropy.units import degree, arcsecond
@@ -604,6 +608,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     calibCompUsed=[]
 
+    calibOverlord=[] # a huge array intended to create the calibration plot and data out of all the individual calibration files.
+
     logger.debug("CALIBRATING EACH FILE")
     for file in fileList:
         logger.debug(file)
@@ -619,16 +625,18 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
         #Pull out the CalibStands out of each file
         tempDiff=[]
-
+        calibOut=[]
         for q in range(len(calibStands[:,0])):
             if calibStands.size == 13 and calibStands.shape[0]== 13:
                 calibCoord=SkyCoord(ra=calibStand[0]*degree,dec=calibStand[1]*degree)
                 idx,d2d,d3d=calibCoord.match_to_catalog_sky(photCoords)
                 tempDiff.append(calibStand[3]-photFile[idx,4])
+                calibOut.append([calibStand[3],calibStand[4],photFile[idx,4],photFile[idx,5],calibStand[3]-photFile[idx,4],0])
             else:
                 calibCoord=SkyCoord(ra=calibStand[q][0]*degree,dec=calibStand[q][1]*degree)
                 idx,d2d,d3d=calibCoord.match_to_catalog_sky(photCoords)
                 tempDiff.append(calibStand[q,3]-photFile[idx,4])
+                calibOut.append([calibStand[q,3],calibStand[q,4],photFile[idx,4],photFile[idx,5],calibStand[q,3]-photFile[idx,4],0])
 
         #logger.debug(tempDiff)
         tempZP= (median(tempDiff))
@@ -639,11 +647,20 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         for r in range(len(photFile[:,0])):
             photFile[r,4]=photFile[r,4]+tempZP
 
+        calibOut=asarray(calibOut)
+        #logger.info(calibOut)
+        #Shift the magnitudes in the phot file by the zeropoint
+        for r in range(len(calibOut[:,0])):
+            calibOut[r,5]=calibOut[r,4]-tempZP        
+            calibOverlord.append([calibOut[r,0],calibOut[r,1],calibOut[r,2],calibOut[r,3],calibOut[r,4],calibOut[r,5],float(file.split("_")[2].replace("d","."))])
 
         file = Path(file)
         #Save the calibrated photfiles to the calib directory
         #savetxt(calibPath / "{}.calibrated.{}".format(file.stem, file.suffix), photFile, delimiter=",", fmt='%0.8f')
         savetxt(calibPath / "{}.calibrated.{}".format(file.stem, 'csv'), photFile, delimiter=",", fmt='%0.8f')
+        savetxt(calibPath / "{}.compared.{}".format(file.stem, 'csv'), calibOut, delimiter=",", fmt='%0.8f')
+
+        
 
 
         #Look within photfile for ACTUAL usedcomps.csv and pull them out
@@ -667,7 +684,50 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         sys.stdout.write('.')
         sys.stdout.flush()
 
+    calibOverlord=asarray(calibOverlord)
+    savetxt(parentPath / "CalibAll.csv", calibOverlord, delimiter=",", fmt='%0.8f')
 
+    # Difference versus Magnitude calibration plot
+    plt.cla()
+    fig = plt.gcf()
+    outplotx=calibOverlord[:,0]
+    outploty=calibOverlord[:,5]
+    
+    plt.xlabel(str(cat_used) + ' ' +str(filterCode) + ' Catalogue Magnitude')
+    plt.ylabel('Calibrated - Catalogue Magnitude')
+    plt.plot(outplotx,outploty,'bo')
+    #plt.plot(outplotxrepeat,outploty,'ro')
+    #plt.plot(linex,liney)
+    plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
+    plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+    #plt.errorbar(outplotx, outploty, xerr=3*calibOverlord[:,1], fmt='-o', linestyle='None')
+    #plt.errorbar(outplotxrepeat, outploty, yerr=3*calibFile[:,2], fmt='-o', linestyle='None')
+    plt.grid(True)
+    plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+    fig.set_size_inches(6,3)
+    plt.savefig(parentPath / str("CalibrationSanityPlot_" +str(filterCode)+"_Magnitude.png"))
+    plt.savefig(parentPath / str("CalibrationSanityPlot_" +str(filterCode)+"_Magnitude.eps"))
+
+    # Difference vs time calibration plot
+    plt.cla()
+    fig = plt.gcf()
+    outplotx=calibOverlord[:,6]
+    outploty=calibOverlord[:,5]
+    
+    plt.xlabel('BJD')
+    plt.ylabel('Calibrated - Catalogue Magnitude')
+    plt.plot(outplotx,outploty,'bo')
+    #plt.plot(outplotxrepeat,outploty,'ro')
+    #plt.plot(linex,liney)
+    plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
+    plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+    #plt.errorbar(outplotx, outploty, xerr=3*calibOverlord[:,1], fmt='-o', linestyle='None')
+    #plt.errorbar(outplotxrepeat, outploty, yerr=3*calibFile[:,2], fmt='-o', linestyle='None')
+    plt.grid(True)
+    plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+    fig.set_size_inches(6,3)
+    plt.savefig(parentPath / str("CalibrationSanityPlot_" +str(filterCode)+"_Time.png"))
+    plt.savefig(parentPath / str("CalibrationSanityPlot_" +str(filterCode)+"_Time.eps"))
 
     # Finalise calibcompsusedfile
     #logger.debug(calibCompUsed)
