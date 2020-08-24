@@ -692,10 +692,17 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     fig = plt.gcf()
     outplotx=calibOverlord[:,0]
     outploty=calibOverlord[:,5]
+    sqsol = np.linalg.lstsq(np.vstack([calibOverlord[:,0],np.ones(len(calibOverlord[:,0]))]).T,calibOverlord[:,5], rcond=None)
+    m, c = sqsol[0]
+    x, residuals, rank, s = sqsol
+    #logger.info(m)
+    #logger.info(c)
+    #logger.info(residuals[0])
     
     plt.xlabel(str(cat_used) + ' ' +str(filterCode) + ' Catalogue Magnitude')
     plt.ylabel('Calibrated - Catalogue Magnitude')
     plt.plot(outplotx,outploty,'bo')
+    plt.plot(outplotx,m*outplotx+c,'r')
     #plt.plot(outplotxrepeat,outploty,'ro')
     #plt.plot(linex,liney)
     plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
@@ -708,15 +715,24 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     plt.savefig(parentPath / str("CalibrationSanityPlot_" +str(filterCode)+"_Magnitude.png"))
     plt.savefig(parentPath / str("CalibrationSanityPlot_" +str(filterCode)+"_Magnitude.eps"))
 
+    with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "w") as f:
+        f.write("Magnitude slope     : " + str(m)+"\n")
+        f.write("Magnitude zeropoint : " + str(c) +"\n")
+        f.write("Magnitude residuals : " +str(residuals[0])+"\n")
+
     # Difference vs time calibration plot
     plt.cla()
     fig = plt.gcf()
     outplotx=calibOverlord[:,6]
     outploty=calibOverlord[:,5]
+    sqsol = np.linalg.lstsq(np.vstack([calibOverlord[:,6],np.ones(len(calibOverlord[:,6]))]).T,calibOverlord[:,5], rcond=None)
+    m, c = sqsol[0]
+    x, residuals, rank, s = sqsol
     
     plt.xlabel('BJD')
     plt.ylabel('Calibrated - Catalogue Magnitude')
     plt.plot(outplotx,outploty,'bo')
+    plt.plot(outplotx,m*outplotx+c,'r')
     #plt.plot(outplotxrepeat,outploty,'ro')
     #plt.plot(linex,liney)
     plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
@@ -729,6 +745,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     plt.savefig(parentPath / str("CalibrationSanityPlot_" +str(filterCode)+"_Time.png"))
     plt.savefig(parentPath / str("CalibrationSanityPlot_" +str(filterCode)+"_Time.eps"))
 
+    with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "a") as f:
+        f.write("Time slope     : " + str(m)+"\n")
+        f.write("Time zeropoint : " + str(c) +"\n")
+        f.write("Time residuals : " +str(residuals[0])+"\n")
     # Finalise calibcompsusedfile
     #logger.debug(calibCompUsed)
 
