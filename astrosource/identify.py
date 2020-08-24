@@ -5,7 +5,7 @@ import os
 import logging
 
 from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, \
-    zeros
+    zeros, array
 from astropy import units as u
 from astropy import wcs
 from astropy.coordinates import SkyCoord, EarthLocation
@@ -175,7 +175,7 @@ def match_ref_to_potentials(referenceFrame, photFile, mask, tmpmask, rejectStart
     for j, rf in enumerate(referenceFrame):
         if not mask[j]:
             # Skip stars in mask
-            img_catalogue.append(zeros(8))
+            img_catalogue.append(zeros(6))
             continue
 
         testStar = SkyCoord(ra = rf[0]*u.degree, dec = rf[1]*u.degree)
@@ -183,14 +183,14 @@ def match_ref_to_potentials(referenceFrame, photFile, mask, tmpmask, rejectStart
         if (d2d.arcsecond > acceptDistance):
             #"No Match! Nothing within range."
             rejectStars += 1
-            img_catalogue.append(zeros(8))
+            img_catalogue.append(zeros(6))
             tmpmask[j] = False
 
         else:
-            img_catalogue.append(asarray(photFile[idx]))
+            img_catalogue.append(photFile[idx][0:6])
             tmpmask[j] = True
 
-    return img_catalogue, tmpmask, rejectStars
+    return asarray(img_catalogue), tmpmask, rejectStars
 
 def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lowcounts=1000, hicounts=3000000, imageFracReject=0.0,  rejectStart=7, minCompStars=1):
     """
@@ -341,8 +341,8 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
             raise AstrosourceException("The only comparisons detected where also target stars. No adequate comparisons were found.")
 
     # Create master photometry catalogue
-    comparisons[:0] = [referenceFrame]
-    comparisons = [c[mask] for c in comparisons]
+    comparisons[:0] = [asarray(referenceFrame[:,0:6])]
+    comparisons = array([c[mask] for c in comparisons])
 
     # Construct the output file containing candidate comparison stars
     outputComps = [[c[0],c[1]] for c in comparisons[0]]
@@ -368,4 +368,5 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
             f.write(str(filename) +"\n")
 
     sys.stdout.write('\n')
-    return usedImages, asarray(comparisons)
+
+    return usedImages, comparisons

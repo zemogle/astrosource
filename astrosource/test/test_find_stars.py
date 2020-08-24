@@ -134,7 +134,6 @@ def test_find_stars(setup):
     assert stars.shape[1] == len(setup.screenedComps)
     assert stars[0].all() == setup.screenedComps.all()
     stars, comparisons, compFile = find_comparisons(setup.targets, TEST_PATHS['parent'], usedImages, photlist=stars)
-    print(stars.shape)
     calibStands, goodcalib, cat_used = calibrate_photometry(setup.targets, filterCode='B', variabilityMultiplier=2, starvar=compFile, closerejectd=0.5)
     assert calibStands[goodcalib,:].shape == setup.calibstands.shape
     assert calibStands[goodcalib,:].all() == setup.calibstands.all()

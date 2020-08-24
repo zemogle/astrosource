@@ -64,25 +64,29 @@ def find_comparisons(targets, parentPath=None, fileList=None, photlist=[], stdMu
     logger.debug("Total total {}".format(np.sum(np.array(fileCount))))
     starRejecter = [True for i in range(comparisons.shape[1])]
     oldrejects = [False for i in range(comparisons.shape[1])]
+    stdCompStar, sortStars = calculate_comparison_variation(comparisons, fileCount)
+
     while True:
 
         # Calculate the variation in each candidate comparison star in brightness
         # compared to this gigantic comparison star.
-        numfiles = comparisons[0].size
-        stdCompStar, sortStars = calculate_comparison_variation(comparisons, fileCount)
-
-        variabilityMax=(min(stdCompStar)*variabilityMultiplier)
+        stablestarstd = stdCompStar[starRejecter]
+        variabilityMax=(min(stablestarstd)*variabilityMultiplier)
 
         # Calculate and present the sample statistics
-        stdCompMed = median(stdCompStar)
-        stdCompStd = std(stdCompStar)
+        stdCompMed = median(stablestarstd)
+        stdCompStd = std(stablestarstd)
 
-        logger.debug(f"Median of comparisons = {stdCompMed}")
-        logger.debug(f"STD of comparisons = {stdCompStd}")
+        # Calculate and present statistics of sample of candidate comparison stars.
+        logger.info("Median variability {:.6f}".format(stdCompMed))
+        logger.info("Std variability {:.6f}".format(stdCompStd))
+        logger.info("Min variability {:.6f}".format(min(stablestarstd)))
+        logger.info("Max variability {:.6f}".format(max(stablestarstd)))
+        logger.info("Number of Stable Comparison Candidates {}".format(sum(starRejecter)))
 
         # Delete comparisons that have too high a variability
-        if min(stdCompStar) > 0.002:
-            for j, stdComp in enumerate(stdCompStar):
+        if min(stablestarstd) > 0.002:
+            for j, stdComp in enumerate(stablestarstd):
                 #logger.debug(stdCompStar[j])
                 if stdComp > (stdCompMed + (stdMultiplier*stdCompStd)) or isnan(stdComp):
                     logger.debug(f"Star {j} Rejected, Variability too high")
@@ -94,15 +98,6 @@ def find_comparisons(targets, parentPath=None, fileList=None, photlist=[], stdMu
         else:
             logger.info("Minimum variability is too low for comparison star rejection by variability.")
 
-
-        comparisons = array([c[starRejecter] for c in comparisons])
-
-        # Calculate and present statistics of sample of candidate comparison stars.
-        logger.info("Median variability {:.6f}".format(median(stdCompStar)))
-        logger.info("Std variability {:.6f}".format(std(stdCompStar)))
-        logger.info("Min variability {:.6f}".format(min(stdCompStar)))
-        logger.info("Max variability {:.6f}".format(max(stdCompStar)))
-        logger.info("Number of Stable Comparison Candidates {}".format(comparisons.shape[1]))
         # Once we have stopped rejecting stars, this is our final candidate catalogue then we start to select the subset of this final catalogue that we actually use.
         if starRejecter == oldrejects :
             break
@@ -111,6 +106,11 @@ def find_comparisons(targets, parentPath=None, fileList=None, photlist=[], stdMu
             sys.stdout.write('💫')
             sys.stdout.flush()
             oldrejects[:] = starRejecter
+
+        logger.critical(len(starRejecter))
+        logger.critical(comparisons.shape)
+    comparisons = array([c[starRejecter] for c in comparisons])
+    sortStars = sortStars[starRejecter]
 
     sys.stdout.write('\n')
     logger.info('Statistical stability reached.')
@@ -142,15 +142,16 @@ def final_candidate_catalogue(parentPath, comparisons, sortStars, thresholdCount
     tempCountCounter=0.0
     finalCountCounter=0.0
     for j in sortorder:
-
+        logger.critical(j)
+        logger.critical(referenceFrame[j][4])
         if tempCountCounter < thresholdCounts:
             if len(sortorder) == 1 or sortStars[j][2] < variabilityMax:
                 selected_comps.append(j)
                 logger.debug(f"Comp {j+1} std: {sortStars[j][2]}")
                 logger.debug(f"Cumulative Counts thus far: {tempCountCounter}")
-                finalCountCounter=add(finalCountCounter,referenceFrame[j][4])
+                finalCountCounter += referenceFrame[j][4]
 
-        tempCountCounter=add(tempCountCounter,referenceFrame[j][4])
+        tempCountCounter += referenceFrame[j][4]
 
     compsused = asarray(comparisons[0][selected_comps][:,[0,1]])
     logger.debug("Selected stars listed below:")
@@ -181,11 +182,10 @@ def calculate_comparison_variation(comparisons, fileCount):
             compDiffMags = append(compDiffMags,calc)
 
         logger.debug("VAR: " +str(std(compDiffMags)))
-        if np.isnan(std(compDiffMags)):
-            sys.exit()
+
         stdCompStar.append(std(compDiffMags))
         sortStars.append([comparisons[0][j][0], comparisons[0][j][1],std(compDiffMags),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-    return stdCompStar, array(sortStars)
+    return array(stdCompStar), array(sortStars)
 
 def remove_stars_targets(photlist, acceptDistance, targetFile, removeTargets):
     max_sep=acceptDistance * arcsecond
@@ -498,8 +498,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, comparison
     mag = median(calibphot[:,:,4], axis=0)
     finalComp = np.array([ra, dec, err, sumStd, mag]).T
 
-    logger.critical(finalComp)
-
     errCalib = median(sumStd) / pow((len(calibcomps)), 0.5)
 
     logger.debug("Comparison Catalogue: " + str(cat_used))
@@ -517,6 +515,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, photlist, comparison
         f.write("Standard Error/Uncertainty in Calibration: " +str(errCalib))
 
     #logger.debug(finalCompUsedFile)
-    # savetxt(parentPath / "calibCompsUsed.csv", finalComp, delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "calibCompsUsed.csv", finalComp, delimiter=",", fmt='%0.8f')
     sys.stdout.write('\n')
     return finalComp

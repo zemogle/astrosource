@@ -120,11 +120,11 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
     allcountscount=0
     # For each variable calculate the variability
     outputVariableHolder=[]
-    for target in targetFile:
+    for q, target in enumerate(targetFile):
         logger.debug("*********************")
-        logger.debug("Processing Target {}".format(str(q+1)))
-        logger.debug("RA {}".format(target[0]))
-        logger.debug("DEC {}".format(target[1]))
+        logger.debug(f"Processing Target {q+1}")
+        logger.debug(f"RA {target[0]}")
+        logger.debug(f"DEC {target[1]}")
         varCoord = SkyCoord(target[0],(target[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
         outputPhot=[]
         compArray=[]
