@@ -7,8 +7,9 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch, Mock
 
-from astrosource.identify import convert_photometry_files
-from astrosource.comparison import find_comparisons, read_data_files, find_reference_frame, \
+from astrosource.identify import convert_photometry_files, read_data_files, \
+    find_reference_frame
+from astrosource.comparison import find_comparisons, \
     remove_stars_targets, find_comparisons_calibrated, catalogue_call
 
 from astrosource.test.mocks import mock_vizier_query_region_vsx, mock_vizier_apass_v, mock_vizier_apass_b, \
@@ -40,30 +41,22 @@ def setup():
 
 def test_read_data_files(setup):
     files = os.listdir(TEST_PATHS['parent'])
-    fileslist = TEST_PATHS['parent'].glob('*.npy')
+    fileslist = list(TEST_PATHS['parent'].glob('*.npy'))
     assert 'screenedComps.csv' in files
-    compFile, photFileArray = read_data_files(TEST_PATHS['parent'], fileslist)
-    referenceFrame, fileRaDec = find_reference_frame(photFileArray)
+    photFileArray, fileList = read_data_files(TEST_PATHS['parent'], fileslist)
+    referenceFrame, rfid = find_reference_frame(photFileArray)
     assert list(referenceFrame[0]) == [154.7583434, -9.6660181000000005, 271.47230000000002, 23.331099999999999, 86656.100000000006, 319.22829999999999]
-    assert (fileRaDec[0].ra.degree, fileRaDec[0].dec.degree) == (154.7583434, -9.6660181)
+    assert rfid == 1
     assert len(referenceFrame) == 227
-    assert len(fileRaDec) == 227
 
-def test_comparison(setup):
-    # All files are present so we are ready to continue
-    filelist = TEST_PATHS['parent'].glob('*.npy')
-    outfile, num_cands = find_comparisons(targets=setup.targets, parentPath=TEST_PATHS['parent'], fileList=filelist)
-
-    assert outfile == TEST_PATHS['parent'] / "compsUsed.csv"
-    assert num_cands == 10
 
 @patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_vsx)
 def test_remove_targets_calibrated(setup):
     parentPath = TEST_PATHS['parent']
     fileslist = TEST_PATHS['parent'].glob('*.npy')
-    compFile, photFileArray = read_data_files(parentPath, fileslist)
-    assert compFile.shape == (60,2)
-    compFile_out = remove_stars_targets(parentPath, compFile, acceptDistance=5.0, targetFile=setup.targets, removeTargets=1)
+    photFileArray, fileList = read_data_files(parentPath, fileslist)
+    assert photFileArray.shape[0] == 4
+    compFile_out = remove_stars_targets(photFileArray, acceptDistance=5.0, targetFile=setup.targets, removeTargets=1)
     # 3 stars are removed because they are variable
     assert compFile_out.shape == (55,2)
 

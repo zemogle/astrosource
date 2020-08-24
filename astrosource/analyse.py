@@ -43,7 +43,7 @@ def get_total_counts(photFileArray, compFile, loopLength):
         allCountsArray.append([allCounts, allCountsErr])
     return allCountsArray
 
-def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPath=None):
+def find_variable_stars(targets, comparisons, acceptDistance=1.0, errorReject=0.05, parentPath=None):
     '''
     Find stable comparison stars for the target photometry and remove variables
 
@@ -65,36 +65,7 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
     minimumVariableCounts = 10000  # Do not try to detect variables dimmer than this.
     minimumNoOfObs = 10 # Minimum number of observations to count as a potential variable.
 
-
-    # Load in list of used files
-    fileList = []
-    with open(parentPath / "usedImages.txt", "r") as f:
-        for line in f:
-            fileList.append(line.strip())
-
-    # LOAD Phot FILES INTO LIST
-    photFileArray = []
-    for file in fileList:
-        photFileArray.append(load(parentPath / file))
-
-    if not photFileArray:
-        raise AstrosourceException("No input files")
-
-    # LOAD IN COMPARISON FILE
-    preFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
-
-    if preFile.shape[0] != 13:
-        preFile=(preFile[preFile[:, 2].argsort()])
-
-    # GET REFERENCE IMAGE
-    # Sort through and find the largest file and use that as the reference file
-    fileSizer = 0
-    logger.debug("Finding image with most stars detected")
-    for photFile in photFileArray:
-        if photFile.size > fileSizer:
-            referenceFrame = photFile
-            fileSizer = photFile.size
-
+    photFileArray = comparisons[0:]
     compFile = genfromtxt(parentPath / "compsUsed.csv", dtype=float, delimiter=',')
     logger.debug("Stable Comparison Candidates below variability threshold")
     outputPhot = []
@@ -105,7 +76,7 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
 
     # Define targetlist as every star in referenceImage above a count threshold
     logger.debug("Setting up Variable Search List")
-    targetFile = referenceFrame
+    targetFile = comparisons[0]
     # Although remove stars that are below the variable countrate
     starReject=[]
     for q in range(targetFile.shape[0]):
@@ -175,12 +146,12 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
 
     return outputVariableHolder
 
-def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5, filesave=True):
+def photometric_calculations(targets, comparisons, paths, acceptDistance=5.0, errorReject=0.5, filesave=True):
     fileCount=[]
     photometrydata = []
     sys.stdout.write('🖥 Starting photometric calculations\n')
 
-    photFileArray,fileList = photometry_files_to_array(paths['parent'])
+    photFileArray = comparisons
 
     if (paths['parent'] / 'calibCompsUsed.csv').exists():
         logger.debug("Calibrated")

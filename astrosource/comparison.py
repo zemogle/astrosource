@@ -107,8 +107,6 @@ def find_comparisons(targets, parentPath=None, fileList=None, photlist=[], stdMu
             sys.stdout.flush()
             oldrejects[:] = starRejecter
 
-        logger.critical(len(starRejecter))
-        logger.critical(comparisons.shape)
     comparisons = array([c[starRejecter] for c in comparisons])
     sortStars = sortStars[starRejecter]
 
@@ -142,8 +140,6 @@ def final_candidate_catalogue(parentPath, comparisons, sortStars, thresholdCount
     tempCountCounter=0.0
     finalCountCounter=0.0
     for j in sortorder:
-        logger.critical(j)
-        logger.critical(referenceFrame[j][4])
         if tempCountCounter < thresholdCounts:
             if len(sortorder) == 1 or sortStars[j][2] < variabilityMax:
                 selected_comps.append(j)
@@ -241,7 +237,6 @@ def remove_stars_targets(photlist, acceptDistance, targetFile, removeTargets):
         if d2dcomp != 9999:
             if d2dcomp.arcsecond.any() < max_sep.value:
                 logger.debug("Variable star match!")
-                varStarReject.append(t)
                 mask[idxcomp] = False
             else:
                 logger.debug("No Variable star match!")

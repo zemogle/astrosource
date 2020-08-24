@@ -158,6 +158,8 @@ def read_data_files(parentPath, fileList):
 
 def find_reference_frame(photFileArray):
     fileSizer = 0
+    referenceFrame = None
+    rfid = 0
     logger.info("Finding image with most stars detected")
     for j, photFile in enumerate(photFileArray):
         if photFile.size > fileSizer:

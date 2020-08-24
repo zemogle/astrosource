@@ -70,7 +70,7 @@ class TimeSeries:
             sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration')
 
     def find_variables(self):
-        find_variable_stars(targets=self.targets, parentPath=self.paths['parent'])
+        find_variable_stars(targets=self.targets, comparisons=self.stars, parentPath=self.paths['parent'])
 
     def photometry(self, filesave=False):
         data = photometric_calculations(targets=self.targets, paths=self.paths, filesave=filesave)
