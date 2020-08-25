@@ -597,6 +597,11 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     for q in range(len(asarray(calibStands)[:,0])):
         if calibStands[q][2] > varimin:
             calibStandsReject.append(q)
+        elif calibStands[q][4] == 0:
+            calibStandsReject.append(q)
+        elif np.isnan(calibStands[q][4]):
+            calibStandsReject.append(q)
+        
 
     calibStands=delete(calibStands, calibStandsReject, axis=0)
 
@@ -718,7 +723,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "w") as f:
         f.write("Magnitude slope     : " + str(m)+"\n")
         f.write("Magnitude zeropoint : " + str(c) +"\n")
-        f.write("Magnitude residuals : " +str(residuals[0])+"\n")
+        if not residuals.size == 0:
+            f.write("Magnitude residuals : " +str(residuals[0])+"\n")
+        else:
+            f.write("Magnitude residuals not calculated. \n")
 
     # Difference vs time calibration plot
     plt.cla()
@@ -747,8 +755,11 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "a") as f:
         f.write("Time slope     : " + str(m)+"\n")
-        f.write("Time zeropoint : " + str(c) +"\n")
-        f.write("Time residuals : " +str(residuals[0])+"\n")
+        f.write("Time zeropoint : " + str(c) +"\n")        
+        if not residuals.size == 0:
+            f.write("Time residuals : " +str(residuals[0])+"\n")
+        else:
+            f.write("Time residuals not calculated. \n")
     # Finalise calibcompsusedfile
     #logger.debug(calibCompUsed)
 
