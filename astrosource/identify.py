@@ -228,7 +228,6 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
     """
     sys.stdout.write("🌟 Identify comparison stars for photometry calculations\n")
     #Initialisation values
-    usedImages=[]
 
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
@@ -241,6 +240,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
 
     referenceFrame, rfid = find_reference_frame(photFileArray)
     photFileArray = delete(photFileArray,rfid,axis=0)
+    usedImages=[fileList[rfid]]
 
     if not referenceFrame.size:
         raise AstrosourceException("No suitable reference files found")
@@ -336,6 +336,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
             if d2d.arcsecond < 5.0: # anything within 5 arcseconds of the target
                 if not mask[idx]:
                     flag = True
+                    targetid = idx
                     break
                 else:
                     mask[idx] = False
@@ -344,6 +345,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
 
     # Create master photometry catalogue
     comparisons[:0] = [asarray(referenceFrame[:,0:6])]
+    targetphot = array([c[targetid] for c in comparisons])
     comparisons = array([c[mask] for c in comparisons])
 
     # Construct the output file containing candidate comparison stars
@@ -371,4 +373,4 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
 
     sys.stdout.write('\n')
 
-    return usedImages, comparisons
+    return usedImages, comparisons, targetphot

@@ -87,7 +87,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
         if (full or calc) and not skipvarsearch:
             ts.find_variables()
         if full or phot:
-            ts.photometry(filesave=True)
+            ts.photometry_calc(filesave=True)
         if full or plot:
             ts.plot(detrend=detrend, period=period, eebls=eebls, filesave=True)
 

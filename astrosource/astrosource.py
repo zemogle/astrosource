@@ -42,14 +42,18 @@ class TimeSeries:
         self.files, self.filtercode = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd)
 
     def analyse(self, calib=True):
-        self.usedimages, self.stars = find_stars(targets=self.targets,
+        self.usedimages, self.photometry, self.targetphot = find_stars(targets=self.targets,
                                                  paths=self.paths,
                                                  fileList=self.files,
                                                  imageFracReject=self.imgreject,
                                                  starreject=self.starreject,
                                                  hicounts=self.hicounts,
                                                  lowcounts=self.lowcounts)
-        self.stars, self.comparisons, self.starvar = find_comparisons(self.targets, self.indir, self.usedimages, thresholdCounts=self.thresholdcounts, photlist=self.stars)
+        self.photometry, self.comparisons, self.starvar = find_comparisons(targets=self.targets,
+                                                            parentPath=self.indir,
+                                                            fileList=self.usedimages,
+                                                            thresholdCounts=self.thresholdcounts,
+                                                            photometry=self.photometry)
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         self.calibrated = False
         if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
@@ -60,7 +64,7 @@ class TimeSeries:
                                             nopanstarrs=self.nopanstarrs,
                                             nosdss=self.nosdss,
                                             closerejectd=self.closerejectd,
-                                            photlist=self.stars,
+                                            photometry=self.photometry,
                                             comparisons=self.comparisons,
                                             starvar=self.starvar)
                 self.calibrated = True
@@ -70,10 +74,15 @@ class TimeSeries:
             sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration')
 
     def find_variables(self):
-        find_variable_stars(targets=self.targets, comparisons=self.stars, parentPath=self.paths['parent'])
+        find_variable_stars(targets=self.targets, photometry=self.photometry, parentPath=self.paths['parent'])
 
-    def photometry(self, filesave=False):
-        data = photometric_calculations(targets=self.targets, paths=self.paths, filesave=filesave)
+    def photometry_calc(self, filesave=False):
+        data = photometric_calculations(targetphot=self.targetphot,
+                            photometry=self.photometry,
+                            paths=self.paths,
+                            calibrated=self.calibrated,
+                            filesave=filesave,
+                            fileList=self.usedimages)
         self.output(mode='diff', data=data)
         if self.calibrated:
             self.data = calibrated_photometry(paths=self.paths, photometrydata=data)

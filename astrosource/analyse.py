@@ -43,7 +43,7 @@ def get_total_counts(photFileArray, compFile, loopLength):
         allCountsArray.append([allCounts, allCountsErr])
     return allCountsArray
 
-def find_variable_stars(targets, comparisons, acceptDistance=1.0, errorReject=0.05, parentPath=None):
+def find_variable_stars(targets, photometry, acceptDistance=1.0, errorReject=0.05, parentPath=None):
     '''
     Find stable comparison stars for the target photometry and remove variables
 
@@ -65,18 +65,38 @@ def find_variable_stars(targets, comparisons, acceptDistance=1.0, errorReject=0.
     minimumVariableCounts = 10000  # Do not try to detect variables dimmer than this.
     minimumNoOfObs = 10 # Minimum number of observations to count as a potential variable.
 
-    photFileArray = comparisons[0:]
+
+    # Load in list of used files
+    fileList = []
+    with open(parentPath / "usedImages.txt", "r") as f:
+        for line in f:
+            fileList.append(line.strip())
+
+    # LOAD Phot FILES INTO LIST
+    photFileArray = photometry[1:]
+
+    # LOAD IN COMPARISON FILE
+    preFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
+
+    if preFile.shape[0] != 13:
+        preFile=(preFile[preFile[:, 2].argsort()])
+
+    # GET REFERENCE IMAGE
+    # Sort through and find the largest file and use that as the reference file
+    referenceFrame = photometry[0]
+
     compFile = genfromtxt(parentPath / "compsUsed.csv", dtype=float, delimiter=',')
     logger.debug("Stable Comparison Candidates below variability threshold")
     outputPhot = []
 
     # Get total counts for each file
 
-    allCountsArray = get_total_counts(photFileArray, compFile, loopLength=compFile.shape[0])
+    allCountsArray = get_total_counts(photometry, compFile, loopLength=compFile.shape[0])
+
 
     # Define targetlist as every star in referenceImage above a count threshold
     logger.debug("Setting up Variable Search List")
-    targetFile = comparisons[0]
+    targetFile = referenceFrame
     # Although remove stars that are below the variable countrate
     starReject=[]
     for q in range(targetFile.shape[0]):
@@ -146,53 +166,27 @@ def find_variable_stars(targets, comparisons, acceptDistance=1.0, errorReject=0.
 
     return outputVariableHolder
 
-def photometric_calculations(targets, comparisons, paths, acceptDistance=5.0, errorReject=0.5, filesave=True):
+def photometric_calculations(targetphot, photometry, paths, fileList, calibrated=False, acceptDistance=5.0, errorReject=0.5, filesave=True):
     fileCount=[]
     photometrydata = []
     sys.stdout.write('🖥 Starting photometric calculations\n')
 
-    photFileArray = comparisons
+    # allCountsArray = get_total_counts(photometry, compFile, loopLength)
 
-    if (paths['parent'] / 'calibCompsUsed.csv').exists():
-        logger.debug("Calibrated")
-        compFile=genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
-        calibFlag=1
-    else:
-        logger.debug("Differential")
-        compFile=genfromtxt(paths['parent'] / 'compsUsed.csv', dtype=float, delimiter=',')
-        calibFlag=0
-
-    # Get total counts for each file
-    if compFile.shape[0]== 5 and compFile.size ==5:
-        loopLength=1
-    else:
-        loopLength=compFile.shape[0]
-    allCountsArray = get_total_counts(photFileArray, compFile, loopLength)
-
+    photsum = np.sum(photometry, axis=0)
+    logger.critical(countsum.shape)
+    sys.exit()
     allcountscount=0
 
-    if len(targets)== 4 and targets.size == 4:
-        loopLength=1
-    else:
-        loopLength=targets.shape[0]
-    # For each variable calculate all the things
-    for q in range(loopLength):
+    # For each target calculate all the things
+    for q, target in enumerate(targets):
         starErrorRejCount=0
         starDistanceRejCount=0
         logger.debug("****************************")
-        logger.debug("Processing Variable {}".format(q+1))
-        if int(len(targets)) == 4 and targets.size==4:
-            logger.debug("RA {}".format(targets[0]))
-        else:
-            logger.debug("RA {}".format(targets[q][0]))
-        if int(len(targets)) == 4 and targets.size==4:
-            logger.debug("Dec {}".format(targets[1]))
-        else:
-            logger.debug("Dec {}".format(targets[q][1]))
-        if int(len(targets)) == 4 and targets.size==4:
-            varCoord = SkyCoord(targets[0],(targets[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
-        else:
-            varCoord = SkyCoord(targets[q][0],(targets[q][1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
+        logger.debug("Processing Target {}".format(q+1))
+        logger.debug("RA {}".format(target[0]))
+        logger.debug("Dec {}".format(target[1]))
+        varCoord = SkyCoord(target[0],(target[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
 
         # Grabbing variable rows
         logger.debug("Extracting and Measuring Differential Magnitude in each Photometry File")
@@ -200,7 +194,7 @@ def photometric_calculations(targets, comparisons, paths, acceptDistance=5.0, er
         compArray=[]
         compList=[]
         allcountscount=0
-        for imgs, photFile in enumerate(photFileArray):
+        for imgs, photFile in enumerate(photometry):
             sys.stdout.write('.')
             compList=[]
             fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
@@ -238,7 +232,7 @@ def photometric_calculations(targets, comparisons, paths, acceptDistance=5.0, er
                         else:
                             matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
                         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-                        tempList=append(tempList, photFileArray[imgs][idx][4])
+                        tempList=append(tempList, photometry[imgs][idx][4])
                     # logger.debug(f"{tempList}")
                     outputPhot.append(tempList)
 
@@ -254,7 +248,7 @@ def photometric_calculations(targets, comparisons, paths, acceptDistance=5.0, er
             if ( starRejected == 1):
 
                     #templist is a temporary holder of the resulting file.
-                    tempList=photFileArray[imgs][idx,:]
+                    tempList=photometry[imgs][idx,:]
                     googFile = Path(fileList[imgs]).name
                     tempList=append(tempList, float(googFile.split("_")[2].replace("d",".")))
                     tempList=append(tempList, float(googFile.split("_")[4].replace("a",".")))
@@ -264,8 +258,8 @@ def photometric_calculations(targets, comparisons, paths, acceptDistance=5.0, er
                     #Differential Magnitude
                     tempList=append(tempList,nan)
                     tempList=append(tempList,nan)
-                    tempList=append(tempList, photFileArray[imgs][idx][4])
-                    tempList=append(tempList, photFileArray[imgs][idx][5])
+                    tempList=append(tempList, photometry[imgs][idx][4])
+                    tempList=append(tempList, photometry[imgs][idx][5])
 
                     if (compFile.shape[0]== 5 and compFile.size ==5) or (compFile.shape[0]== 3 and compFile.size ==3):
                         loopLength=1
@@ -278,7 +272,7 @@ def photometric_calculations(targets, comparisons, paths, acceptDistance=5.0, er
                         else:
                             matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
                         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-                        tempList=append(tempList, photFileArray[imgs][idx][4])
+                        tempList=append(tempList, photometry[imgs][idx][4])
                     outputPhot.append(tempList)
                     fileCount.append(allCountsArray[allcountscount][0])
                     allcountscount=allcountscount+1
@@ -291,7 +285,8 @@ def photometric_calculations(targets, comparisons, paths, acceptDistance=5.0, er
         outputPhot=delete(outputPhot, imageReject, axis=0)
         try:
             outputPhot=np.vstack(asarray(outputPhot))
-        except ValueError:
+        except ValueError as e:
+            logger.critical(e)
             raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
 
         ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
