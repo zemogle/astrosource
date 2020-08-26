@@ -9,13 +9,15 @@ tags:
 authors:
   - name: Michael T Fitzgerald^[Corresponding author]
     orcid: 0000-0001-6554-1826
-    affiliation: 1 # 
+    affiliation: 1 #
   - name: Edward Gomez
     orcid: 0000-0001-5749-1507
     affiliation: 2
   - name: Saeed Salimpour
     orcid: 0000-0002-0387-3152
     affiliation: 3
+  - name: Ridlo W. Wibowo
+    affiliation: 4
 affiliations:
  - name: Edith Cowan University, Perth, Australia
    index: 1
@@ -23,6 +25,8 @@ affiliations:
    index: 2
  - name: Deakin University, Melbourne, Australia
    index: 3
+ - name: Institut Teknologi Bandung, Bandung, Indonesia
+   index: 4
 date: 20 August 2020
 bibliography: paper.bib
 ---
@@ -49,7 +53,7 @@ There are, of course, many fully featured pipelines in existence for general pro
 
 # Usage
 
-Astrosource has 2 main goals: to provide a fast route to high quality analysed data; to calculate the optimal settings for the data analysis.
+``astrosource`` has 2 main goals: to provide a fast route to high quality analysed data; to calculate the optimal settings for the data analysis.
 
 Currently ``astrosource`` requires input files with source brightness data, provided in either ``csv`` format, in the form RA, Dec, XPixel, YPixel. counts and error in counts, or FITS table data. ``astrosource`` will currently only process multiextension FITS data, such as from Las Cumbres Observatory (@brown2013cumbres), that contain embedded SEP photometry (@sep2016), such as provided by the BANZAI pipeline (@mccully2018real).
 
@@ -73,8 +77,8 @@ in data analysis.
 * Provide the variability of all stars within the dataset as a catalogue to facilitate variable source identification.
 * Calibrate the ensemble set to known stars in the field from APASS (@henden2015apass), SDSS (@alam2015eleventh), PanSTARRS (@magnier2016pan) or Skymapper (@wolf2018skymapper) depending on filter selection and declination.
 * Extract the photometric measurements and plot lightcurves of provided target stars.
-* Use period-search algorithms to find periodicity in the extracted lightcurves. Currently using Phase-Dispersion Minimization and String-Length algorithms writing by [altunin2020period] with more planned.
-* Use box-finding algorithms (@kovacs2002box) to find transit-like features in the extracted lightcurves. 
+* Use period-search algorithms to find periodicity in the extracted lightcurves. Currently using Phase-Dispersion Minimization and String-Length algorithms writing by [@altunin2020period] with more planned.
+* Use box-finding algorithms (@kovacs2002box) to find transit-like features in the extracted lightcurves.
 * Produce labelled and annotated output plots and a variety of data-files allowing further analysis and reporting.
 
 
@@ -89,7 +93,7 @@ takes between seconds to minutes for an equivalent analysis. While this is attra
 ``astrosource`` also can catch nuances that will never be easily accessible to the inexperienced observer.
 For instance, in the z-band in both SDSS and PanSTARRS catalogues, some provided photometry is poor quality or
 misleading, particularly for brighter sources, where certain glitches that have arisen in particular parts
-of the night sky or on the edges of mosaiced images, leading to dramatically incorrect estimates of
+of the night sky or on the edges of mosaicked images, leading to dramatically incorrect estimates of
 apparent magnitude. Solutions to avoid these issues have been easily incorporated into the ``astrosource``
 code, but would likely be cumbersome to explain manually in any given observer guide.
 
@@ -125,6 +129,6 @@ Dr. Michael Fitzgerald is the recipient of an Australian Research Council Discov
 (project number DE180100682) funded by the Australian Government. We acknowledge the support of Las Cumbres
 Observatory and it’s Global Sky Partner program which facilitated the development of this software as well
 as the hundreds of students who have bumped into small (and not so small) errors involved in this software
-along it’s development previously and into the future. Gomez and the Global Sky Partner program acknowledges support from Simons Foundation.
+along it’s development previously and into the future. Gomez and the Global Sky Partner program is supported by the Simons Foundation.
 
 # References
