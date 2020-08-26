@@ -73,10 +73,7 @@ def test_gather_files():
 
     phot_files, filtercode = gather_files(TEST_PATHS, filetype="fits")
     test_files = ['XOd2_ip_57757d0532642000_2017d01d04T01d16d43d571_1a089113_22d284_kb29.npy', 'XOd2_ip_57757d0522793000_2017d01d04T01d15d18d519_1a0899013_22d293_kb29.npy']
-    assert phot_files == test_files
-    # Clean up
-    # for tf in test_files:
-    #     os.remove(tf)
+    assert phot_files.sort() == test_files.sort()
 
 def test_find_stars():
     targets = numpy.array([[117.0269708, 50.2258111, 0,0]])
