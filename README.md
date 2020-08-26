@@ -1,6 +1,8 @@
 # astrosource
 Analysis script for sources with variability in their brightness. The package was formerly called `autovar` but this clashes with an existing Python package.
 
+[![Build Status](https://travis-ci.org/zemogle/astrosource.svg?branch=master)](https://travis-ci.org/zemogle/astrosource)
+
 ## Installation
 
 It is strongly recommended you use python 3 and a virtual environment
@@ -73,7 +75,7 @@ There are a few input options when running the scripts. You can either run the w
 
 `--periodtests` [integer] Number of different trial periods to run, Default 10000
 
-`--skipvarsearch` [boolean flag] If this is set, this skips the variability calculations for each identified star. Pragmatically this skips creating the starVariability outputs. In a crowded field this can take an excessive amount of time. 
+`--skipvarsearch` [boolean flag] If this is set, this skips the variability calculations for each identified star. Pragmatically this skips creating the starVariability outputs. In a crowded field this can take an excessive amount of time.
 
 `--detrend` [boolean flag] Detrend exoplanet data
 
@@ -85,7 +87,7 @@ There are a few input options when running the scripts. You can either run the w
 
 `--hicounts` [int] Countrate above which to reject a comparison star as a candidate. Defaults to 1000000. (Note: This will vary from camera to camera, but it should be representative of a typical value that would have a peak pixel value significantly below the full range of the ccd, preferably lower rather than higher. )
 
-`--thresholdcounts` [int] the number of counts at which to stop adding identified comparison stars to the ensemble. Default 1000000. 
+`--thresholdcounts` [int] the number of counts at which to stop adding identified comparison stars to the ensemble. Default 1000000.
 
 `--closerejectd` [float] astrosource will reject potential comparison calibration stars if there are nearby stars to it. Closerejectd is the limiting distance in arcseconds. For crowded fields, this value may need to be lowered. Default 5.0. While the primary function here is to identify stars that are not in crowded situations, it also has the side-effect of removing false detections in sky surveys due to image artifacts or diffraction spikes which tend to cluster together.
 
@@ -124,9 +126,9 @@ A variety of output files are generated. Some are obvious, some are not so obvio
 
 `calibStands.csv`: There are stars from stdComps.csv (as opposed to compsUsed.csv) that have identified calibrated magnitudes in the catalogue. The magnitudes in this catalogue are from the reference catalogue (e.g. APASS, Skymapper, SDSS or PanSTARRS)
 
-`calibCompsUsed.csv`: These are the calibrated magnitudes of the compsUsed.csv comparison stars calculated by comparison to calibStands.csv. 
+`calibCompsUsed.csv`: These are the calibrated magnitudes of the compsUsed.csv comparison stars calculated by comparison to calibStands.csv.
 
-The various calibration files may seem like a bit of a puzzle at first. The reason there is a few steps is that the brightest, least variable, most suitable comparison stars (compsUsed.csv) may (and usually are if you are using a smaller telescope) be actually saturated in the reference catalogue which can tend to become problematic at 10th to 12th magnitude. Hence the identified comparison stars in compsUsed.csv to create the shape of the lightcurve are actually sometimes also calibrated to the dimmer, but still low variability, stars available in stdComps.csv. If your comparison stars are 10th magnitude or dimmer, the identified comparison stars are likely also the calibration stars used. 
+The various calibration files may seem like a bit of a puzzle at first. The reason there is a few steps is that the brightest, least variable, most suitable comparison stars (compsUsed.csv) may (and usually are if you are using a smaller telescope) be actually saturated in the reference catalogue which can tend to become problematic at 10th to 12th magnitude. Hence the identified comparison stars in compsUsed.csv to create the shape of the lightcurve are actually sometimes also calibrated to the dimmer, but still low variability, stars available in stdComps.csv. If your comparison stars are 10th magnitude or dimmer, the identified comparison stars are likely also the calibration stars used.
 
 `calibrationErrors.txt`: The errors output from the calibration to the reference catalogue.
 
@@ -136,7 +138,7 @@ The various calibration files may seem like a bit of a puzzle at first. The reas
 
 `PeriodEstimates.txt`: A simple list of the results of the period-finding function for each requested target using PDM and the String Method.
 
-`outputcats`: This folder contains the catalogues for each target (V1, V2… etc.). There are differential (diff) and calibrated (calib) versions of the final results formatted for various software packages. 
+`outputcats`: This folder contains the catalogues for each target (V1, V2… etc.). There are differential (diff) and calibrated (calib) versions of the final results formatted for various software packages.
 
 `outputplots`: This folder contains the output lightcurves (phaseplotted also if --period was requested)
 
