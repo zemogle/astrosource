@@ -166,14 +166,17 @@ def find_variable_stars(targets, photometry, acceptDistance=1.0, errorReject=0.0
 
     return outputVariableHolder
 
-def photometric_calculations(targetphot, photometry, paths, fileList, calibrated=False, acceptDistance=5.0, errorReject=0.5, filesave=True):
+def photometric_calculations(targetphot, photometry, comparisons, paths, fileList, calibrated=False, acceptDistance=5.0, errorReject=0.5, filesave=True):
     fileCount=[]
     photometrydata = []
+    # RAW photometry for selected comparison stars
+    compsphot = photometry[:,comparisons, :]
+
     sys.stdout.write('🖥 Starting photometric calculations\n')
 
     # allCountsArray = get_total_counts(photometry, compFile, loopLength)
     n, x = np.array(fileList).shape
-    photsum = np.sum(photometry, axis=1)
+    photsum = np.sum(compsphot, axis=1)
 
     allcountscount=0
     # For each target calculate all the things
@@ -188,10 +191,6 @@ def photometric_calculations(targetphot, photometry, paths, fileList, calibrated
 
         # Grabbing variable rows
         logger.debug("Extracting and Measuring Differential Magnitude in each Photometry File")
-        outputPhot=[] # new
-        compArray=[]
-        compList=[]
-        allcountscount=0
 
         targetmagerror = 1.0857 * targetphot[:,5]/targetphot[:,4]
         magerrorens = 1.0857 * photsum[:,5]/photsum[:,4] #magerens
@@ -207,7 +206,7 @@ def photometric_calculations(targetphot, photometry, paths, fileList, calibrated
 
         # Put all raw and differential photometry in a single 2D array
         # Each row is a single file
-        fullphot = photometry[:,0,0:6]
+        fullphot = compsphot[:,0,0:6]
         # MDJ or BJD
         fullphot = np.concatenate((fullphot, dates.astype(np.single)), axis=1)
         # Airmass
@@ -223,7 +222,7 @@ def photometric_calculations(targetphot, photometry, paths, fileList, calibrated
         # Target raw photometry
         fullphot = np.concatenate((fullphot, targetphot[:,4:]), axis=1)
         # Raw photometry for each comparison
-        fullphot = np.concatenate((fullphot, photometry[:,:,4]), axis=1)
+        fullphot = np.concatenate((fullphot, compsphot[:,:,4]), axis=1)
         # Remove files where target mag error is higher than limit
         fullphot = fullphot[validfiles]
         # try:

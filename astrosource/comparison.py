@@ -151,12 +151,13 @@ def final_candidate_catalogue(parentPath, comparisons, starvar, thresholdCounts,
     compsused = asarray(comparisons[0][selected_comps][:,[0,1]])
     logger.debug("Selected stars listed below:")
 
-    logger.info(f"Finale Ensemble Counts: {finalCountCounter}")
+    logger.info(f"Final Ensemble Counts: {finalCountCounter}")
 
     logger.info(f"{len(selected_comps)} Stable Comparison Candidates below variability threshold output to compsUsed.csv")
 
     outfile = parentPath / "compsUsed.csv"
     savetxt(outfile, compsused, delimiter=",", fmt='%0.8f')
+
     return selected_comps
 
 def calculate_comparison_variation(comparisons, fileCount):

@@ -78,6 +78,7 @@ class TimeSeries:
     def photometry_calc(self, filesave=False):
         data = photometric_calculations(targetphot=self.targetphot,
                             photometry=self.photometry,
+                            comparisons=self.comparisons,
                             paths=self.paths,
                             calibrated=self.calibrated,
                             filesave=filesave,
