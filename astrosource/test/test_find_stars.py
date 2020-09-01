@@ -128,15 +128,15 @@ def mock_read_data_files(paths,filelist):
 
 @patch('astrosource.identify.read_data_files', mock_read_data_files)
 def test_find_stars(setup):
-    usedImages, stars = find_stars(setup.targets, TEST_PATHS, INPUT_FILES)
-    assert usedImages == setup.imagesUsed
+    usedImages, stars, targetphot = find_stars(setup.targets, TEST_PATHS, INPUT_FILES)
+    assert len(usedImages) == len(setup.imagesUsed)
     # assert np.any(stars) == False
     assert stars.shape[1] == len(setup.screenedComps)
     assert stars[0].all() == setup.screenedComps.all()
-    stars, comparisons, compFile = find_comparisons(setup.targets, TEST_PATHS['parent'], usedImages, photlist=stars)
+    stars, comparisons, compFile = find_comparisons(setup.targets, TEST_PATHS['parent'], photometry=stars)
     calibStands, goodcalib, cat_used = calibrate_photometry(setup.targets, filterCode='B', variabilityMultiplier=2, starvar=compFile, closerejectd=0.5)
     assert calibStands[goodcalib,:].shape == setup.calibstands.shape
     assert calibStands[goodcalib,:].all() == setup.calibstands.all()
 
-    compfile = find_comparisons_calibrated(targets=setup.targets, filterCode='B', paths=TEST_PATHS, photlist=stars, starvar=compFile, comparisons=comparisons)
+    compfile = find_comparisons_calibrated(targets=setup.targets, filterCode='B', paths=TEST_PATHS, photometry=stars, starvar=compFile, comparisons=comparisons)
     assert compfile.shape == setup.calibcompused.shape

@@ -22,7 +22,7 @@ import logging
 logger = logging.getLogger('astrosource')
 
 
-def find_comparisons(targets, parentPath=None, fileList=None, photometry=[], stdMultiplier=2.5, thresholdCounts=1000000, variabilityMultiplier=2.5, removeTargets=True, acceptDistance=1.0):
+def find_comparisons(targets, parentPath=None, photometry=[], stdMultiplier=2.5, thresholdCounts=1000000, variabilityMultiplier=2.5, removeTargets=True, acceptDistance=1.0):
     '''
     Find stable comparison stars for the target photometry
 

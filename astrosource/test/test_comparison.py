@@ -62,12 +62,12 @@ def test_remove_targets_calibrated(setup):
 
 @patch('astrosource.comparison.Vizier',mock_vizier_apass_b)
 def test_find_comparisons_calibrated_b(setup):
-    compFile = find_comparisons_calibrated(filterCode='B', paths=TEST_PATHS, targets=setup.targets)
+    compFile = find_comparisons_calibrated(filterCode='B', paths=TEST_PATHS, targets=setup.targets, comparisons=,photometry=,starvar=)
     assert compFile.shape == (10,5)
 
 @patch('astrosource.comparison.Vizier',mock_vizier_apass_v)
 def test_find_comparisons_calibrated_v(setup):
-    compFile = find_comparisons_calibrated(filterCode='V', paths=TEST_PATHS, targets=setup.targets)
+    compFile = find_comparisons_calibrated(filterCode='V', paths=TEST_PATHS, targets=setup.targets, comparisons=,photometry=,starvar=)
     assert compFile.shape == (10,5)
 
 @patch('astrosource.comparison.Vizier', mock_vizier_ps_r)

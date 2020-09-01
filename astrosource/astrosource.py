@@ -51,7 +51,6 @@ class TimeSeries:
                                                  lowcounts=self.lowcounts)
         self.photometry, self.comparisons, self.starvar = find_comparisons(targets=self.targets,
                                                             parentPath=self.indir,
-                                                            fileList=self.usedimages,
                                                             thresholdCounts=self.thresholdcounts,
                                                             photometry=self.photometry)
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.

@@ -43,14 +43,14 @@ def rename_data_file(prihdr, bjd=False):
     instruMe=(prihdr['INSTRUME']).replace(' ','').replace('/','').replace('-','')
 
     if (prihdr['MJD-OBS'] == 'UNKNOWN'):
-        timeobs = 'UNKNOWN'
+        timeObs = 'UNKNOWN'
     elif bjd:
-        timeobs = convert_mjd_bjd(prihdr)
+        timeObs = convert_mjd_bjd(prihdr)
     else:
-        timeobs = '{0:.10f}'.format(prihdr['MJD-OBS']).replace('.','d')
-    newName=f"{objectTemp}_{filterOne}_{timeobs}_{dateObs}_{airMass}_{expTime}_{instruMe}.npy"
+        timeObs = '{0:.10f}'.format(prihdr['MJD-OBS']).replace('.','d')
+    newName=f"{objectTemp}_{filterOne}_{timeObs}_{dateObs}_{airMass}_{expTime}_{instruMe}.npy"
 
-    return newName
+    return newName, timeObs, airMass
 
 def export_photometry_files(filelist, indir, filetype='csv', bjd=False):
     phot_dict = {}
@@ -61,13 +61,13 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False):
         except TypeError:
             fitsobj = f.open()
             s3 = True
-        filepath = extract_photometry(fitsobj, indir, bjd)
+        filepath, timeObs, airMass = extract_photometry(fitsobj, indir, bjd)
         if s3:
             f.close()
             filename = f.name
         else:
             filename = fitsobj.name
-        phot_dict[Path(filepath).name] = filename
+        phot_dict[Path(filepath).name] = [filename, timeObs, airMass]
 
     return phot_dict
 
@@ -76,7 +76,10 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False):
     with fits.open(infile) as hdulist:
 
         if not outfile:
-            outfile = rename_data_file(hdulist[1].header)
+            outfile, timeObs, airMass = rename_data_file(hdulist[1].header)
+        else:
+            timeObs = "0."
+            airMass = "0."
         outfile = parentPath / outfile
         w = wcs.WCS(hdulist[1].header)
         data = hdulist[2].data
@@ -88,15 +91,17 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False):
         # savetxt(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr]), delimiter=',')
         save(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr]))
 
-    return outfile
+    return outfile, float(timeObs.replace("d",".")), float(airMass.replace("a","."))
 
 def convert_photometry_files(filelist):
     new_files = []
     for fn in filelist:
+        timeobs = float(fn.name.split("_")[2].replace("d","."))
+        airmass = float(fn.name.split("_")[4].replace("a","."))
         photFile = genfromtxt(fn, dtype=float, delimiter=',')
         filepath = Path(fn).with_suffix('.npy')
         save(filepath, photFile)
-        new_files.append(filepath.name)
+        new_files.append([filepath.name, timeobs, airmass])
     return new_files
 
 def convert_mjd_bjd(hdr):
@@ -110,7 +115,7 @@ def convert_mjd_bjd(hdr):
 
 
 def gather_files(paths, filelist=None, filetype="fz", bjd=False):
-    # Get list of files
+    # Get list of [file, timeobs, dateobs]
     sys.stdout.write('💾 Inspecting input files\n')
     if not filelist:
         filelist = paths['parent'].glob("*.{}".format(filetype))
@@ -118,16 +123,15 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
         # Assume we are not dealing with image files but photometry files
         phot_list = convert_photometry_files(filelist)
     else:
-        phot_list_temp = export_photometry_files(filelist, paths['parent'], bjd)
-        #Convert phot_list from dict to list
-        phot_list_temp = phot_list_temp.keys()
+        phot_dict = export_photometry_files(filelist, paths['parent'], bjd)
+        # Convert phot_list from dict to list
         phot_list = []
-        for key in phot_list_temp:
-            phot_list.append(key) #SLAERT: convert dict to just the list of npy files.
+        for k, v in phot_dict.items():
+            phot_list.append([k,v[1],v[2]]) #SLAERT: convert dict to just the list of npy files.
 
     if not phot_list:
         raise AstrosourceException("No files of type '.{}' found in {}".format(filetype, paths['parent']))
-    filters = set([os.path.basename(f).split('_')[1] for f in phot_list])
+    filters = set([os.path.basename(f[0]).split('_')[1] for f in phot_list])
 
     logger.debug("Filter Set: {}".format(filters))
     if len(filters) > 1:
@@ -137,7 +141,8 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
 def read_data_files(parentPath, fileList):
     # LOAD Phot FILES INTO LIST
     photFileArray = []
-    for file in fileList:
+    for f in fileList:
+        file = f[0]
         photFile = load(parentPath / file)
         if (photFile.size < 50):
             logger.debug("REJECT")
@@ -368,7 +373,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
     used_file = paths['parent'] / "usedImages.txt"
     with open(used_file, "w") as f:
         for s in usedImages:
-            filename = Path(s).name
+            filename = Path(s[0]).name
             f.write(str(filename) +"\n")
 
     sys.stdout.write('\n')
