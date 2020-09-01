@@ -178,7 +178,6 @@ def photometric_calculations(targetphot, photometry, comparisons, paths, fileLis
     n, x = np.array(fileList).shape
     photsum = np.sum(compsphot, axis=1)
 
-    allcountscount=0
     # For each target calculate all the things
     for q, target in enumerate([targetphot[0]]):
         starErrorRejCount=0
@@ -196,9 +195,7 @@ def photometric_calculations(targetphot, photometry, comparisons, paths, fileLis
         magerrorens = 1.0857 * photsum[:,5]/photsum[:,4] #magerens
         magerrtotal = pow(pow(targetmagerror, 2) + pow(magerrorens, 2), 0.5)
         absmag = 2.5 * log10(photsum[:,4]/targetphot[:,4])
-        logger.critical(photsum[:,4])
-        logger.critical(targetphot[:,4])
-        logger.critical(absmag)
+
         dates = np.array(fileList)[:,1].reshape(n,1)
         airmass = np.array(fileList)[:,2].reshape(n,1)
 
@@ -206,7 +203,7 @@ def photometric_calculations(targetphot, photometry, comparisons, paths, fileLis
 
         # Put all raw and differential photometry in a single 2D array
         # Each row is a single file
-        fullphot = compsphot[:,0,0:6]
+        fullphot = targetphot
         # MDJ or BJD
         fullphot = np.concatenate((fullphot, dates.astype(np.single)), axis=1)
         # Airmass
@@ -276,10 +273,10 @@ def calibrated_photometry(paths, photometrydata):
         if single_value:
             ensMag=pow(10,-ensembleMag*0.4)
         else:
-            for q in range(len(ensembleMag)):
-                ensMag=ensMag+(pow(10,-ensembleMag[q]*0.4))
+            for eMag in ensembleMag:
+                ensMag+= pow(10,-eMag*0.4)
 
-        ensembleMag=-2.5*math.log10(ensMag)
+        ensembleMag=-2.5*np.log10(ensMag)
         logger.info(f"Ensemble Magnitude: {ensembleMag}")
 
 
