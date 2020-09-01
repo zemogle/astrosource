@@ -1,0 +1,8 @@
+Lightcurve Statistics 
+
+Variable V1_B
+Max Magnitude: 10.60316269
+Min Magnitude: 8.83376722
+Amplitude    : 1.7693954699999992
+Mid Magnitude: 9.718464955
+

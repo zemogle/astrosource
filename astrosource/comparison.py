@@ -491,7 +491,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, photometry, comparis
     err = starvar[calibcomps,2]
     sumStd = std(calibphot[:,:,4], axis=0)
     mag = median(calibphot[:,:,4], axis=0)
-    finalComp = np.array([ra, dec, err, sumStd, mag]).T
+    finalComp = np.array([ra, dec, err, mag, sumStd]).T
 
     errCalib = median(sumStd) / pow((len(calibcomps)), 0.5)
 
