@@ -53,7 +53,7 @@ def rename_data_file(prihdr, bjd=False):
     return newName, timeObs, airMass
 
 def export_photometry_files(filelist, indir, filetype='csv', bjd=False):
-    phot_dict = {}
+    phot_list = []
     for f in filelist:
         s3 = False
         try:
@@ -67,9 +67,9 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False):
             filename = f.name
         else:
             filename = fitsobj.name
-        phot_dict[Path(filepath).name] = [filename, timeObs, airMass]
+        phot_list.append([Path(filepath).name, timeObs, airMass])
 
-    return phot_dict
+    return phot_list
 
 def extract_photometry(infile, parentPath, outfile=None, bjd=False):
 
@@ -123,15 +123,10 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
         # Assume we are not dealing with image files but photometry files
         phot_list = convert_photometry_files(filelist)
     else:
-        phot_dict = export_photometry_files(filelist, paths['parent'], bjd)
-        # Convert phot_list from dict to list
-        phot_list = []
-        for k, v in phot_dict.items():
-            phot_list.append([k,v[1],v[2]]) #SLAERT: convert dict to just the list of npy files.
-
+        phot_list = export_photometry_files(filelist, paths['parent'], bjd)
     if not phot_list:
         raise AstrosourceException("No files of type '.{}' found in {}".format(filetype, paths['parent']))
-    filters = set([os.path.basename(f[0]).split('_')[1] for f in phot_list])
+    filters = set([f[0].split('_')[1] for f in phot_list])
 
     logger.debug("Filter Set: {}".format(filters))
     if len(filters) > 1:
@@ -147,15 +142,15 @@ def read_data_files(parentPath, fileList):
         if (photFile.size < 50):
             logger.debug("REJECT")
             logger.debug(file)
-            fileList.remove(file)
+            fileList.remove(f)
         elif (( photFile[:,0] > 360).sum() > 0) :
             logger.debug("REJECT")
             logger.debug(file)
-            fileList.remove(file)
+            fileList.remove(f)
         elif (( photFile[:,1] > 90).sum() > 0) :
             logger.debug("REJECT")
             logger.debug(file)
-            fileList.remove(file)
+            fileList.remove(f)
         else:
             photFileArray.append(photFile)
 

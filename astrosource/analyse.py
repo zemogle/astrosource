@@ -244,12 +244,12 @@ def photometric_calculations(targetphot, photometry, comparisons, paths, fileLis
         logger.info("Average : {}".format(avgVar))
         logger.info("Stdev   : {}".format(stdVar))
 
+        fullphot = fullphot[fullphot[:,6].argsort()]
         if fullphot.shape[0] > 2:
             savetxt(paths['outcatPath'] / f"doerPhot_V{str(q+1)}.csv", fullphot, delimiter=",", fmt='%0.8f')
             logger.debug('Saved doerPhot_V')
         else:
             raise AstrosourceException("Photometry not possible")
-        logger.debug(array(fullphot).shape)
 
         photometrydata.append(fullphot)
     # photometrydata = trim_catalogue(photometrydata)
