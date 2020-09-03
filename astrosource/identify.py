@@ -136,23 +136,26 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
 def read_data_files(parentPath, fileList):
     # LOAD Phot FILES INTO LIST
     photFileArray = []
-    for f in fileList:
+    fids = []
+    for fid, f in enumerate(fileList):
         file = f[0]
         photFile = load(parentPath / file)
         if (photFile.size < 50):
-            logger.debug("REJECT")
+            logger.debug("REJECT too few stars")
             logger.debug(file)
-            fileList.remove(f)
+            fids.append(fid)
         elif (( photFile[:,0] > 360).sum() > 0) :
-            logger.debug("REJECT")
+            logger.debug("REJECT RA > 360")
             logger.debug(file)
-            fileList.remove(f)
+            fids.append(fid)
         elif (( photFile[:,1] > 90).sum() > 0) :
-            logger.debug("REJECT")
+            logger.debug("REJECT Dec > 90")
             logger.debug(file)
-            fileList.remove(f)
+            fids.append(fid)
         else:
             photFileArray.append(photFile)
+    # Remove FIDs from fileList
+    fileList = [j for i, j in enumerate(fileList) if i not in fids]
 
     return asarray(photFileArray), fileList
 
@@ -235,11 +238,11 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
     fileSizer=0
     logger.info("Finding image with most stars detected and reject ones with bad WCS")
     referenceFrame = None
-
     photFileArray, fileList = read_data_files(paths['parent'], fileList)
 
     referenceFrame, rfid = find_reference_frame(photFileArray)
-    photFileArray = delete(photFileArray,rfid,axis=0)
+
+    # photFileArray = delete(photFileArray,rfid,axis=0)
     usedImages=[fileList[rfid]]
 
     if not referenceFrame.size:
