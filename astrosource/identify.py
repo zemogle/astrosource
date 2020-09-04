@@ -133,7 +133,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
         raise AstrosourceException("Check your images, the script detected multiple filters in your file list. Astrosource currently only does one filter at a time.")
     return phot_list, list(filters)[0]
 
-def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=7):
+def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=7):
     """
     Finds stars useful for photometry in each photometry/data file
 
@@ -176,7 +176,7 @@ def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDi
     referenceFrame = None
 
     for file in fileList:
-        photFile = load(paths['parent'] / file)      
+        photFile = load(paths['parent'] / file)
         if (photFile.size < 50):
             logger.debug("REJECT")
             logger.debug(file)
@@ -331,7 +331,7 @@ def find_stars(targets, paths, fileList, mincompstars, starreject=0.1 , acceptDi
             imageFracReject=0.05
             referenceFrame=originalReferenceFrame
             fileList=originalfileList
-            
+
         elif (compchecker < mincompstars):
             logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
             logger.error("Failed to find sufficient comparison candidates, adjusting starreject and imgreject and trying again.")
