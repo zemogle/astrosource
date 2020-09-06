@@ -55,7 +55,7 @@ def test_comparison(setup):
     outfile, num_cands = find_comparisons(targets=setup.targets, parentPath=TEST_PATHS['parent'], fileList=filelist)
 
     assert outfile == TEST_PATHS['parent'] / "compsUsed.csv"
-    assert num_cands == 10
+    assert num_cands == 11
 
 @patch('astrosource.comparison.Vizier.query_region',mock_vizier_query_region_vsx)
 def test_remove_targets_calibrated(setup):
@@ -65,17 +65,17 @@ def test_remove_targets_calibrated(setup):
     assert compFile.shape == (60,2)
     compFile_out = remove_stars_targets(parentPath, compFile, acceptDistance=5.0, targetFile=setup.targets, removeTargets=1)
     # 3 stars are removed because they are variable
-    assert compFile_out.shape == (55,2)
+    assert compFile_out.shape == (57,2)
 
 @patch('astrosource.comparison.Vizier',mock_vizier_apass_b)
 def test_find_comparisons_calibrated_b(setup):
     compFile = find_comparisons_calibrated(filterCode='B', paths=TEST_PATHS, targets=setup.targets)
-    assert compFile.shape == (10,5)
+    assert compFile.shape == (11,5)
 
 @patch('astrosource.comparison.Vizier',mock_vizier_apass_v)
 def test_find_comparisons_calibrated_v(setup):
     compFile = find_comparisons_calibrated(filterCode='V', paths=TEST_PATHS, targets=setup.targets)
-    assert compFile.shape == (10,5)
+    assert compFile.shape == (11,5)
 
 @patch('astrosource.comparison.Vizier', mock_vizier_ps_r)
 def test_catalogue_call_panstarrs(setup):
