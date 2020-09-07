@@ -593,15 +593,22 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     varimin=(min(asarray(calibStands)[:,2])) * variabilityMultiplier
 
-    calibStandsReject=[]
-    for q in range(len(asarray(calibStands)[:,0])):
-        if calibStands[q][2] > varimin:
-            calibStandsReject.append(q)
-        elif calibStands[q][4] == 0:
-            calibStandsReject.append(q)
-        elif np.isnan(calibStands[q][4]):
-            calibStandsReject.append(q)
-        
+
+    loopbreaker=0
+    while loopbreaker==0:
+        calibStandsReject=[]
+        for q in range(len(asarray(calibStands)[:,0])):
+            if calibStands[q][2] > varimin:
+                calibStandsReject.append(q)
+            elif calibStands[q][4] == 0:
+                calibStandsReject.append(q)
+            elif np.isnan(calibStands[q][4]):
+                calibStandsReject.append(q)
+        if len(calibStands) > len(calibStandsReject):
+            loopbreaker=1
+        else:
+            varimin=varimin+0.01
+          
 
     calibStands=delete(calibStands, calibStandsReject, axis=0)
 
@@ -653,8 +660,9 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             photFile[r,4]=photFile[r,4]+tempZP
 
         calibOut=asarray(calibOut)
-        #logger.info(calibOut)
+
         #Shift the magnitudes in the phot file by the zeropoint
+
         for r in range(len(calibOut[:,0])):
             calibOut[r,5]=calibOut[r,4]-tempZP        
             calibOverlord.append([calibOut[r,0],calibOut[r,1],calibOut[r,2],calibOut[r,3],calibOut[r,4],calibOut[r,5],float(file.split("_")[2].replace("d","."))])
