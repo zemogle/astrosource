@@ -591,23 +591,22 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         logger.info("You might also try using one of --nosdss or --nopanstarrs option (not both!) to prevent comparisons to these catalogues")
         raise AstrosourceException("Stars are too dim to calibrate to.")
 
+    
+    # Remove nan and zero values which usually mean the calibration star has not got a reliable magnitude estimate
+    calibStandsReject=[]
+    for q in range(len(asarray(calibStands)[:,0])):
+        if np.isnan(calibStands[q][4]):
+            calibStandsReject.append(q)
+        elif calibStands[q][4] == 0:
+            calibStandsReject.append(q)
+    calibStands=delete(calibStands, calibStandsReject, axis=0)
+
+
     varimin=(min(asarray(calibStands)[:,2])) * variabilityMultiplier
-
-
-    loopbreaker=0
-    while loopbreaker==0:
-        calibStandsReject=[]
-        for q in range(len(asarray(calibStands)[:,0])):
-            if calibStands[q][2] > varimin:
-                calibStandsReject.append(q)
-            elif calibStands[q][4] == 0:
-                calibStandsReject.append(q)
-            elif np.isnan(calibStands[q][4]):
-                calibStandsReject.append(q)
-        if len(calibStands) > len(calibStandsReject):
-            loopbreaker=1
-        else:
-            varimin=varimin+0.01
+    calibStandsReject=[]
+    for q in range(len(asarray(calibStands)[:,0])):
+        if calibStands[q][2] > varimin:
+            calibStandsReject.append(q)
           
 
     calibStands=delete(calibStands, calibStandsReject, axis=0)
