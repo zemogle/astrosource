@@ -88,7 +88,7 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
         # Delete comparisons that have too high a variability
 
         starRejecter=[]
-        if min(stdCompStar) > 0.002:
+        if min(stdCompStar) > 0.0009:
             for j in range(len(stdCompStar)):
                 #logger.debug(stdCompStar[j])
                 if ( stdCompStar[j] > (stdCompMed + (stdMultiplier*stdCompStd)) ):
@@ -724,8 +724,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     plt.grid(True)
     plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
     fig.set_size_inches(6,3)
-    plt.savefig(parentPath / str("CalibrationSanityPlot_" +str(filterCode)+"_Magnitude.png"))
-    plt.savefig(parentPath / str("CalibrationSanityPlot_" +str(filterCode)+"_Magnitude.eps"))
+    plt.savefig(parentPath / str("CalibrationSanityPlot_Magnitude.png"))
+    plt.savefig(parentPath / str("CalibrationSanityPlot_Magnitude.eps"))
 
     with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "w") as f:
         f.write("Magnitude slope     : " + str(m)+"\n")
@@ -757,8 +757,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     plt.grid(True)
     plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
     fig.set_size_inches(6,3)
-    plt.savefig(parentPath / str("CalibrationSanityPlot_" +str(filterCode)+"_Time.png"))
-    plt.savefig(parentPath / str("CalibrationSanityPlot_" +str(filterCode)+"_Time.eps"))
+    plt.savefig(parentPath / str("CalibrationSanityPlot_Time.png"))
+    plt.savefig(parentPath / str("CalibrationSanityPlot_Time.eps"))
 
     with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "a") as f:
         f.write("Time slope     : " + str(m)+"\n")
