@@ -16,6 +16,9 @@ authors:
   - name: Saeed Salimpour
     orcid: 0000-0002-0387-3152
     affiliation: 3
+  - name: Joe Singleton
+    orcid: 0000-0002-3403-8328
+    affiliation: 5
   - name: Ridlo W. Wibowo
     affiliation: 4
 affiliations:
@@ -27,6 +30,7 @@ affiliations:
    index: 3
  - name: Institut Teknologi Bandung, Bandung, Indonesia
    index: 4
+ - name: School of Computer Science, Cardiff University, Cardiff, United Kingdom
 date: 20 August 2020
 bibliography: paper.bib
 ---
