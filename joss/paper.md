@@ -31,6 +31,7 @@ affiliations:
  - name: Institut Teknologi Bandung, Bandung, Indonesia
    index: 4
  - name: School of Computer Science, Cardiff University, Cardiff, United Kingdom
+   index: 5
 date: 20 August 2020
 bibliography: paper.bib
 ---
