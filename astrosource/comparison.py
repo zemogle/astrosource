@@ -473,7 +473,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 'V' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag'}},
                 'up' : {'SDSS' : {'filter' : 'umag', 'error' : 'e_umag'},
                         'SkyMapper' : {'filter' : 'uPSF', 'error' : 'e_uPSF'}},
-                'gp' : {'SDSS' : {'filter' : 'gmag', 'error' : 'e_mag'},
+                'gp' : {'SDSS' : {'filter' : 'gmag', 'error' : 'e_gmag'},
                         'SkyMapper' : {'filter' : 'gPSF', 'error' : 'e_gPSF'},
                         'PanSTARRS': {'filter' : 'gmag', 'error' : 'e_gmag'}},
                 'rp' : {'SDSS' : {'filter' : 'rmag', 'error' : 'e_rmag'},
