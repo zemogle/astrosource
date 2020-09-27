@@ -4,7 +4,7 @@ import sys
 import os
 import logging
 
-from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose
+from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan
 from astropy import units as u
 from astropy import wcs
 from astropy.coordinates import SkyCoord, EarthLocation
@@ -93,6 +93,8 @@ def convert_photometry_files(filelist):
     new_files = []
     for fn in filelist:
         photFile = genfromtxt(fn, dtype=float, delimiter=',')
+        # reject nan entries in file
+        photFile=photFile[~isnan(photFile).any(axis=1)]
         filepath = Path(fn).with_suffix('.npy')
         save(filepath, photFile)
         new_files.append(filepath.name)
