@@ -226,6 +226,8 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
     mincompstars=int(referenceFrame.shape[0]*mincompstars) # Transform mincompstars variable from fraction of stars into number of stars.
     if mincompstars < 1: # Always try to get at least ten comp candidates initially -- just because having a bunch is better than having 1.
         mincompstars=1
+    if mincompstars > 100: # Certainly 100 is a maximum number of necessary candidate comparison stars.
+        mincompstars=100
     ##### Looper function to automatically cycle through more restrictive values for imageFracReject and starreject
     while (compchecker < mincompstars): # Keep going until you get the minimum number of Comp Stars
         imgsize=imageFracReject * fileSizer # set threshold size

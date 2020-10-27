@@ -48,6 +48,8 @@ def output_files(paths, photometrydata, mode='diff'):
             outputEXOTICCalib[q][1]=(1-pow(10,((outputEXOTICCalib[q][1]-exoMedian)/2.5)))+1
             outputEXOTICCalib[q][2]=(outputEXOTICCalib[q][2]/1.0857)*outputEXOTICCalib[q][1]
 
+        outputEXOTICCalib=outputEXOTICCalib[outputEXOTICCalib[:,0].argsort()]
+
         savetxt(paths['outcatPath'] / f'V{r}_{mode}EXOTIC.csv', outputEXOTICCalib, delimiter=",", fmt='%0.8f')
 
         # Output Differential astroImageJ file
