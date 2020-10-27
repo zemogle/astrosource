@@ -265,13 +265,15 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
                 compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
 
             stdCompDiffMags=std(compDiffMags)
+            medCompDiffMags=np.median(compDiffMags)
             logger.debug("VAR: " +str(stdCompDiffMags))
             
             if np.isnan(stdCompDiffMags) :
                 logger.error("Star Variability non rejected")
                 stdCompDiffMags=99
             stdCompStar.append(stdCompDiffMags)
-            sortStars.append([cf[0],cf[1],stdCompDiffMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+            
+            sortStars.append([cf[0],cf[1],stdCompDiffMags,medCompDiffMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
 
     return stdCompStar, sortStars
@@ -575,9 +577,9 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         if d2dcomp < max_sep:
             if not isnan(coords.mag[idxcomp]):
                 if compFile.shape[0] ==13 and compFile.size ==13:
-                    calibStands.append([compFile[0],compFile[1],compFile[2],coords.mag[idxcomp],coords.emag[idxcomp]])
+                    calibStands.append([compFile[0],compFile[1],compFile[2],coords.mag[idxcomp],coords.emag[idxcomp],compFile[3]])
                 else:
-                    calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],coords.mag[idxcomp],coords.emag[idxcomp]])
+                    calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],coords.mag[idxcomp],coords.emag[idxcomp],compFile[q][3]])
     logger.info('Calibration Stars Identified below')
     logger.info(calibStands)
 
@@ -601,19 +603,34 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             calibStandsReject.append(q)
     calibStands=delete(calibStands, calibStandsReject, axis=0)
 
-
+    # Get rid of higher variability stars from calibration list
     varimin=(min(asarray(calibStands)[:,2])) * variabilityMultiplier
     calibStandsReject=[]
     for q in range(len(asarray(calibStands)[:,0])):
         if calibStands[q][2] > varimin:
             calibStandsReject.append(q)
-          
-
     calibStands=delete(calibStands, calibStandsReject, axis=0)
+    
+    #Get rid of outlier stars that typically represent systematically faulty calibration catalogue magnitudes
+    while True:
+        calibStandsReject=[]
+        variavg=(np.average(asarray(calibStands)[:,3]+asarray(calibStands)[:,5])) 
+        #varimin=(np.average(abs(asarray(calibStands)[:,5]-variavg))) * variabilityMultiplier
+        varimin=(np.average((abs(asarray(calibStands)[:,3]+asarray(calibStands)[:,5]-variavg)))) * 3 # 3 stdevs to be a bit more conservative in the rejection
+        for q in range(len(asarray(calibStands)[:,0])):
+            if abs(asarray(abs((calibStands)[q,3]+asarray(calibStands)[q,5])-variavg)) > varimin:
+                calibStandsReject.append(q)
+        if calibStandsReject==[]:
+            break
+        else:
+            calibStands=delete(calibStands, calibStandsReject, axis=0)
+        
 
     calibStand=asarray(calibStands)
 
     savetxt(parentPath / "calibStands.csv", calibStands , delimiter=",", fmt='%0.8f')
+
+
     # Lets use this set to calibrate each datafile and pull out the calibrated compsused magnitudes
     compUsedFile = genfromtxt(parentPath / 'compsUsed.csv', dtype=float, delimiter=',')
 
