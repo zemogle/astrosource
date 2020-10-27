@@ -615,8 +615,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     while True:
         calibStandsReject=[]
         variavg=(np.average(asarray(calibStands)[:,3]+asarray(calibStands)[:,5])) 
-        #varimin=(np.average(abs(asarray(calibStands)[:,5]-variavg))) * variabilityMultiplier
-        varimin=(np.average((abs(asarray(calibStands)[:,3]+asarray(calibStands)[:,5]-variavg)))) * 3 # 3 stdevs to be a bit more conservative in the rejection
+        varimin=(np.average((abs(asarray(calibStands)[:,3]+asarray(calibStands)[:,5]-variavg)))) * 2 # 3 stdevs to be a bit more conservative in the rejection
         for q in range(len(asarray(calibStands)[:,0])):
             if abs(asarray(abs((calibStands)[q,3]+asarray(calibStands)[q,5])-variavg)) > varimin:
                 calibStandsReject.append(q)
