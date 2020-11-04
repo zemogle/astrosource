@@ -102,12 +102,6 @@ of the night sky or on the edges of mosaicked images, leading to dramatically in
 apparent magnitude. Solutions to avoid these issues have been easily incorporated into the ``astrosource``
 code, but would likely be cumbersome to explain manually in any given observer guide.
 
-
-![RRc-type RR Lyrae phased lightcurve in zs \label{fig:rrc}](Variable1_zs_PhasedLightcurve.png)
-![A Phase-Dispersion-Minimization Likelihood plot for a 20 day period Cepheid Variable. \label{fig:pdm}](V2_PDMLikelihoodPlot.png)
-![The standard deviation variability of each star in the dataset compared to the ensemble comparison star. \label{fig:starvar}](starVariability.png)
-![An EXOTIC transit model fit to ``astrosource`` processed data. \label{fig:exotic}](EXOTICfit.png)
-
 Some examples of the output of ``astrosource`` are:
 
 * An RRc type RR Lyrae star folded lightcurve in zs calibrated to PanSTARRS shown in \autoref{fig:rrc}
@@ -118,7 +112,17 @@ Some examples of the output of ``astrosource`` are:
 
 * A transit model fit using EXOTIC to data produced by ``astrosource`` as shown in \autoref{fig:exotic}.
 
+# Figures
+![RRc-type RR Lyrae phased lightcurve in zs \label{fig:rrc}](Variable1_zs_PhasedLightcurve.png)
 
+![A Phase-Dispersion-Minimization Likelihood plot for a 20 day period Cepheid Variable. \label{fig:pdm}](V2_PDMLikelihoodPlot.png)
+
+![The standard deviation variability of each star in the dataset compared to the ensemble comparison star. \label{fig:starvar}](starVariability.png)
+
+![An EXOTIC transit model fit to ``astrosource`` processed data. \label{fig:exotic}](EXOTICfit.png)
+
+
+# Summary
 ``astrosource`` is under continual development and is responsive to new situations where new glitches occur
 due to the differing nature of datasets and different nature of calibration. Astrosource has been used
 by over one hundred different non-expert users to great effect (e.g. [@jones2020new; @sarva2020exoplanet])
