@@ -102,9 +102,13 @@ of the night sky or on the edges of mosaicked images, leading to dramatically in
 apparent magnitude. Solutions to avoid these issues have been easily incorporated into the ``astrosource``
 code, but would likely be cumbersome to explain manually in any given observer guide.
 
+
+![RRc-type RR Lyrae phased lightcurve in zs \label{fig:rrc}](Variable1_zs_PhasedLightcurve.png)
+![A Phase-Dispersion-Minimization Likelihood plot for a 20 day period Cepheid Variable. \label{fig:pdm}](V2_PDMLikelihoodPlot.png)
+![The standard deviation variability of each star in the dataset compared to the ensemble comparison star. \label{fig:starvar}](starVariability.png)
+![An EXOTIC transit model fit to ``astrosource`` processed data. \label{fig:exotic}](EXOTICfit.png)
+
 Some examples of the output of ``astrosource`` are:
-
-
 
 * An RRc type RR Lyrae star folded lightcurve in zs calibrated to PanSTARRS shown in \autoref{fig:rrc}
 
@@ -113,13 +117,6 @@ Some examples of the output of ``astrosource`` are:
 * A plot of the standard deviation variability of each star in the data set compared to the ensemble comparison star a shown in \autoref{fig:starvar}. An RRab type RR Lyrae stands out as an identified variable star from the other constant stars in the dataset.
 
 * A transit model fit using EXOTIC to data produced by ``astrosource`` as shown in \autoref{fig:exotic}.
-
-
-
-![RRc-type RR Lyrae phased lightcurve in zs \label{fig:rrc}](Variable1_zs_PhasedLightcurve.png)
-![A Phase-Dispersion-Minimization Likelihood plot for a 20 day period Cepheid Variable. \label{fig:pdm}](V2_PDMLikelihoodPlot.png)
-![The standard deviation variability of each star in the dataset compared to the ensemble comparison star. \label{fig:starvar}](starVariability.png)
-![An EXOTIC transit model fit to ``astrosource`` processed data. \label{fig:exotic}](EXOTICfit.png)
 
 
 ``astrosource`` is under continual development and is responsive to new situations where new glitches occur
