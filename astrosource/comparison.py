@@ -553,7 +553,28 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     else:
         logger.debug(average(compFile[:,0]))
         logger.debug(average(compFile[:,1]))
-        avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
+        
+        
+        #remarkably dumb way of averaging around zero RA and just normal if not
+        resbelow= any(ele >350.0 and ele<360.0 for ele in compFile[:,0].tolist())
+        resabove= any(ele >0.0 and ele<10.0 for ele in compFile[:,0].tolist())
+        if resbelow and resabove:
+            avgRAFile=[]
+            for q in range(len(compFile[:,0])):
+                if compFile[q,0] > 350:
+                    avgRAFile.append(compFile[q,0]-360)
+                else:
+                    avgRAFile.append(compFile[q,0])
+            avgRA=average(avgRAFile)
+            if avgRA <0:
+                avgRA=avgRA+360
+            avgCoord=SkyCoord(ra=(avgRA*degree), dec=((average(compFile[:,1])*degree)))
+        else:
+            avgCoord=SkyCoord(ra=(average(compFile[:,0])*degree), dec=((average(compFile[:,1])*degree)))
+        
+        logger.info(avgCoord)
+        
+        #avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
 
     try:
         catalogues = FILTERS[filterCode]
