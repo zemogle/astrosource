@@ -304,14 +304,44 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     else:
         logger.debug(average(compFile[:,0]))
         logger.debug(average(compFile[:,1]))
-        avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
+        
+
+        #avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
+        
+        
+        #remarkably dumb way of averaging around zero RA and just normal if not
+        resbelow= any(ele >350.0 and ele<360.0 for ele in compFile[:,0].tolist())
+        resabove= any(ele >0.0 and ele<10.0 for ele in compFile[:,0].tolist())
+        if resbelow and resabove:
+            avgRAFile=[]
+            for q in range(len(compFile[:,0])):
+                if compFile[q,0] > 350:
+                    avgRAFile.append(compFile[q,0]-360)
+                else:
+                    avgRAFile.append(compFile[q,0])
+            avgRA=average(avgRAFile)
+            if avgRA <0:
+                avgRA=avgRA+360
+            avgCoord=SkyCoord(ra=(avgRA*degree), dec=((average(compFile[:,1])*degree)))
+        else:
+            avgCoord=SkyCoord(ra=(average(compFile[:,0])*degree), dec=((average(compFile[:,1])*degree)))
+        
+        logger.info(avgCoord)
 
 
     # Check VSX for any known variable stars and remove them from the list
     try:
         v=Vizier(columns=['all']) # Skymapper by default does not report the error columns
         v.ROW_LIMIT=-1
-        variableResult=v.query_region(avgCoord, '0.33 deg', catalog='VSX')['B/vsx/vsx']
+        logger.info(avgCoord)
+        variableResult=v.query_region(avgCoord, '0.33 deg', catalog='VSX')
+        logger.info(variableResult)
+        if str(variableResult)=="Empty TableList":
+            logger.info("VSX Returned an Empty Table.")
+            varTable=0
+        else:
+            variableResult=variableResult['B/vsx/vsx']
+            varTable=1
     except ConnectionError:
         connected=False
         logger.info("Connection failed, waiting and trying again")
@@ -326,42 +356,43 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                 logger.info("Failed again.")
                 connected=False
 
-    logger.debug(variableResult)
-
-    logger.debug(variableResult.keys())
-
-    raCat=array(variableResult['RAJ2000'].data)
-    logger.debug(raCat)
-    decCat=array(variableResult['DEJ2000'].data)
-    logger.debug(decCat)
-    varStarReject=[]
-    for t in range(raCat.size):
-
-        compCoord=SkyCoord(ra=raCat[t]*degree, dec=decCat[t]*degree)
-
-        if not (compFile.shape[0] == 2 and compFile.size == 2):
-            catCoords=SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
-            idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
-        elif not (raCat.shape[0] == 2 and raCat.size == 2): ### this is effictively the same as below
-            catCoords=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-            idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
-        else:
-            if abs(compFile[0]-raCat[0]) > 0.0014 and abs(compFile[1]-decCat[0]) > 0.0014:
-                d2dcomp = 9999
-
-        #logger.debug(d2dcomp)
-        if d2dcomp != 9999:
-            if d2dcomp.arcsecond[0] < max_sep.value:
-                logger.debug("match!")
-                varStarReject.append(t)
-        #    else:
-        #        logger.debug("no match!")
-
-    logger.debug("Number of stars prior to VSX reject")
-    logger.debug(compFile.shape[0])
-    compFile=delete(compFile, varStarReject, axis=0)
-    logger.debug("Number of stars post to VSX reject")
-    logger.debug(compFile.shape[0])
+    if varTable==1:
+        logger.debug(variableResult)
+    
+        logger.debug(variableResult.keys())
+    
+        raCat=array(variableResult['RAJ2000'].data)
+        logger.debug(raCat)
+        decCat=array(variableResult['DEJ2000'].data)
+        logger.debug(decCat)
+        varStarReject=[]
+        for t in range(raCat.size):
+    
+            compCoord=SkyCoord(ra=raCat[t]*degree, dec=decCat[t]*degree)
+    
+            if not (compFile.shape[0] == 2 and compFile.size == 2):
+                catCoords=SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
+                idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
+            elif not (raCat.shape[0] == 2 and raCat.size == 2): ### this is effictively the same as below
+                catCoords=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+                idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
+            else:
+                if abs(compFile[0]-raCat[0]) > 0.0014 and abs(compFile[1]-decCat[0]) > 0.0014:
+                    d2dcomp = 9999
+    
+            #logger.debug(d2dcomp)
+            if d2dcomp != 9999:
+                if d2dcomp.arcsecond[0] < max_sep.value:
+                    logger.debug("match!")
+                    varStarReject.append(t)
+            #    else:
+            #        logger.debug("no match!")
+    
+        logger.debug("Number of stars prior to VSX reject")
+        logger.debug(compFile.shape[0])
+        compFile=delete(compFile, varStarReject, axis=0)
+        logger.debug("Number of stars post to VSX reject")
+        logger.debug(compFile.shape[0])
 
 
     if (compFile.shape[0] ==1):
