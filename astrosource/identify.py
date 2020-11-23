@@ -134,7 +134,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
     return phot_list, list(filters)[0]
 
 def read_data_files(parentPath, fileList):
-    # LOAD Phot FILES INTO LIST
+    # LOAD .npy Phot FILES INTO LIST
     photFileArray = []
     fids = []
     for fid, f in enumerate(fileList):
@@ -172,7 +172,7 @@ def find_reference_frame(photFileArray):
             fileSizer = photFile.size
     return referenceFrame, rfid
 
-def match_ref_to_potentials(referenceFrame, photFile, mask, tmpmask, rejectStart, acceptDistance, fileid):
+def match_ref_to_potentials(referenceFrame, photFile, mask, tmpmask, rejectStart, acceptDistance):
      # Find whether star in reference list is in this phot file, if not, reject star.
     img_catalogue = []
     rejectStars = 0 # A list to hold what stars are to be rejected
@@ -271,7 +271,10 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
     comparisons = []
 
     mask = [True for i in range(0,referenceFrame.shape[0])]
-    for fileid, photFile in enumerate(photFileArray, 1):
+    for fileid, photFile in enumerate(photFileArray):
+        if fileid == rfid:
+            # No point in comparing referenceFrame with itself
+            continue
         logger.debug(f'Image Number: {fileid}')
         logger.debug(f"Image threshold size: {imgsize}")
         logger.debug(f"Image catalogue size: {photFile.size}")
@@ -281,7 +284,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
                 tmpmask = []
                 tmpmask[:] = mask
                 logger.debug(f'No. potential comparisons {sum(mask)}')
-                img_catalogue, tmpmask, rejectStars = match_ref_to_potentials(referenceFrame, photFile, mask, tmpmask, rejectStart, acceptDistance, fileid)
+                img_catalogue, tmpmask, rejectStars = match_ref_to_potentials(referenceFrame, photFile, mask, tmpmask, rejectStart, acceptDistance)
             # if the rejectstar list is not empty, remove the stars from the reference List
             if rejectStars > 0:
                 rejectfrac = rejectStars / sum(mask)
@@ -290,7 +293,7 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
                     logger.debug(f'Stars Removed  : {rejectStars}')
                     logger.debug(f'Remaining Stars: {sum(mask)}')
                     mask[:] = tmpmask
-                    usedImages.append(fileList[fileid-1])
+                    usedImages.append(fileList[fileid])
                     comparisons.append(asarray(img_catalogue))
                 else:
                     logger.debug('**********************')
@@ -299,16 +302,16 @@ def find_stars(targets, paths, fileList, starreject=0.1 , acceptDistance=1.0, lo
                     imgReject += 1
             else:
                 logger.debug('**** All Stars Present ****')
-                usedImages.append(fileList[fileid-1])
+                usedImages.append(fileList[fileid])
                 comparisons.append(asarray(img_catalogue))
 
             # If we have removed all stars, we have failed!
             if (sum(mask) == 0):
-                logger.error("Problem file - {}".format(fileList[fileid-1]))
+                logger.error("Problem file - {}".format(fileList[fileid]))
                 raise AstrosourceException("All Stars Removed. Try removing problematic files or raising --imgreject value")
 
             if (referenceFrame.shape[0]< minCompStars):
-                logger.error("Problem file - {}".format(fileList[fileid-1]))
+                logger.error("Problem file - {}".format(fileList[fileid]))
                 raise AstrosourceException("There are fewer than the requested number of Comp Stars. Try removing problematic files or raising --imgreject value")
 
         elif photFile.size < 7:
