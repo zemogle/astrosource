@@ -1,10 +1,10 @@
 Library Usage
 =============
-To take advantage of some of the more advance options in AstroSource, you want to import the library as part of a larger code base.
+To take advantage of some of the more advance options in ``astrosource``, you want to import the library as part of a larger code base.
 
 Getting Started
 ---------------
-The fundamental role of AstroSource is the analysis of time-series data. So, the basic class in AstroSource is called `TimeSeries`.
+The fundamental role of ``astrosource`` is the analysis of time-series data. So, the basic class in ``astrosource`` is called `TimeSeries`.
 
 There are only *2* required inputs: a list of targets and a directory where the input files can be found.
 
@@ -34,7 +34,7 @@ Optional Inputs
 **format** `str`
   A file extension for the files in `indir` which contain the photometry data.
 **imgreject** `float`
-  Image fraction rejection allowance. Defaults to `0.0`. Increasing this will allow AstroSource to reject some of your data files if there are not enough comparison stars.
+  Image fraction rejection allowance. Defaults to `0.0`. Increasing this will allow ``astrosource`` to reject some of your data files if there are not enough comparison stars.
 
 
 Analysis
@@ -55,5 +55,5 @@ This is an example of the full analysis code using the input directory `indir` a
 The `plot` stage has 3 optional inputs:
 
 * detrend: detrend exoplanet data
-* period: recursively attempt to find a period (for periodic sources like variable stars or binaries)
-* eebls: Edge Enhanced Box-fitting Least Squares analysis for an exoplanet transit curve  
+* :ref:`period<Period Folding>`: recursively attempt to find a period (for periodic sources like variable stars or binaries)
+* eebls: Edge Enhanced Box-fitting Least Squares analysis for an exoplanet transit curve

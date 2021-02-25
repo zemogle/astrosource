@@ -48,7 +48,7 @@ There are a few input options when running the scripts. You can either run the w
 
 `--indir` [parameter] Path of directory containing LCO data files. If none is given, astrosource assumes the current directory
 
-`--format` [parameter] input file format. If not `fz`, `fits`, or `fit` assumes the input files are photometry files with correct headers. If image files given, code will extra photometry from FITS extension. Defaults to `fz`.
+`--format` [parameter] input file format. If not `fz`, `fits`, or `fit` assumes the input files are photometry files with correct headers. If image files given, code will extract photometry from FITS extension. Defaults to `fz`.
 
 `--stars` [boolean flag] Step 1: Identify and match stars from each data file
 
@@ -83,9 +83,9 @@ There are a few input options when running the scripts. You can either run the w
 
 `--calib` [boolean flag] Perform calibrated
 
-`--lowcounts` [int] Countrate above which to accept a comparison star as a candidate. Defaults to 1000. (Note: This may seem like a low number but realistically stars at this low rate will be highly variable and rejected anyway)
+`--lowcounts` [int] Count rate above which to accept a comparison star as a candidate. Defaults to 1000. (Note: This may seem like a low number but realistically stars at this low rate will be highly variable and rejected anyway)
 
-`--hicounts` [int] Countrate above which to reject a comparison star as a candidate. Defaults to 1000000. (Note: This will vary from camera to camera, but it should be representative of a typical value that would have a peak pixel value significantly below the full range of the ccd, preferably lower rather than higher. )
+`--hicounts` [int] Count rate above which to reject a comparison star as a candidate. Defaults to 1000000. (Note: This will vary from camera to camera, but it should be representative of a typical value that would have a peak pixel value significantly below the full range of the ccd, preferably lower rather than higher. )
 
 `--thresholdcounts` [int] the number of counts at which to stop adding identified comparison stars to the ensemble. Default 1000000.
 
@@ -93,7 +93,7 @@ There are a few input options when running the scripts. You can either run the w
 
 `--nopanstarrs` [boolean flag] Do not use the PanSTARRS catalogue for calibration. Some regions of the sky in PanSTARRS have poorer quality photometry than SDSS.
 
-`--sdss` [boolean flag] Do not use the SDSS catalogue for calibration. Some regions of the sky in SDSS have poorer quality photometry than PanSTARRS.
+`--nosdss` [boolean flag] Do not use the SDSS catalogue for calibration. Some regions of the sky in SDSS have poorer quality photometry than PanSTARRS.
 
 `--bjd` [boolean flag] Convert the MJD time into BJD time for LCO images.
 

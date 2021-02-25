@@ -20,7 +20,7 @@ class TimeSeries:
         self.format = kwargs.get('format', 'fz')
         self.imgreject = kwargs.get('imgreject', 0.05)
         self.periodupper = kwargs.get('periodupper', -99.9)
-        self.periodlower = kwargs.get('periodlower', -99.9)
+        self.periodlower = kwargs.get('periodlower', 0.05)
         self.periodtests = kwargs.get('periodtests', -99)
         self.rejectbrighter = kwargs.get('rejectbrighter', 99)
         self.rejectdimmer = kwargs.get('rejectdimmer', 99)
