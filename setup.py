@@ -7,7 +7,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='astrosource',
-    version='1.5.1',
+    version='1.5.2',
     description='Analysis script for sources with variability in their brightness',
     long_description=long_description,
     long_description_content_type='text/markdown',
