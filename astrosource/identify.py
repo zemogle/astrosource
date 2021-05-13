@@ -4,7 +4,7 @@ import sys
 import os
 import logging
 
-from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose
+from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan
 from astropy import units as u
 from astropy import wcs
 from astropy.coordinates import SkyCoord, EarthLocation
@@ -93,9 +93,12 @@ def convert_photometry_files(filelist):
     new_files = []
     for fn in filelist:
         photFile = genfromtxt(fn, dtype=float, delimiter=',')
-        filepath = Path(fn).with_suffix('.npy')
-        save(filepath, photFile)
-        new_files.append(filepath.name)
+        # reject nan entries in file
+        if photFile.size != 0: #ignore zero sized files
+            photFile=photFile[~isnan(photFile).any(axis=1)]
+            filepath = Path(fn).with_suffix('.npy')
+            save(filepath, photFile)
+            new_files.append(filepath.name)
     return new_files
 
 def convert_mjd_bjd(hdr):
@@ -133,7 +136,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
         raise AstrosourceException("Check your images, the script detected multiple filters in your file list. Astrosource currently only does one filter at a time.")
     return phot_list, list(filters)[0]
 
-def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=7):
+def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=3):
     """
     Finds stars useful for photometry in each photometry/data file
 
@@ -224,6 +227,8 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
     mincompstars=int(referenceFrame.shape[0]*mincompstars) # Transform mincompstars variable from fraction of stars into number of stars.
     if mincompstars < 1: # Always try to get at least ten comp candidates initially -- just because having a bunch is better than having 1.
         mincompstars=1
+    if mincompstars > 100: # Certainly 100 is a maximum number of necessary candidate comparison stars.
+        mincompstars=100
     ##### Looper function to automatically cycle through more restrictive values for imageFracReject and starreject
     while (compchecker < mincompstars): # Keep going until you get the minimum number of Comp Stars
         imgsize=imageFracReject * fileSizer # set threshold size

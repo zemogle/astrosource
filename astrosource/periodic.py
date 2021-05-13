@@ -420,4 +420,34 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
             tempPeriodCatOut.append([(varData[g,0]/(pdm["stdev_minperiod"])) % 1, varData[g,1], varData[g,2]])
         tempPeriodCatOut=asarray(tempPeriodCatOut)
         savetxt(periodPath / f"{variableName}_PDM_PhaseddiffMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+        
+        # Plot publication plots
+        
+        plt.figure(figsize=(5, 3))
+        
+        plt.plot(pdm["periodguess_array"], pdm["stdev_results"], linewidth=0.5)
+        plt.gca().invert_yaxis()
+        #plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
+        plt.xlabel(r"Trial Period")
+        plt.ylabel(r"Likelihood of Period")
+        plt.subplots_adjust(left=0.11, right=0.99, top=0.98, bottom=0.15, wspace=0.3, hspace=0.4)
+        plt.savefig(periodPath / f"{variableName}_PDMLikelihoodPlot_Publication.png", dpi=300)
+        plt.savefig(periodPath / f"{variableName}_PDMLikelihoodPlot_Publication.eps")
+
+        plt.clf()
+        
+        plt.figure(figsize=(5, 3))
+        
+        plt.plot(pdm["periodguess_array"], pdm["distance_results"], linewidth=0.5)
+        plt.gca().invert_yaxis()
+        #plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
+        plt.xlabel(r"Trial Period")
+        plt.ylabel(r"Likelihood of Period")
+        plt.subplots_adjust(left=0.11, right=0.99, top=0.98, bottom=0.15, wspace=0.3, hspace=0.4)
+        plt.savefig(periodPath / f"{variableName}_StringLikelihoodPlot_Publication.png", dpi=300)
+        plt.savefig(periodPath / f"{variableName}_StringLikelihoodPlot_Publication.eps")
+
+        plt.clf()
+        
+        
     return pdm["distance_minperiod"]
