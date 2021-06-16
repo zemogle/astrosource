@@ -444,7 +444,6 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
     else:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
 
-
     logger.debug(f'Looking for sources in {cat_name}')
     if cat_name in ['APASS','PanSTARRS']:
         radecname = {'ra' :'RAJ2000', 'dec': 'DEJ2000'}
@@ -473,7 +472,17 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
 
     logger.info("Number of calibration sources after removal of sources near targets: "+str(len(resp)))
 
+
+    # Remove any star that has invalid values for mag or magerror
+    catReject=[]
+    for q in range(len(resp)):
+        if np.asarray(resp[opt['filter']][q]) == 0.0 or np.asarray(resp[opt['error']][q]) == 0.0:
+            catReject.append(q)
+    del resp[catReject]
+    logger.info(f"Stars rejected that are have invalid mag or magerror entries: {len(catReject)}")
+        
     # Remove any star from calibration catalogue that has another star in the catalogue within closerejectd arcseconds of it.
+    catReject=[]
     while True:
         fileRaDec = SkyCoord(ra=resp[radecname['ra']].data*degree, dec=resp[radecname['dec']].data*degree)
         idx, d2d, _ = fileRaDec.match_to_catalog_sky(fileRaDec, nthneighbor=2) # Closest matches that isn't itself.
@@ -487,7 +496,6 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
         logger.info(f"Stars rejected that are too close (<5arcsec) in calibration catalogue: {len(catReject)}")
 
     logger.info(f"Number of calibration sources after removal of sources near other sources: {len(resp)}")
-
 
     data.cat_name = cat_name
     data.ra = array(resp[radecname['ra']].data)
@@ -508,13 +516,16 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                         'SkyMapper' : {'filter' : 'uPSF', 'error' : 'e_uPSF'}},
                 'gp' : {'SDSS' : {'filter' : 'gmag', 'error' : 'e_gmag'},
                         'SkyMapper' : {'filter' : 'gPSF', 'error' : 'e_gPSF'},
-                        'PanSTARRS': {'filter' : 'gmag', 'error' : 'e_gmag'}},
+                        'PanSTARRS': {'filter' : 'gmag', 'error' : 'e_gmag'},
+                        'APASS' : {'filter' : 'g_mag', 'error' : 'e_g_mag'}},
                 'rp' : {'SDSS' : {'filter' : 'rmag', 'error' : 'e_rmag'},
                         'SkyMapper' : {'filter' : 'rPSF', 'error' : 'e_rPSF'},
-                        'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag'}},
+                        'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag'},
+                        'APASS' : {'filter' : 'r_mag', 'error' : 'e_r_mag'}},
                 'ip' : {'SDSS' : {'filter' : 'imag', 'error' : 'e_imag'},
                         'SkyMapper' : {'filter' : 'iPSF', 'error' : 'e_iPSF'},
-                        'PanSTARRS': {'filter' : 'imag', 'error' : 'e_imag'}},
+                        'PanSTARRS': {'filter' : 'imag', 'error' : 'e_imag'},
+                        'APASS' : {'filter' : 'i_mag', 'error' : 'e_i_mag'}},
                 'zs' : {'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag'},
                         'SkyMapper' : {'filter' : 'zPSF', 'error' : 'e_zPSF'},
                         'SDSS' : {'filter' : 'zmag', 'error' : 'e_zmag'}},
@@ -581,7 +592,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     except IndexError:
         raise AstrosourceException(f"{filterCode} is not accepted at present")
 
-    # Look up in online catalogues
+    # Look up in online catalogues and make sure there are sufficient comparison stars
 
     coords=[]
     for cat_name, opt in catalogues.items():
@@ -598,7 +609,52 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                         max_sep=2.5 * arcsecond
                     else:
                         max_sep=1.5 * arcsecond
-                    if coords !=[]:
+                        
+                    
+                    
+                    #Setup standard catalogue coordinates
+                    catCoords=SkyCoord(ra=coords.ra*degree, dec=coords.dec*degree)
+                
+                    #Get calib mags for least variable IDENTIFIED stars.... not the actual stars in compUsed!! Brighter, less variable stars may be too bright for calibration!
+                    #So the stars that will be used to calibrate the frames to get the OTHER stars.
+                    calibStands=[]
+                
+                    if compFile.shape[0] ==13 and compFile.size ==13:
+                        lenloop=1
+                    else:
+                        lenloop=len(compFile[:,0])
+                
+                    for q in range(lenloop):
+                        if compFile.shape[0] ==13 and compFile.size ==13:
+                            compCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+                        else:
+                            compCoord=SkyCoord(ra=compFile[q][0]*degree, dec=compFile[q][1]*degree)
+                        idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
+                        if d2dcomp < max_sep:
+                            if not isnan(coords.mag[idxcomp]) and not isnan(coords.emag[idxcomp]):
+                                if compFile.shape[0] ==13 and compFile.size ==13:
+                                    calibStands.append([compFile[0],compFile[1],compFile[2],coords.mag[idxcomp],coords.emag[idxcomp],compFile[3]])
+                                else:
+                                    calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],coords.mag[idxcomp],coords.emag[idxcomp],compFile[q][3]])
+                    
+                    if asarray(calibStands).shape[0] != 0:
+                        logger.info('Calibration Stars Identified below')
+                        logger.info(calibStands)
+                
+                
+                
+                    # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
+                    #logger.debug(asarray(calibStands).shape[0])
+                    if asarray(calibStands).shape[0] == 0:
+                        logger.info("We could not find a suitable match between any of your stars and the calibration catalogue")
+                        logger.info("You might need to reduce the low value (usually 10000) to get some dimmer stars in script 1")
+                        coords=[]
+                        raise AstrosourceException("There is no adequate match between this catalogue and your comparisons.")
+                    
+                    
+                    
+                    
+                    if coords !=[] and calibStands !=[]:
                         cat_used=cat_name
 
 
@@ -608,42 +664,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     if not coords:
         raise AstrosourceException(f"Could not find coordinate match in any catalogues for {filterCode}")
 
-    #Setup standard catalogue coordinates
-    catCoords=SkyCoord(ra=coords.ra*degree, dec=coords.dec*degree)
-
-    #Get calib mags for least variable IDENTIFIED stars.... not the actual stars in compUsed!! Brighter, less variable stars may be too bright for calibration!
-    #So the stars that will be used to calibrate the frames to get the OTHER stars.
-    calibStands=[]
-
-    if compFile.shape[0] ==13 and compFile.size ==13:
-        lenloop=1
-    else:
-        lenloop=len(compFile[:,0])
-
-    for q in range(lenloop):
-        if compFile.shape[0] ==13 and compFile.size ==13:
-            compCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-        else:
-            compCoord=SkyCoord(ra=compFile[q][0]*degree, dec=compFile[q][1]*degree)
-        idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
-        if d2dcomp < max_sep:
-            if not isnan(coords.mag[idxcomp]):
-                if compFile.shape[0] ==13 and compFile.size ==13:
-                    calibStands.append([compFile[0],compFile[1],compFile[2],coords.mag[idxcomp],coords.emag[idxcomp],compFile[3]])
-                else:
-                    calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],coords.mag[idxcomp],coords.emag[idxcomp],compFile[q][3]])
-    logger.info('Calibration Stars Identified below')
-    logger.info(calibStands)
-
-
-
-    # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
-    #logger.debug(asarray(calibStands).shape[0])
-    if asarray(calibStands).shape[0] == 0:
-        logger.info("We could not find a suitable match between any of your stars and the calibration catalogue")
-        logger.info("You might need to reduce the low value (usually 10000) to get some dimmer stars in script 1")
-        logger.info("You might also try using one of --nosdss or --nopanstarrs option (not both!) to prevent comparisons to these catalogues")
-        raise AstrosourceException("Stars are too dim to calibrate to.")
+   
 
     
     # Remove nan and zero values which usually mean the calibration star has not got a reliable magnitude estimate
@@ -658,9 +679,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         calibStands=delete(calibStands, calibStandsReject, axis=0)
 
     # Get rid of higher variability stars from calibration list
-    print (asarray(calibStands))
-    print ("egg")
-    print (asarray(calibStands)[:,2])
     varimin=(min(asarray(calibStands)[:,2])) * variabilityMultiplier
     calibStandsReject=[]
     for q in range(len(asarray(calibStands)[:,0])):
