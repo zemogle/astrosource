@@ -647,7 +647,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                     #logger.debug(asarray(calibStands).shape[0])
                     if asarray(calibStands).shape[0] == 0:
                         logger.info("We could not find a suitable match between any of your stars and the calibration catalogue")
-                        logger.info("You might need to reduce the low value (usually 10000) to get some dimmer stars in script 1")
                         coords=[]
                         raise AstrosourceException("There is no adequate match between this catalogue and your comparisons.")
                     
