@@ -430,7 +430,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         #plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
         plt.xlabel(r"Trial Period")
         plt.ylabel(r"Likelihood of Period")
-        plt.subplots_adjust(left=0.11, right=0.99, top=0.98, bottom=0.15, wspace=0.3, hspace=0.4)
+        plt.subplots_adjust(left=0.15, right=0.99, top=0.98, bottom=0.15, wspace=0.3, hspace=0.4)
         plt.savefig(periodPath / f"{variableName}_PDMLikelihoodPlot_Publication.png", dpi=300)
         plt.savefig(periodPath / f"{variableName}_PDMLikelihoodPlot_Publication.eps")
 
@@ -443,7 +443,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         #plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
         plt.xlabel(r"Trial Period")
         plt.ylabel(r"Likelihood of Period")
-        plt.subplots_adjust(left=0.11, right=0.99, top=0.98, bottom=0.15, wspace=0.3, hspace=0.4)
+        plt.subplots_adjust(left=0.15, right=0.99, top=0.98, bottom=0.15, wspace=0.3, hspace=0.4)
         plt.savefig(periodPath / f"{variableName}_StringLikelihoodPlot_Publication.png", dpi=300)
         plt.savefig(periodPath / f"{variableName}_StringLikelihoodPlot_Publication.eps")
 

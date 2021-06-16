@@ -647,15 +647,20 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     
     # Remove nan and zero values which usually mean the calibration star has not got a reliable magnitude estimate
+    # UNLESS they are all nans
     calibStandsReject=[]
     for q in range(len(asarray(calibStands)[:,0])):
         if np.isnan(calibStands[q][4]):
             calibStandsReject.append(q)
         elif calibStands[q][4] == 0:
             calibStandsReject.append(q)
-    calibStands=delete(calibStands, calibStandsReject, axis=0)
+    if len(calibStandsReject) != len(asarray(calibStands)[:,0]):
+        calibStands=delete(calibStands, calibStandsReject, axis=0)
 
     # Get rid of higher variability stars from calibration list
+    print (asarray(calibStands))
+    print ("egg")
+    print (asarray(calibStands)[:,2])
     varimin=(min(asarray(calibStands)[:,2])) * variabilityMultiplier
     calibStandsReject=[]
     for q in range(len(asarray(calibStands)[:,0])):
