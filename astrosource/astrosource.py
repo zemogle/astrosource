@@ -1,6 +1,11 @@
 from pathlib import Path
 import logging
 import sys
+import os
+import ssl
+
+if (not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unverified_context', None)):
+    ssl._create_default_https_context = ssl._create_unverified_context
 
 from astrosource.analyse import find_variable_stars, photometric_calculations, calibrated_photometry
 from astrosource.comparison import find_comparisons, find_comparisons_calibrated
