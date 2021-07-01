@@ -147,8 +147,10 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
     # Get deviation to the left
     totalRange=np.max(stdev_results) - np.min(stdev_results)
     
-    if np.isnan(pdm["stdev_results"][0]):
+    noPDM=0
+    if np.isnan(pdm["stdev_results"][0]) or pdm["stdev_results"][0] == 0.0:
         logger.info("Not enough datapoint coverage to undertake a Phase-Dispersion Minimization routine.")
+        noPDM=1
     else:
         for q in range(len(periodguess_array)):
             if periodguess_array[q]==pdm["stdev_minperiod"]:
@@ -158,6 +160,9 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
         currentperiod=stdev_minperiod
         stepper=0
         thresholdvalue=beginValue+(0.5*totalRange)
+        print (stdev_results)
+        print (thresholdvalue)
+        print (stdev_results[beginIndex-stepper])
         while True:
             if stdev_results[beginIndex-stepper] > thresholdvalue:
                 lefthandP=periodguess_array[beginIndex-stepper]
@@ -356,7 +361,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         tempPeriodCatOut=asarray(tempPeriodCatOut)
         savetxt(periodPath / f"{variableName}_String_PhasedDiffMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
-        if np.isnan(pdm["stdev_results"][0]):
+        if np.isnan(pdm["stdev_results"][0]) or pdm["stdev_results"][0] == 0.0:
             logger.info("No PDM results due to lack of datapoint coverage")
         else:
             logger.debug("PDM Method Estimate (days): "+ str(pdm["stdev_minperiod"]))
