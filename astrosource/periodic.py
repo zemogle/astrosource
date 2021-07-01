@@ -160,9 +160,7 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
         currentperiod=stdev_minperiod
         stepper=0
         thresholdvalue=beginValue+(0.5*totalRange)
-        print (stdev_results)
-        print (thresholdvalue)
-        print (stdev_results[beginIndex-stepper])
+
         while True:
             if stdev_results[beginIndex-stepper] > thresholdvalue:
                 lefthandP=periodguess_array[beginIndex-stepper]

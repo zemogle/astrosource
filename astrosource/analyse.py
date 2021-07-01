@@ -359,8 +359,9 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
     # photometrydata = trim_catalogue(photometrydata)
     return photometrydata
 
-def calibrated_photometry(paths, photometrydata):
+def calibrated_photometry(paths, photometrydata, colourterm, colourerror, skipcolourcorrect, targetcolour):
     pdata = []
+       
     for j, outputPhot in enumerate(photometrydata):
         calibCompFile = genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
         compFile = genfromtxt(paths['parent'] / 'stdComps.csv', dtype=float, delimiter=',')
@@ -397,9 +398,9 @@ def calibrated_photometry(paths, photometrydata):
         #errCalib = median(calibCompFile[:,4]) / pow((len(calibCompFile[:,0])), 0.5)
         
         for i in range(outputPhot.shape[0]):
-            outputPhot[i][calibIndex-1]=ensembleMag+outputPhot[i][10] # Calibrated Magnitude
-            #outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(errCalib,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error
-            outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error
+            outputPhot[i][calibIndex-1]=ensembleMag+outputPhot[i][10] - (colourterm * targetcolour) # Calibrated Magnitude incorporating colour term
+            #outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(errCalib,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+            outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
             
         # Write back to photometry data
         pdata.append(outputPhot)
