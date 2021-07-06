@@ -32,6 +32,8 @@ def mock_vizier_query_region_apass_b(*args, **kwargs):
     m,e = create_table_cols()
     t.add_column(m, name='Bmag')
     t.add_column(e, name='e_Bmag')
+    t.add_column(m, name='Vmag')
+    t.add_column(e, name='e_Vmag')
     q = {'II/336/apass9' : t }
     return q
 
@@ -40,6 +42,8 @@ def mock_vizier_query_region_apass_v(*args, **kwargs):
     m,e = create_table_cols()
     t.add_column(m, name='Vmag')
     t.add_column(e, name='e_Vmag')
+    t.add_column(m, name='Bmag')
+    t.add_column(e, name='e_Bmag')
     q = {'II/336/apass9' : t }
     return q
 
@@ -49,6 +53,8 @@ def mock_vizier_query_region_ps_r(*args, **kwargs):
     qual = Column(np.array([52,52,52,3,52],dtype='uint8'))
     t.add_column(m, name='rmag')
     t.add_column(e, name='e_rmag')
+    t.add_column(m, name='imag')
+    t.add_column(e, name='e_imag')
     t.add_column(qual, name='Qual')
     q = {'II/349/ps1' : t }
     return q
@@ -59,6 +65,8 @@ def mock_vizier_query_region_sdss_r(*args, **kwargs):
     qual = Column(np.array([52,3,3,3,52],dtype='uint8'))
     t.add_column(m, name='rmag')
     t.add_column(e, name='e_rmag')
+    t.add_column(m, name='imag')
+    t.add_column(e, name='e_imag')
     t.add_column(qual, name='Q')
     q = {'V/147/sdss12' : t }
     return q

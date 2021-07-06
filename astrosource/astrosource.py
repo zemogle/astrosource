@@ -63,7 +63,7 @@ class TimeSeries:
         self.calibrated = False
         if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
             try:
-                self.colourterm, self.colourerror = find_comparisons_calibrated(targets=self.targets,
+                self.colourterm, self.colourerror, _ = find_comparisons_calibrated(targets=self.targets,
                                                                                 filterCode=self.filtercode,
                                                                                 paths=self.paths,
                                                                                 nopanstarrs=self.nopanstarrs,

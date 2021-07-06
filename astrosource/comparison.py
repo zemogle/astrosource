@@ -1122,64 +1122,72 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     calibOverlord=asarray(calibOverlord)
     savetxt(parentPath / "CalibAll.csv", calibOverlord, delimiter=",", fmt='%0.8f')
 
-    # Difference versus Magnitude calibration plot
-    plt.cla()
-    fig = plt.gcf()
-    outplotx=calibOverlord[:,0]
-    outploty=calibOverlord[:,5]
-    sqsol = np.linalg.lstsq(np.vstack([calibOverlord[:,0],np.ones(len(calibOverlord[:,0]))]).T,calibOverlord[:,5], rcond=None)
-    m, c = sqsol[0]
-    x, residuals, rank, s = sqsol
+
+    try:
+        # Difference versus Magnitude calibration plot
+        plt.cla()
+        fig = plt.gcf()
+        outplotx=calibOverlord[:,0]
+        outploty=calibOverlord[:,5]
+        sqsol = np.linalg.lstsq(np.vstack([calibOverlord[:,0],np.ones(len(calibOverlord[:,0]))]).T,calibOverlord[:,5], rcond=None)
+        m, c = sqsol[0]
+        x, residuals, rank, s = sqsol
+        
+        plt.xlabel(str(cat_used) + ' ' +str(filterCode) + ' Catalogue Magnitude')
+        plt.ylabel('Calibrated - Catalogue Magnitude')
+        plt.plot(outplotx,outploty,'bo')
+        plt.plot(outplotx,m*outplotx+c,'r')
     
-    plt.xlabel(str(cat_used) + ' ' +str(filterCode) + ' Catalogue Magnitude')
-    plt.ylabel('Calibrated - Catalogue Magnitude')
-    plt.plot(outplotx,outploty,'bo')
-    plt.plot(outplotx,m*outplotx+c,'r')
-
-    plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
-    plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
-    plt.grid(True)
-    plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
-    fig.set_size_inches(6,3)
-    plt.savefig(parentPath / str("CalibrationSanityPlot_Magnitude.png"))
-    plt.savefig(parentPath / str("CalibrationSanityPlot_Magnitude.eps"))
-
-    with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "w") as f:
-        f.write("Magnitude slope     : " + str(m)+"\n")
-        f.write("Magnitude zeropoint : " + str(c) +"\n")
-        if not residuals.size == 0:
-            f.write("Magnitude residuals : " +str(residuals[0])+"\n")
-        else:
-            f.write("Magnitude residuals not calculated. \n")
+        plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
+        plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+        plt.grid(True)
+        plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+        fig.set_size_inches(6,3)
+        plt.savefig(parentPath / str("CalibrationSanityPlot_Magnitude.png"))
+        plt.savefig(parentPath / str("CalibrationSanityPlot_Magnitude.eps"))
+    
+        with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "w") as f:
+            f.write("Magnitude slope     : " + str(m)+"\n")
+            f.write("Magnitude zeropoint : " + str(c) +"\n")
+            if not residuals.size == 0:
+                f.write("Magnitude residuals : " +str(residuals[0])+"\n")
+            else:
+                f.write("Magnitude residuals not calculated. \n")
+    except:
+        logger.info("Could not create Difference versus Magnitude calibration plot")
 
     # Difference vs time calibration plot
-    plt.cla()
-    fig = plt.gcf()
-    outplotx=calibOverlord[:,6]
-    outploty=calibOverlord[:,5]
-    sqsol = np.linalg.lstsq(np.vstack([calibOverlord[:,6],np.ones(len(calibOverlord[:,6]))]).T,calibOverlord[:,5], rcond=None)
-    m, c = sqsol[0]
-    x, residuals, rank, s = sqsol
+    try:
+        plt.cla()
+        fig = plt.gcf()
+        outplotx=calibOverlord[:,6]
+        outploty=calibOverlord[:,5]
+        sqsol = np.linalg.lstsq(np.vstack([calibOverlord[:,6],np.ones(len(calibOverlord[:,6]))]).T,calibOverlord[:,5], rcond=None)
+        m, c = sqsol[0]
+        x, residuals, rank, s = sqsol
+        
+        plt.xlabel('BJD')
+        plt.ylabel('Calibrated - Catalogue Magnitude')
+        plt.plot(outplotx,outploty,'bo')
+        plt.plot(outplotx,m*outplotx+c,'r')
+        plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
+        plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+        plt.grid(True)
+        plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+        fig.set_size_inches(6,3)
+        plt.savefig(parentPath / str("CalibrationSanityPlot_Time.png"))
+        plt.savefig(parentPath / str("CalibrationSanityPlot_Time.eps"))
     
-    plt.xlabel('BJD')
-    plt.ylabel('Calibrated - Catalogue Magnitude')
-    plt.plot(outplotx,outploty,'bo')
-    plt.plot(outplotx,m*outplotx+c,'r')
-    plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
-    plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
-    plt.grid(True)
-    plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
-    fig.set_size_inches(6,3)
-    plt.savefig(parentPath / str("CalibrationSanityPlot_Time.png"))
-    plt.savefig(parentPath / str("CalibrationSanityPlot_Time.eps"))
-
-    with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "a") as f:
-        f.write("Time slope     : " + str(m)+"\n")
-        f.write("Time zeropoint : " + str(c) +"\n")        
-        if not residuals.size == 0:
-            f.write("Time residuals : " +str(residuals[0])+"\n")
-        else:
-            f.write("Time residuals not calculated. \n")
+        with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "a") as f:
+            f.write("Time slope     : " + str(m)+"\n")
+            f.write("Time zeropoint : " + str(c) +"\n")        
+            if not residuals.size == 0:
+                f.write("Time residuals : " +str(residuals[0])+"\n")
+            else:
+                f.write("Time residuals not calculated. \n")
+        
+    except:
+        logger.info("Could not create Difference versus BJD calibration plot")
     # Finalise calibcompsusedfile
 
 
@@ -1220,4 +1228,4 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     savetxt(parentPath / "calibCompsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
     sys.stdout.write('\n')
     #return compFile, colourTerm, colourError
-    return colourTerm, colourError
+    return colourTerm, colourError, compFile
