@@ -5,6 +5,7 @@ from pathlib import Path
 from collections import namedtuple
 import numpy as np
 
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -140,6 +141,8 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
     # Sort through and find the largest file and use that as the reference file
     referenceFrame, fileRaDec = find_reference_frame(photFileArray)
 
+    savetxt(parentPath / "referenceFrame.csv", referenceFrame, delimiter=",", fmt='%0.8f')
+
     # SORT THE COMP CANDIDATE FILE such that least variable comparison is first
 
     sortStars=(sortStars[sortStars[:,2].argsort()])
@@ -243,18 +246,22 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
             compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
         
         stdCompDiffMags=std(compDiffMags)
+        medCompDiffMags=np.nanmedian(compDiffMags)
+        medInstrMags=np.nanmedian(instrMags)
+            
         logger.debug("VAR: " +str(stdCompDiffMags))
         if np.isnan(stdCompDiffMags) :
             logger.error("Star Variability non rejected")
             stdCompDiffMags=99
         stdCompStar.append(stdCompDiffMags)
-        sortStars.append([compFile[0],compFile[1],stdCompDiffMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+        sortStars.append([compFile[0],compFile[1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
             
 
     else:
         for cf in compFile:
             compDiffMags = []
+            instrMags=[]
             logger.debug("*************************")
             logger.debug("RA : " + str(cf[0]))
             logger.debug("DEC: " + str(cf[1]))
@@ -263,9 +270,12 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
                 matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
                 idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
                 compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
+                instrMags = -2.5 * log10(photFile[idx][4])
 
             stdCompDiffMags=std(compDiffMags)
-            medCompDiffMags=np.median(compDiffMags)
+            medCompDiffMags=np.nanmedian(compDiffMags)
+            medInstrMags=np.nanmedian(instrMags)
+            
             logger.debug("VAR: " +str(stdCompDiffMags))
             
             if np.isnan(stdCompDiffMags) :
@@ -273,8 +283,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
                 stdCompDiffMags=99
             stdCompStar.append(stdCompDiffMags)
             
-            sortStars.append([cf[0],cf[1],stdCompDiffMags,medCompDiffMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-
+            sortStars.append([cf[0],cf[1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
     return stdCompStar, sortStars
 
@@ -407,7 +416,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
 
 
 def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
-    data = namedtuple(typename='data',field_names=['ra','dec','mag','emag','cat_name'])
+    data = namedtuple(typename='data',field_names=['ra','dec','mag','emag','cat_name', 'colmatch', 'colerr'])
 
     TABLES = {'APASS':'II/336/apass9',
               'SDSS' :'V/147/sdss12',
@@ -444,7 +453,6 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
     else:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
 
-
     logger.debug(f'Looking for sources in {cat_name}')
     if cat_name in ['APASS','PanSTARRS']:
         radecname = {'ra' :'RAJ2000', 'dec': 'DEJ2000'}
@@ -473,7 +481,17 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
 
     logger.info("Number of calibration sources after removal of sources near targets: "+str(len(resp)))
 
+
+    # Remove any star that has invalid values for mag or magerror
+    catReject=[]
+    for q in range(len(resp)):
+        if np.asarray(resp[opt['filter']][q]) == 0.0 or np.asarray(resp[opt['error']][q]) == 0.0 or np.isnan(resp[opt['filter']][q]) or np.isnan(resp[opt['error']][q]):
+            catReject.append(q)
+    del resp[catReject]
+    logger.info(f"Stars rejected that are have invalid mag or magerror entries: {len(catReject)}")
+        
     # Remove any star from calibration catalogue that has another star in the catalogue within closerejectd arcseconds of it.
+    catReject=[]
     while True:
         fileRaDec = SkyCoord(ra=resp[radecname['ra']].data*degree, dec=resp[radecname['dec']].data*degree)
         idx, d2d, _ = fileRaDec.match_to_catalog_sky(fileRaDec, nthneighbor=2) # Closest matches that isn't itself.
@@ -488,7 +506,6 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
 
     logger.info(f"Number of calibration sources after removal of sources near other sources: {len(resp)}")
 
-
     data.cat_name = cat_name
     data.ra = array(resp[radecname['ra']].data)
     data.dec = array(resp[radecname['dec']].data)
@@ -496,28 +513,34 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
     # extract RA, Dec, Mag and error as arrays
     data.mag = array(resp[opt['filter']].data)
     data.emag = array(resp[opt['error']].data)
+    data.colmatch = array(resp[opt['colmatch']].data)
+    data.colerr = array(resp[opt['colerr']].data)
+
     return data
 
 def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2):
     sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
 
     FILTERS = {
-                'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag'}},
-                'V' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag'}},
-                'up' : {'SDSS' : {'filter' : 'umag', 'error' : 'e_umag'},
-                        'SkyMapper' : {'filter' : 'uPSF', 'error' : 'e_uPSF'}},
-                'gp' : {'SDSS' : {'filter' : 'gmag', 'error' : 'e_gmag'},
-                        'SkyMapper' : {'filter' : 'gPSF', 'error' : 'e_gPSF'},
-                        'PanSTARRS': {'filter' : 'gmag', 'error' : 'e_gmag'}},
-                'rp' : {'SDSS' : {'filter' : 'rmag', 'error' : 'e_rmag'},
-                        'SkyMapper' : {'filter' : 'rPSF', 'error' : 'e_rPSF'},
-                        'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag'}},
-                'ip' : {'SDSS' : {'filter' : 'imag', 'error' : 'e_imag'},
-                        'SkyMapper' : {'filter' : 'iPSF', 'error' : 'e_iPSF'},
-                        'PanSTARRS': {'filter' : 'imag', 'error' : 'e_imag'}},
-                'zs' : {'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag'},
-                        'SkyMapper' : {'filter' : 'zPSF', 'error' : 'e_zPSF'},
-                        'SDSS' : {'filter' : 'zmag', 'error' : 'e_zmag'}},
+                'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag', 'colmatch' : 'Vmag', 'colerr' : 'e_Vmag', 'colname' : 'B-V', 'colrev' : '0'}},
+                'V' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag', 'colmatch' : 'Bmag', 'colerr' : 'e_Bmag', 'colname' : 'B-V', 'colrev' : '1'}},
+                'up' : {'SDSS' : {'filter' : 'umag', 'error' : 'e_umag', 'colmatch' : 'gmag', 'colerr' : 'e_gmag', 'colname' : 'u-g', 'colrev' : '0'},
+                        'SkyMapper' : {'filter' : 'uPSF', 'error' : 'e_uPSF', 'colmatch' : 'gPSF', 'colerr' : 'e_gPSF', 'colname' : 'u-g', 'colrev' : '0'}},
+                'gp' : {'SDSS' : {'filter' : 'gmag', 'error' : 'e_gmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'g-r', 'colrev' : '0'},
+                        'SkyMapper' : {'filter' : 'gPSF', 'error' : 'e_gPSF', 'colmatch' : 'rPSF', 'colerr' : 'e_rPSF', 'colname' : 'g-r', 'colrev' : '0'},
+                        'PanSTARRS': {'filter' : 'gmag', 'error' : 'e_gmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'g-r', 'colrev' : '0'},
+                        'APASS' : {'filter' : 'g_mag', 'error' : 'e_g_mag', 'colmatch' : 'r_mag', 'colerr' : 'e_r_mag', 'colname' : 'g-r', 'colrev' : '0'}},
+                'rp' : {'SDSS' : {'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},
+                        'SkyMapper' : {'filter' : 'rPSF', 'error' : 'e_rPSF', 'colmatch' : 'iPSF', 'colerr' : 'e_iPSF', 'colname' : 'r-i', 'colrev' : '0'},
+                        'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},
+                        'APASS' : {'filter' : 'r_mag', 'error' : 'e_r_mag', 'colmatch' : 'i_mag', 'colerr' : 'e_i_mag', 'colname' : 'r-i', 'colrev' : '0'}},
+                'ip' : {'SDSS' : {'filter' : 'imag', 'error' : 'e_imag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-i', 'colrev' : '1'},
+                        'SkyMapper' : {'filter' : 'iPSF', 'error' : 'e_iPSF', 'colmatch' : 'rPSF', 'colerr' : 'e_rPSF', 'colname' : 'r-i', 'colrev' : '1'},
+                        'PanSTARRS': {'filter' : 'imag', 'error' : 'e_imag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-i', 'colrev' : '1'},
+                        'APASS' : {'filter' : 'i_mag', 'error' : 'e_i_mag', 'colmatch' : 'r_mag', 'colerr' : 'e_r_mag', 'colname' : 'r-i', 'colrev' : '1'}},
+                'zs' : {'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-zs', 'colrev' : '1'},
+                        'SkyMapper' : {'filter' : 'zPSF', 'error' : 'e_zPSF', 'colmatch' : 'rPSF', 'colerr' : 'e_rPSF', 'colname' : 'r-zs', 'colrev' : '1'},
+                        'SDSS' : {'filter' : 'zmag', 'error' : 'e_zmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-zs', 'colrev' : '1'}},
                 }
 
 
@@ -581,11 +604,14 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     except IndexError:
         raise AstrosourceException(f"{filterCode} is not accepted at present")
 
-    # Look up in online catalogues
+    # Look up in online catalogues and make sure there are sufficient comparison stars
 
     coords=[]
     for cat_name, opt in catalogues.items():
         try:
+            #print (cat_name)
+            #print (opt)
+            
             if coords ==[]: #SALERT - Do not search if a suitable catalogue has already been found
                 logger.info("Searching " + str(cat_name))
                 if cat_name == 'PanSTARRS' and nopanstarrs==True:
@@ -598,8 +624,49 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                         max_sep=2.5 * arcsecond
                     else:
                         max_sep=1.5 * arcsecond
-                    if coords !=[]:
+                    
+                    #Setup standard catalogue coordinates
+                    catCoords=SkyCoord(ra=coords.ra*degree, dec=coords.dec*degree)
+                
+                    #Get calib mags for least variable IDENTIFIED stars.... not the actual stars in compUsed!! Brighter, less variable stars may be too bright for calibration!
+                    #So the stars that will be used to calibrate the frames to get the OTHER stars.
+                    calibStands=[]
+                
+                    if compFile.shape[0] ==13 and compFile.size ==13:
+                        lenloop=1
+                    else:
+                        lenloop=len(compFile[:,0])
+
+                    for q in range(lenloop):
+                        if compFile.shape[0] ==13 and compFile.size ==13:
+                            compCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+                        else:
+                            compCoord=SkyCoord(ra=compFile[q][0]*degree, dec=compFile[q][1]*degree)
+                        idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
+                        if d2dcomp < max_sep:
+                            if not isnan(coords.mag[idxcomp]) and not isnan(coords.emag[idxcomp]):
+                                if compFile.shape[0] ==13 and compFile.size ==13:
+                                    calibStands.append([compFile[0],compFile[1],compFile[2],coords.mag[idxcomp],coords.emag[idxcomp],compFile[3],coords.colmatch[idxcomp],coords.colerr[idxcomp],compFile[4]])
+                                else:
+                                    calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],coords.mag[idxcomp],coords.emag[idxcomp],compFile[q][3],coords.colmatch[idxcomp],coords.colerr[idxcomp],compFile[q][4]])
+                 
+                    if asarray(calibStands).shape[0] != 0:
+                        logger.info('Calibration Stars Identified below')
+                        logger.info(calibStands)                
+                
+                    # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
+                    #logger.debug(asarray(calibStands).shape[0])
+                    if asarray(calibStands).shape[0] == 0:
+                        logger.info("We could not find a suitable match between any of your stars and the calibration catalogue")
+                        coords=[]
+                        raise AstrosourceException("There is no adequate match between this catalogue and your comparisons.")
+                    
+                
+                    
+                    
+                    if coords !=[] and calibStands !=[]:
                         cat_used=cat_name
+                        
 
 
         except AstrosourceException as e:
@@ -608,52 +675,242 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     if not coords:
         raise AstrosourceException(f"Could not find coordinate match in any catalogues for {filterCode}")
 
-    #Setup standard catalogue coordinates
-    catCoords=SkyCoord(ra=coords.ra*degree, dec=coords.dec*degree)
+   
 
-    #Get calib mags for least variable IDENTIFIED stars.... not the actual stars in compUsed!! Brighter, less variable stars may be too bright for calibration!
-    #So the stars that will be used to calibrate the frames to get the OTHER stars.
-    calibStands=[]
+   
+    
 
-    if compFile.shape[0] ==13 and compFile.size ==13:
-        lenloop=1
-    else:
-        lenloop=len(compFile[:,0])
-
-    for q in range(lenloop):
-        if compFile.shape[0] ==13 and compFile.size ==13:
-            compCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-        else:
-            compCoord=SkyCoord(ra=compFile[q][0]*degree, dec=compFile[q][1]*degree)
-        idxcomp,d2dcomp,d3dcomp=compCoord.match_to_catalog_sky(catCoords)
-        if d2dcomp < max_sep:
-            if not isnan(coords.mag[idxcomp]):
-                if compFile.shape[0] ==13 and compFile.size ==13:
-                    calibStands.append([compFile[0],compFile[1],compFile[2],coords.mag[idxcomp],coords.emag[idxcomp],compFile[3]])
-                else:
-                    calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],coords.mag[idxcomp],coords.emag[idxcomp],compFile[q][3]])
-    logger.info('Calibration Stars Identified below')
-    logger.info(calibStands)
-
-
-
-    # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
-    #logger.debug(asarray(calibStands).shape[0])
-    if asarray(calibStands).shape[0] == 0:
-        logger.info("We could not find a suitable match between any of your stars and the calibration catalogue")
-        logger.info("You might need to reduce the low value (usually 10000) to get some dimmer stars in script 1")
-        logger.info("You might also try using one of --nosdss or --nopanstarrs option (not both!) to prevent comparisons to these catalogues")
-        raise AstrosourceException("Stars are too dim to calibrate to.")
-
+    savetxt(parentPath / "calibStandsAll.csv", calibStands , delimiter=",", fmt='%0.8f')
+    
     
     # Remove nan and zero values which usually mean the calibration star has not got a reliable magnitude estimate
+    # UNLESS they are all nans
     calibStandsReject=[]
     for q in range(len(asarray(calibStands)[:,0])):
         if np.isnan(calibStands[q][4]):
             calibStandsReject.append(q)
         elif calibStands[q][4] == 0:
             calibStandsReject.append(q)
-    calibStands=delete(calibStands, calibStandsReject, axis=0)
+        elif np.isnan(calibStands[q][7]):
+            calibStandsReject.append(q)
+        elif calibStands[q][7] == 0:
+            calibStandsReject.append(q)
+    if len(calibStandsReject) != len(asarray(calibStands)[:,0]):
+        calibStands=delete(calibStands, calibStandsReject, axis=0)
+    
+    
+    
+        
+    
+    # Colour Term Calculations
+    
+    colname=(opt['colname'])
+    colrev=int((opt['colrev']))  
+    
+    # use a temporary calibStands array for colour terms
+    arrayCalibStands=np.asarray(calibStands)
+    
+    # MAKE REFERENCE PRE-COLOUR PLOT AND COLOUR TERM ESTIMATE    
+    referenceFrame = genfromtxt(parentPath / 'referenceFrame.csv', dtype=float, delimiter=',')   
+    referenceFrame[:,5] = 1.0857 * (referenceFrame[:,5]/referenceFrame[:,4])
+    referenceFrame[:,4]=-2.5 * np.log10(referenceFrame[:,4])
+    
+    photCoords=SkyCoord(ra=referenceFrame[:,0]*degree, dec=referenceFrame[:,1]*degree)
+    colTemp=[]
+    for q in range(len(arrayCalibStands[:,0])):
+        if arrayCalibStands.size == 13 and arrayCalibStands.shape[0]== 13:
+            calibCoord=SkyCoord(ra=arrayCalibStands[0]*degree,dec=arrayCalibStands[1]*degree)
+            idx,d2d,_=calibCoord.match_to_catalog_sky(photCoords)
+            #tempDiff.append(calibStand[3]-photFile[idx,4])
+            #calibOut.append([calibStand[3],calibStand[4],photFile[idx,4],photFile[idx,5],calibStand[3]-photFile[idx,4],0])
+            if colrev == 1:
+                colTemp.append([arrayCalibStands[3],arrayCalibStands[4],referenceFrame[idx,4],referenceFrame[idx,5],arrayCalibStands[6]-arrayCalibStands[3],0])
+            else: 
+                colTemp.append([arrayCalibStands[3],arrayCalibStands[4],referenceFrame[idx,4],referenceFrame[idx,5],arrayCalibStands[3]-arrayCalibStands[6],0])
+        else:
+            calibCoord=SkyCoord(ra=arrayCalibStands[q][0]*degree,dec=arrayCalibStands[q][1]*degree)
+            idx,d2d,_=calibCoord.match_to_catalog_sky(photCoords)
+            #tempDiff.append(calibStand[q,3]-photFile[idx,4])
+            if colrev == 1:
+                colTemp.append([arrayCalibStands[q,3],arrayCalibStands[q,4],referenceFrame[idx,4],referenceFrame[idx,5],arrayCalibStands[q,6]-arrayCalibStands[q,3],0])
+            else:
+                colTemp.append([arrayCalibStands[q,3],arrayCalibStands[q,4],referenceFrame[idx,4],referenceFrame[idx,5],arrayCalibStands[q,3]-arrayCalibStands[q,6],0])
+    colTemp=np.asarray(colTemp)
+    
+    
+    # Outlier reject, simple sigma
+    while True:
+        calibStandsReject=[]
+        tempmed = (np.median(colTemp[:,2]-colTemp[:,0]))    
+        tempstd = (np.std(colTemp[:,2]-colTemp[:,0]))
+        for q in range(len(asarray(colTemp)[:,0])):
+            if colTemp[q,2]-colTemp[q,0] > (tempmed + 2.5*tempstd):
+                calibStandsReject.append(q)
+            if colTemp[q,2]-colTemp[q,0] < (tempmed - 2.5*tempstd):
+                calibStandsReject.append(q)
+        if calibStandsReject == []:
+            break
+        colTemp=delete(colTemp, calibStandsReject, axis=0)
+    
+    # Pre-colour Reference plot
+    plt.cla()
+    fig = plt.gcf()
+    outplotx=colTemp[:,4]
+    outploty=colTemp[:,2]-colTemp[:,0]
+    weights=1/(colTemp[:,3])
+    linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
+    linB = outploty * np.sqrt(weights)
+    sqsol = np.linalg.lstsq(linA,linB, rcond=None)
+    m, c = sqsol[0]
+    x, residuals, rank, s = sqsol
+    
+    plt.xlabel(colname + ' Catalogue Colour')
+    plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
+    plt.plot(outplotx,outploty,'bo')
+    plt.plot(outplotx,m*outplotx+c,'r')
+    plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
+    plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+    plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
+    plt.grid(True)
+    plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+    fig.set_size_inches(6,3)
+    plt.savefig(parentPath / str("CalibrationSanityPlot_PreColour_Reference.png"))
+    plt.savefig(parentPath / str("CalibrationSanityPlot_PreColour_Reference.eps"))
+
+    logger.info('Estimated Colour Slope in Reference Frame: ' + str(m))
+    
+    # MAKE ALL PRE-COLOUR PLOTS
+    
+    logger.info('Estimating Colour Slope from all Frames...')
+    
+    #filelist = paths['parent'].glob("*.npy")
+    
+    fileList=[]
+    for line in (parentPath / "usedImages.txt").read_text().strip().split('\n'):
+        fileList.append(line.strip())
+    
+    z=0
+    slopeHolder=[]
+    
+    colourPath = paths['parent'] / 'colourplots'
+    if not colourPath.exists():
+        os.makedirs(colourPath)
+    
+    for filen in fileList:
+
+        z=z+1
+        photFrame = load(parentPath / filen)
+    
+        photFrame[:,5] = 1.0857 * (photFrame[:,5]/photFrame[:,4])  
+        photFrame[:,4]=-2.5 * np.log10(photFrame[:,4])
+
+        
+        photCoords=SkyCoord(ra=photFrame[:,0]*degree, dec=photFrame[:,1]*degree)
+        colTemp=[]
+        for q in range(len(arrayCalibStands[:,0])):
+            if arrayCalibStands.size == 13 and arrayCalibStands.shape[0]== 13:
+                calibCoord=SkyCoord(ra=arrayCalibStands[0]*degree,dec=arrayCalibStands[1]*degree)
+                idx,d2d,_=calibCoord.match_to_catalog_sky(photCoords)
+                if colrev == 1:
+                    colTemp.append([arrayCalibStands[3],arrayCalibStands[4],photFrame[idx,4],photFrame[idx,5],arrayCalibStands[6]-arrayCalibStands[3],0])
+                else:
+                    colTemp.append([arrayCalibStands[3],arrayCalibStands[4],photFrame[idx,4],photFrame[idx,5],arrayCalibStands[3]-arrayCalibStands[6],0])
+            else:
+                calibCoord=SkyCoord(ra=arrayCalibStands[q][0]*degree,dec=arrayCalibStands[q][1]*degree)
+                idx,d2d,_=calibCoord.match_to_catalog_sky(photCoords)
+                if colrev == 1:
+                    colTemp.append([arrayCalibStands[q,3],arrayCalibStands[q,4],photFrame[idx,4],photFrame[idx,5],arrayCalibStands[q,6]-arrayCalibStands[q,3],0])
+                else:
+                    colTemp.append([arrayCalibStands[q,3],arrayCalibStands[q,4],photFrame[idx,4],photFrame[idx,5],arrayCalibStands[q,3]-arrayCalibStands[q,6],0])
+        colTemp=np.asarray(colTemp)
+        
+        # Outlier reject, simple sigma
+        while True:
+            calibStandsReject=[]
+            tempmed = (np.median(colTemp[:,2]-colTemp[:,0]))    
+            tempstd = (np.std(colTemp[:,2]-colTemp[:,0]))
+            for q in range(len(asarray(colTemp)[:,0])):
+                if colTemp[q,2]-colTemp[q,0] > (tempmed + 2.5*tempstd):
+                    calibStandsReject.append(q)
+                if colTemp[q,2]-colTemp[q,0] < (tempmed - 2.5*tempstd):
+                    calibStandsReject.append(q)
+            if calibStandsReject == []:
+                break
+            colTemp=delete(colTemp, calibStandsReject, axis=0)
+        
+        
+        # Colour Term Reference plot
+        plt.cla()
+        fig = plt.gcf()
+        outplotx=colTemp[:,4]
+        outploty=colTemp[:,2]-colTemp[:,0]
+        #Weighted fit, weighted by error in this dataset
+        weights=1/(colTemp[:,3])
+        linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
+        linB = outploty * np.sqrt(weights)
+        sqsol = np.linalg.lstsq(linA,linB, rcond=None)
+        m, c = sqsol[0]
+        x, residuals, rank, s = sqsol
+        
+        plt.xlabel(colname + ' Catalogue Colour')
+        plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
+        plt.plot(outplotx,outploty,'bo')
+        plt.plot(outplotx,m*outplotx+c,'r')
+        plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
+        plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+        plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
+        plt.grid(True)
+        plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+        fig.set_size_inches(6,3)
+        plt.savefig(colourPath / str("CalibrationSanityPlot_Colour_" + str(z) + "_Pre.png"))
+        plt.savefig(colourPath  / str("CalibrationSanityPlot_Colour_" + str(z) + "_Pre.eps"))
+        
+        slopeHolder.append(m)
+    
+    # Reject outliers in colour slope
+    outReject=[]
+    while True:
+        outMed=np.median(slopeHolder)
+        outStd=np.std(slopeHolder)
+        for q in range(len(slopeHolder)):
+
+            if (slopeHolder[q] >= (outMed + 3*outStd)) :
+                outReject.append(q)
+            if (slopeHolder[q] <= (outMed - 3*outStd)) :
+                outReject.append(q)
+        slopeHolder=delete(slopeHolder, outReject, axis=0)
+
+        if outReject == []:
+            break
+        outReject = []
+    
+    logger.info('Median Estimated Colour Slope from all frames: ' + str(outMed) )
+    logger.info('Estimated Colour Slope Standard Deviation from all frames: ' + str(outStd))
+    logger.info('Number of frames used : ' + str(len(slopeHolder)))
+    logger.info('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)))
+                
+    with open(parentPath / "ColourCoefficients.txt", "w") as f:
+        f.write('Median Estimated Colour Slope from all frames: ' + str(outMed) +"\n")
+        f.write('Estimated Colour Slope Standard Deviation from all frames: ' + str(outStd) +"\n")
+        f.write('Number of frames used : ' + str(len(slopeHolder)) +"\n")
+        f.write('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)) +"\n")
+    
+    # Plot histogram of colour terms
+    plt.cla()
+    fig = plt.gcf()
+    plt.hist(slopeHolder, bins=16)
+    fig.set_size_inches(6,3)
+    plt.xlabel(str(filterCode) + ' Colour Term')
+    plt.ylabel('Number of images')
+    plt.savefig(parentPath / str("CalibrationSanityPlot_ColourTermHistogram.png"))
+    plt.savefig(parentPath / str("CalibrationSanityPlot_ColourTermHistogram.eps")) 
+           
+    colourTerm=outMed
+    colourError=outStd / pow (len(slopeHolder),0.5)
+
+    #print (calibStands)
+    
+
 
     # Get rid of higher variability stars from calibration list
     varimin=(min(asarray(calibStands)[:,2])) * variabilityMultiplier
@@ -677,9 +934,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             calibStands=delete(calibStands, calibStandsReject, axis=0)
         
 
-    calibStand=asarray(calibStands)
-
     savetxt(parentPath / "calibStands.csv", calibStands , delimiter=",", fmt='%0.8f')
+
 
 
     # Lets use this set to calibrate each datafile and pull out the calibrated compsused magnitudes
@@ -688,8 +944,12 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     calibCompUsed=[]
 
     calibOverlord=[] # a huge array intended to create the calibration plot and data out of all the individual calibration files.
+    
+    calibStand=asarray(calibStands)
 
+    z=0
     logger.debug("CALIBRATING EACH FILE")
+    slopeHolder=[]
     for file in fileList:
         logger.debug(file)
 
@@ -702,25 +962,37 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             photFile[r,5]=1.0857 * (photFile[r,5]/photFile[r,4])
             photFile[r,4]=-2.5*log10(photFile[r,4])
 
+        
+
+        #print (calibStand)
+
         #Pull out the CalibStands out of each file
+        # HERE IS WHERE THE COLOUR TERM CORRECTION FOR COMPARISON STARS IS ENACTED.
+        
         tempDiff=[]
         calibOut=[]
         for q in range(len(calibStands[:,0])):
             if calibStands.size == 13 and calibStands.shape[0]== 13:
                 calibCoord=SkyCoord(ra=calibStand[0]*degree,dec=calibStand[1]*degree)
                 idx,d2d,d3d=calibCoord.match_to_catalog_sky(photCoords)
-                tempDiff.append(calibStand[3]-photFile[idx,4])
-                calibOut.append([calibStand[3],calibStand[4],photFile[idx,4],photFile[idx,5],calibStand[3]-photFile[idx,4],0])
+                
+                if colrev == 1:
+                    tempDiff.append(calibStand[3]-(photFile[idx,4]-colourTerm*(calibStand[6]-calibStand[3])))
+                    calibOut.append([calibStand[3],calibStand[4],photFile[idx,4],photFile[idx,5],calibStand[3]-(photFile[idx,4]-colourTerm*(calibStand[6]-calibStand[3])),0,calibStand[6]-calibStand[3]])
+                else:
+                    tempDiff.append(calibStand[3]-(photFile[idx,4]-colourTerm*(calibStand[3]-calibStand[6])))
+                    calibOut.append([calibStand[3],calibStand[4],photFile[idx,4],photFile[idx,5],calibStand[3]-(photFile[idx,4]-colourTerm*(calibStand[3]-calibStand[6])),0,calibStand[3]-calibStand[6]])
             else:
                 calibCoord=SkyCoord(ra=calibStand[q][0]*degree,dec=calibStand[q][1]*degree)
                 idx,d2d,d3d=calibCoord.match_to_catalog_sky(photCoords)
-                tempDiff.append(calibStand[q,3]-photFile[idx,4])
-                calibOut.append([calibStand[q,3],calibStand[q,4],photFile[idx,4],photFile[idx,5],calibStand[q,3]-photFile[idx,4],0])
-
-        #logger.debug(tempDiff)
+                #tempDiff.append(calibStand[q,3]-photFile[idx,4])
+                if colrev == 1:
+                    tempDiff.append(calibStand[q,3]-(photFile[idx,4]-colourTerm*(calibStand[q,6]-calibStand[q,3])))
+                    calibOut.append([calibStand[q,3],calibStand[q,4],photFile[idx,4],photFile[idx,5],calibStand[q,3]-(photFile[idx,4]-colourTerm*(calibStand[q,6]-calibStand[q,3])),0,calibStand[q,6]-calibStand[q,3]])
+                else:
+                    tempDiff.append(calibStand[q,3]-(photFile[idx,4]-colourTerm*(calibStand[q,3]-calibStand[q,6])))
+                    calibOut.append([calibStand[q,3],calibStand[q,4],photFile[idx,4],photFile[idx,5],calibStand[q,3]-(photFile[idx,4]-colourTerm*(calibStand[q,3]-calibStand[q,6])),0,calibStand[q,3]-calibStand[q,6]])
         tempZP= (median(tempDiff))
-        #logger.debug(std(tempDiff))
-
 
         #Shift the magnitudes in the phot file by the zeropoint
         for r in range(len(photFile[:,0])):
@@ -736,11 +1008,47 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
         file = Path(file)
         #Save the calibrated photfiles to the calib directory
-        #savetxt(calibPath / "{}.calibrated.{}".format(file.stem, file.suffix), photFile, delimiter=",", fmt='%0.8f')
         savetxt(calibPath / "{}.calibrated.{}".format(file.stem, 'csv'), photFile, delimiter=",", fmt='%0.8f')
         savetxt(calibPath / "{}.compared.{}".format(file.stem, 'csv'), calibOut, delimiter=",", fmt='%0.8f')
 
         
+        #PRINT POSTCOLOUR CORRECTION PLOTS
+        
+        # Colour Term Reference plot
+        plt.cla()
+        fig = plt.gcf()
+        outplotx=calibOut[:,6]
+        outploty=calibOut[:,2]-calibOut[:,0]
+        #Weighted fit, weighted by error in this dataset
+        weights=1/(calibOut[:,1])
+        linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
+        linB = outploty * np.sqrt(weights)
+        sqsol = np.linalg.lstsq(linA,linB, rcond=None)
+        m, c = sqsol[0]
+        x, residuals, rank, s = sqsol
+        
+        plt.xlabel(colname + ' Catalogue Colour')
+        plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
+        plt.plot(outplotx,outploty,'bo')
+        plt.plot(outplotx,m*outplotx+c,'r')
+        plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
+        plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+        plt.errorbar(outplotx, outploty, yerr=calibOut[:,1], fmt='-o', linestyle='None')
+        plt.grid(True)
+        plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+        fig.set_size_inches(6,3)
+        plt.savefig(colourPath / str("CalibrationSanityPlot_Colour_" + str(z) + "_Post.png"))
+        plt.savefig(colourPath  / str("CalibrationSanityPlot_Colour_" + str(z) + "_Post.eps"))
+        z=z+1
+        slopeHolder.append(m)
+
+
+
+        
+
+
+
+
 
 
         #Look within photfile for ACTUAL usedcomps.csv and pull them out
@@ -764,6 +1072,53 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         sys.stdout.write('.')
         sys.stdout.flush()
 
+
+    # Reject outliers in colour slope
+    outReject=[]
+    while True:
+        outMed=np.median(slopeHolder)
+        outStd=np.std(slopeHolder)
+        for q in range(len(slopeHolder)):
+
+            if (slopeHolder[q] >= (outMed + 3*outStd)) :
+                outReject.append(q)
+            if (slopeHolder[q] <= (outMed - 3*outStd)) :
+                outReject.append(q)
+        slopeHolder=delete(slopeHolder, outReject, axis=0)
+
+        if outReject == []:
+            break
+        outReject = []
+    
+    logger.info('Median Estimated Colour CORRECTED Slope from all frames: ' + str(outMed) )
+    logger.info('Estimated Colour CORRECTED Slope Standard Deviation from all frames: ' + str(outStd))
+    logger.info('Number of frames used : ' + str(len(slopeHolder)))
+    logger.info('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)))
+                
+    with open(parentPath / "ColourCoefficients.txt", "w") as f:
+        f.write('Median Estimated Colour CORRECTED Slope from all frames: ' + str(outMed) +"\n")
+        f.write('Estimated Colour CORRECTED Slope Standard Deviation from all frames: ' + str(outStd) +"\n")
+        f.write('Number of frames used : ' + str(len(slopeHolder)) +"\n")
+        f.write('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)) +"\n")
+
+
+    # Plot histogram of colour terms
+    plt.cla()
+    fig = plt.gcf()
+    plt.hist(slopeHolder, bins=16)
+    fig.set_size_inches(6,3)
+    plt.xlabel(str(filterCode) + ' Colour Term')
+    plt.ylabel('Number of images')
+    plt.savefig(parentPath / str("CalibrationSanityPlot_CORRECTEDColourTermHistogram.png"))
+    plt.savefig(parentPath / str("CalibrationSanityPlot_CORRECTEDColourTermHistogram.eps")) 
+           
+    #colourTerm=outMed
+    #colourError=outStd / pow (len(slopeHolder),0.5)
+
+
+    # UP TO HERE ON THE COLOUR ANGLE
+
+
     calibOverlord=asarray(calibOverlord)
     savetxt(parentPath / "CalibAll.csv", calibOverlord, delimiter=",", fmt='%0.8f')
 
@@ -775,20 +1130,14 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     sqsol = np.linalg.lstsq(np.vstack([calibOverlord[:,0],np.ones(len(calibOverlord[:,0]))]).T,calibOverlord[:,5], rcond=None)
     m, c = sqsol[0]
     x, residuals, rank, s = sqsol
-    #logger.info(m)
-    #logger.info(c)
-    #logger.info(residuals[0])
     
     plt.xlabel(str(cat_used) + ' ' +str(filterCode) + ' Catalogue Magnitude')
     plt.ylabel('Calibrated - Catalogue Magnitude')
     plt.plot(outplotx,outploty,'bo')
     plt.plot(outplotx,m*outplotx+c,'r')
-    #plt.plot(outplotxrepeat,outploty,'ro')
-    #plt.plot(linex,liney)
+
     plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
     plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
-    #plt.errorbar(outplotx, outploty, xerr=3*calibOverlord[:,1], fmt='-o', linestyle='None')
-    #plt.errorbar(outplotxrepeat, outploty, yerr=3*calibFile[:,2], fmt='-o', linestyle='None')
     plt.grid(True)
     plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
     fig.set_size_inches(6,3)
@@ -816,12 +1165,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     plt.ylabel('Calibrated - Catalogue Magnitude')
     plt.plot(outplotx,outploty,'bo')
     plt.plot(outplotx,m*outplotx+c,'r')
-    #plt.plot(outplotxrepeat,outploty,'ro')
-    #plt.plot(linex,liney)
     plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
     plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
-    #plt.errorbar(outplotx, outploty, xerr=3*calibOverlord[:,1], fmt='-o', linestyle='None')
-    #plt.errorbar(outplotxrepeat, outploty, yerr=3*calibFile[:,2], fmt='-o', linestyle='None')
     plt.grid(True)
     plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
     fig.set_size_inches(6,3)
@@ -836,10 +1181,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         else:
             f.write("Time residuals not calculated. \n")
     # Finalise calibcompsusedfile
-    #logger.debug(calibCompUsed)
+
 
     calibCompUsed=asarray(calibCompUsed)
-    #logger.debug(calibCompUsed[0,:])
+
 
     finalCompUsedFile=[]
     sumStd=[]
@@ -852,7 +1197,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         else:
             finalCompUsedFile.append([compUsedFile[r][0],compUsedFile[r][1],compUsedFile[r][2],median(calibCompUsed[:,r]),std(calibCompUsed[:,r])])
 
-    #logger.debug(finalCompUsedFile)
     logger.debug(" ")
     sumStd=asarray(sumStd)
 
@@ -872,8 +1216,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         f.write("Median Standard Deviation of any one star: " + str(median(sumStd)) +"\n")
         f.write("Standard Error/Uncertainty in Calibration: " +str(errCalib))
 
-    #logger.debug(finalCompUsedFile)
     compFile = asarray(finalCompUsedFile)
     savetxt(parentPath / "calibCompsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
     sys.stdout.write('\n')
-    return compFile
+    #return compFile, colourTerm, colourError
+    return colourTerm, colourError
