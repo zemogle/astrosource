@@ -46,11 +46,11 @@ logger = logging.getLogger('astrosource')
 @click.option('--mincompstars', '-mc', type=float, default=0.1)
 @click.option('--nosdss', '-ns', is_flag=True)
 @click.option('--skipvarsearch', '-sv', is_flag=True)
-@click.option('--skipcolourcorrect', '-cc', is_flag=True)
+@click.option('--skipcolourdetect', '-cc', is_flag=True)
 @click.option('--colourterm', '-ct', type=float, default=0.0)
 @click.option('--colourerror', '-ce', type=float, default=0.0)
-@click.option('--targetcolour', '-tc', type=float, default=0.0)
-def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts,colourterm, skipcolourcorrect,colourerror,targetcolour):
+@click.option('--targetcolour', '-tc', type=float, default=-99.0)
+def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts,colourterm, skipcolourdetect,colourerror,targetcolour):
 
     try:
         parentPath = Path(indir)
@@ -86,7 +86,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
                         closerejectd=closerejectd,
                         verbose=verbose,
                         mincompstars=mincompstars,
-                        skipcolourcorrect=skipcolourcorrect,
+                        skipcolourdetect=skipcolourdetect,
                         colourterm=colourterm,
                         colourerror=colourerror,
                         targetcolour=targetcolour
