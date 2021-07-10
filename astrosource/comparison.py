@@ -518,7 +518,7 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
 
     return data
 
-def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2):
+def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, skipcolourdetect=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, colourTerm=0.0, colourError=0.0):
     sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
 
     FILTERS = {
@@ -699,130 +699,49 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         calibStands=delete(calibStands, calibStandsReject, axis=0)
     
     
-    
-        
+     
     
     # Colour Term Calculations
-    
     colname=(opt['colname'])
-    colrev=int((opt['colrev']))  
-    
-    # use a temporary calibStands array for colour terms
-    arrayCalibStands=np.asarray(calibStands)
-    
-    # MAKE REFERENCE PRE-COLOUR PLOT AND COLOUR TERM ESTIMATE    
-    referenceFrame = genfromtxt(parentPath / 'referenceFrame.csv', dtype=float, delimiter=',')   
-    referenceFrame[:,5] = 1.0857 * (referenceFrame[:,5]/referenceFrame[:,4])
-    referenceFrame[:,4]=-2.5 * np.log10(referenceFrame[:,4])
-    
-    photCoords=SkyCoord(ra=referenceFrame[:,0]*degree, dec=referenceFrame[:,1]*degree)
-    colTemp=[]
-    for q in range(len(arrayCalibStands[:,0])):
-        if arrayCalibStands.size == 13 and arrayCalibStands.shape[0]== 13:
-            calibCoord=SkyCoord(ra=arrayCalibStands[0]*degree,dec=arrayCalibStands[1]*degree)
-            idx,d2d,_=calibCoord.match_to_catalog_sky(photCoords)
-            #tempDiff.append(calibStand[3]-photFile[idx,4])
-            #calibOut.append([calibStand[3],calibStand[4],photFile[idx,4],photFile[idx,5],calibStand[3]-photFile[idx,4],0])
-            if colrev == 1:
-                colTemp.append([arrayCalibStands[3],arrayCalibStands[4],referenceFrame[idx,4],referenceFrame[idx,5],arrayCalibStands[6]-arrayCalibStands[3],0])
-            else: 
-                colTemp.append([arrayCalibStands[3],arrayCalibStands[4],referenceFrame[idx,4],referenceFrame[idx,5],arrayCalibStands[3]-arrayCalibStands[6],0])
-        else:
-            calibCoord=SkyCoord(ra=arrayCalibStands[q][0]*degree,dec=arrayCalibStands[q][1]*degree)
-            idx,d2d,_=calibCoord.match_to_catalog_sky(photCoords)
-            #tempDiff.append(calibStand[q,3]-photFile[idx,4])
-            if colrev == 1:
-                colTemp.append([arrayCalibStands[q,3],arrayCalibStands[q,4],referenceFrame[idx,4],referenceFrame[idx,5],arrayCalibStands[q,6]-arrayCalibStands[q,3],0])
-            else:
-                colTemp.append([arrayCalibStands[q,3],arrayCalibStands[q,4],referenceFrame[idx,4],referenceFrame[idx,5],arrayCalibStands[q,3]-arrayCalibStands[q,6],0])
-    colTemp=np.asarray(colTemp)
-    
-    
-    # Outlier reject, simple sigma
-    while True:
-        calibStandsReject=[]
-        tempmed = (np.median(colTemp[:,2]-colTemp[:,0]))    
-        tempstd = (np.std(colTemp[:,2]-colTemp[:,0]))
-        for q in range(len(asarray(colTemp)[:,0])):
-            if colTemp[q,2]-colTemp[q,0] > (tempmed + 2.5*tempstd):
-                calibStandsReject.append(q)
-            if colTemp[q,2]-colTemp[q,0] < (tempmed - 2.5*tempstd):
-                calibStandsReject.append(q)
-        if calibStandsReject == []:
-            break
-        colTemp=delete(colTemp, calibStandsReject, axis=0)
-    
-    # Pre-colour Reference plot
-    plt.cla()
-    fig = plt.gcf()
-    outplotx=colTemp[:,4]
-    outploty=colTemp[:,2]-colTemp[:,0]
-    weights=1/(colTemp[:,3])
-    linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
-    linB = outploty * np.sqrt(weights)
-    sqsol = np.linalg.lstsq(linA,linB, rcond=None)
-    m, c = sqsol[0]
-    x, residuals, rank, s = sqsol
-    
-    plt.xlabel(colname + ' Catalogue Colour')
-    plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
-    plt.plot(outplotx,outploty,'bo')
-    plt.plot(outplotx,m*outplotx+c,'r')
-    plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
-    plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
-    plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
-    plt.grid(True)
-    plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
-    fig.set_size_inches(6,3)
-    plt.savefig(parentPath / str("CalibrationSanityPlot_PreColour_Reference.png"))
-    plt.savefig(parentPath / str("CalibrationSanityPlot_PreColour_Reference.eps"))
-
-    logger.info('Estimated Colour Slope in Reference Frame: ' + str(m))
-    
-    # MAKE ALL PRE-COLOUR PLOTS
-    
-    logger.info('Estimating Colour Slope from all Frames...')
-    
-    #filelist = paths['parent'].glob("*.npy")
-    
-    fileList=[]
-    for line in (parentPath / "usedImages.txt").read_text().strip().split('\n'):
-        fileList.append(line.strip())
-    
-    z=0
-    slopeHolder=[]
-    
+    colrev=int((opt['colrev']))
     colourPath = paths['parent'] / 'colourplots'
     if not colourPath.exists():
         os.makedirs(colourPath)
-    
-    for filen in fileList:
-
-        z=z+1
-        photFrame = load(parentPath / filen)
-    
-        photFrame[:,5] = 1.0857 * (photFrame[:,5]/photFrame[:,4])  
-        photFrame[:,4]=-2.5 * np.log10(photFrame[:,4])
-
         
-        photCoords=SkyCoord(ra=photFrame[:,0]*degree, dec=photFrame[:,1]*degree)
+    #Colour Term Estimation routine
+    if skipcolourdetect == False:
+        
+        
+        # use a temporary calibStands array for colour terms
+        arrayCalibStands=np.asarray(calibStands)
+        
+        # MAKE REFERENCE PRE-COLOUR PLOT AND COLOUR TERM ESTIMATE    
+        referenceFrame = genfromtxt(parentPath / 'referenceFrame.csv', dtype=float, delimiter=',')   
+        referenceFrame[:,5] = 1.0857 * (referenceFrame[:,5]/referenceFrame[:,4])
+        referenceFrame[:,4]=-2.5 * np.log10(referenceFrame[:,4])
+        
+        photCoords=SkyCoord(ra=referenceFrame[:,0]*degree, dec=referenceFrame[:,1]*degree)
         colTemp=[]
         for q in range(len(arrayCalibStands[:,0])):
             if arrayCalibStands.size == 13 and arrayCalibStands.shape[0]== 13:
                 calibCoord=SkyCoord(ra=arrayCalibStands[0]*degree,dec=arrayCalibStands[1]*degree)
                 idx,d2d,_=calibCoord.match_to_catalog_sky(photCoords)
+                #tempDiff.append(calibStand[3]-photFile[idx,4])
+                #calibOut.append([calibStand[3],calibStand[4],photFile[idx,4],photFile[idx,5],calibStand[3]-photFile[idx,4],0])
                 if colrev == 1:
-                    colTemp.append([arrayCalibStands[3],arrayCalibStands[4],photFrame[idx,4],photFrame[idx,5],arrayCalibStands[6]-arrayCalibStands[3],0])
-                else:
-                    colTemp.append([arrayCalibStands[3],arrayCalibStands[4],photFrame[idx,4],photFrame[idx,5],arrayCalibStands[3]-arrayCalibStands[6],0])
+                    colTemp.append([arrayCalibStands[3],arrayCalibStands[4],referenceFrame[idx,4],referenceFrame[idx,5],arrayCalibStands[6]-arrayCalibStands[3],0])
+                else: 
+                    colTemp.append([arrayCalibStands[3],arrayCalibStands[4],referenceFrame[idx,4],referenceFrame[idx,5],arrayCalibStands[3]-arrayCalibStands[6],0])
             else:
                 calibCoord=SkyCoord(ra=arrayCalibStands[q][0]*degree,dec=arrayCalibStands[q][1]*degree)
                 idx,d2d,_=calibCoord.match_to_catalog_sky(photCoords)
+                #tempDiff.append(calibStand[q,3]-photFile[idx,4])
                 if colrev == 1:
-                    colTemp.append([arrayCalibStands[q,3],arrayCalibStands[q,4],photFrame[idx,4],photFrame[idx,5],arrayCalibStands[q,6]-arrayCalibStands[q,3],0])
+                    colTemp.append([arrayCalibStands[q,3],arrayCalibStands[q,4],referenceFrame[idx,4],referenceFrame[idx,5],arrayCalibStands[q,6]-arrayCalibStands[q,3],0])
                 else:
-                    colTemp.append([arrayCalibStands[q,3],arrayCalibStands[q,4],photFrame[idx,4],photFrame[idx,5],arrayCalibStands[q,3]-arrayCalibStands[q,6],0])
+                    colTemp.append([arrayCalibStands[q,3],arrayCalibStands[q,4],referenceFrame[idx,4],referenceFrame[idx,5],arrayCalibStands[q,3]-arrayCalibStands[q,6],0])
         colTemp=np.asarray(colTemp)
+        
         
         # Outlier reject, simple sigma
         while True:
@@ -838,13 +757,11 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 break
             colTemp=delete(colTemp, calibStandsReject, axis=0)
         
-        
-        # Colour Term Reference plot
+        # Pre-colour Reference plot
         plt.cla()
         fig = plt.gcf()
         outplotx=colTemp[:,4]
         outploty=colTemp[:,2]-colTemp[:,0]
-        #Weighted fit, weighted by error in this dataset
         weights=1/(colTemp[:,3])
         linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
         linB = outploty * np.sqrt(weights)
@@ -862,55 +779,143 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.grid(True)
         plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
         fig.set_size_inches(6,3)
-        plt.savefig(colourPath / str("CalibrationSanityPlot_Colour_" + str(z) + "_Pre.png"))
-        plt.savefig(colourPath  / str("CalibrationSanityPlot_Colour_" + str(z) + "_Pre.eps"))
+        plt.savefig(parentPath / str("CalibrationSanityPlot_PreColour_Reference.png"))
+        plt.savefig(parentPath / str("CalibrationSanityPlot_PreColour_Reference.eps"))
+    
+        logger.info('Estimated Colour Slope in Reference Frame: ' + str(m))
         
-        slopeHolder.append(m)
+        # MAKE ALL PRE-COLOUR PLOTS
+        
+        logger.info('Estimating Colour Slope from all Frames...')
+        
+        #filelist = paths['parent'].glob("*.npy")
+        
+        fileList=[]
+        for line in (parentPath / "usedImages.txt").read_text().strip().split('\n'):
+            fileList.append(line.strip())
+        
+        z=0
+        slopeHolder=[]
+        
+        colourPath = paths['parent'] / 'colourplots'
+        if not colourPath.exists():
+            os.makedirs(colourPath)
+        
+        for filen in fileList:
     
-    # Reject outliers in colour slope
-    outReject=[]
-    while True:
-        outMed=np.median(slopeHolder)
-        outStd=np.std(slopeHolder)
-        for q in range(len(slopeHolder)):
-
-            if (slopeHolder[q] >= (outMed + 3*outStd)) :
-                outReject.append(q)
-            if (slopeHolder[q] <= (outMed - 3*outStd)) :
-                outReject.append(q)
-        slopeHolder=delete(slopeHolder, outReject, axis=0)
-
-        if outReject == []:
-            break
-        outReject = []
+            z=z+1
+            photFrame = load(parentPath / filen)
+        
+            photFrame[:,5] = 1.0857 * (photFrame[:,5]/photFrame[:,4])  
+            photFrame[:,4]=-2.5 * np.log10(photFrame[:,4])
     
-    logger.info('Median Estimated Colour Slope from all frames: ' + str(outMed) )
-    logger.info('Estimated Colour Slope Standard Deviation from all frames: ' + str(outStd))
-    logger.info('Number of frames used : ' + str(len(slopeHolder)))
-    logger.info('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)))
-                
-    with open(parentPath / "ColourCoefficients.txt", "w") as f:
-        f.write('Median Estimated Colour Slope from all frames: ' + str(outMed) +"\n")
-        f.write('Estimated Colour Slope Standard Deviation from all frames: ' + str(outStd) +"\n")
-        f.write('Number of frames used : ' + str(len(slopeHolder)) +"\n")
-        f.write('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)) +"\n")
+            
+            photCoords=SkyCoord(ra=photFrame[:,0]*degree, dec=photFrame[:,1]*degree)
+            colTemp=[]
+            for q in range(len(arrayCalibStands[:,0])):
+                if arrayCalibStands.size == 13 and arrayCalibStands.shape[0]== 13:
+                    calibCoord=SkyCoord(ra=arrayCalibStands[0]*degree,dec=arrayCalibStands[1]*degree)
+                    idx,d2d,_=calibCoord.match_to_catalog_sky(photCoords)
+                    if colrev == 1:
+                        colTemp.append([arrayCalibStands[3],arrayCalibStands[4],photFrame[idx,4],photFrame[idx,5],arrayCalibStands[6]-arrayCalibStands[3],0])
+                    else:
+                        colTemp.append([arrayCalibStands[3],arrayCalibStands[4],photFrame[idx,4],photFrame[idx,5],arrayCalibStands[3]-arrayCalibStands[6],0])
+                else:
+                    calibCoord=SkyCoord(ra=arrayCalibStands[q][0]*degree,dec=arrayCalibStands[q][1]*degree)
+                    idx,d2d,_=calibCoord.match_to_catalog_sky(photCoords)
+                    if colrev == 1:
+                        colTemp.append([arrayCalibStands[q,3],arrayCalibStands[q,4],photFrame[idx,4],photFrame[idx,5],arrayCalibStands[q,6]-arrayCalibStands[q,3],0])
+                    else:
+                        colTemp.append([arrayCalibStands[q,3],arrayCalibStands[q,4],photFrame[idx,4],photFrame[idx,5],arrayCalibStands[q,3]-arrayCalibStands[q,6],0])
+            colTemp=np.asarray(colTemp)
+            
+            # Outlier reject, simple sigma
+            while True:
+                calibStandsReject=[]
+                tempmed = (np.median(colTemp[:,2]-colTemp[:,0]))    
+                tempstd = (np.std(colTemp[:,2]-colTemp[:,0]))
+                for q in range(len(asarray(colTemp)[:,0])):
+                    if colTemp[q,2]-colTemp[q,0] > (tempmed + 2.5*tempstd):
+                        calibStandsReject.append(q)
+                    if colTemp[q,2]-colTemp[q,0] < (tempmed - 2.5*tempstd):
+                        calibStandsReject.append(q)
+                if calibStandsReject == []:
+                    break
+                colTemp=delete(colTemp, calibStandsReject, axis=0)
+            
+            
+            # Colour Term Reference plot
+            plt.cla()
+            fig = plt.gcf()
+            outplotx=colTemp[:,4]
+            outploty=colTemp[:,2]-colTemp[:,0]
+            #Weighted fit, weighted by error in this dataset
+            weights=1/(colTemp[:,3])
+            linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
+            linB = outploty * np.sqrt(weights)
+            sqsol = np.linalg.lstsq(linA,linB, rcond=None)
+            m, c = sqsol[0]
+            x, residuals, rank, s = sqsol
+            
+            plt.xlabel(colname + ' Catalogue Colour')
+            plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
+            plt.plot(outplotx,outploty,'bo')
+            plt.plot(outplotx,m*outplotx+c,'r')
+            plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
+            plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+            plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
+            plt.grid(True)
+            plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+            fig.set_size_inches(6,3)
+            plt.savefig(colourPath / str("CalibrationSanityPlot_Colour_" + str(z) + "_Pre.png"))
+            plt.savefig(colourPath  / str("CalibrationSanityPlot_Colour_" + str(z) + "_Pre.eps"))
+            
+            slopeHolder.append(m)
+        
+        # Reject outliers in colour slope
+        outReject=[]
+        while True:
+            outMed=np.median(slopeHolder)
+            outStd=np.std(slopeHolder)
+            for q in range(len(slopeHolder)):
     
-    # Plot histogram of colour terms
-    plt.cla()
-    fig = plt.gcf()
-    plt.hist(slopeHolder, bins=16)
-    fig.set_size_inches(6,3)
-    plt.xlabel(str(filterCode) + ' Colour Term')
-    plt.ylabel('Number of images')
-    plt.savefig(parentPath / str("CalibrationSanityPlot_ColourTermHistogram.png"))
-    plt.savefig(parentPath / str("CalibrationSanityPlot_ColourTermHistogram.eps")) 
-           
-    colourTerm=outMed
-    colourError=outStd / pow (len(slopeHolder),0.5)
-
-    #print (calibStands)
+                if (slopeHolder[q] >= (outMed + 3*outStd)) :
+                    outReject.append(q)
+                if (slopeHolder[q] <= (outMed - 3*outStd)) :
+                    outReject.append(q)
+            slopeHolder=delete(slopeHolder, outReject, axis=0)
     
-
+            if outReject == []:
+                break
+            outReject = []
+        
+        logger.info('Median Estimated Colour Slope from all frames: ' + str(outMed) )
+        logger.info('Estimated Colour Slope Standard Deviation from all frames: ' + str(outStd))
+        logger.info('Number of frames used : ' + str(len(slopeHolder)))
+        logger.info('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)))
+                    
+        with open(parentPath / "ColourCoefficients.txt", "w") as f:
+            f.write('Median Estimated Colour Slope from all frames: ' + str(outMed) +"\n")
+            f.write('Estimated Colour Slope Standard Deviation from all frames: ' + str(outStd) +"\n")
+            f.write('Number of frames used : ' + str(len(slopeHolder)) +"\n")
+            f.write('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)) +"\n")
+        
+        # Plot histogram of colour terms
+        plt.cla()
+        fig = plt.gcf()
+        plt.hist(slopeHolder, bins=16)
+        fig.set_size_inches(6,3)
+        plt.xlabel(str(filterCode) + ' Colour Term')
+        plt.ylabel('Number of images')
+        plt.savefig(parentPath / str("CalibrationSanityPlot_ColourTermHistogram.png"))
+        plt.savefig(parentPath / str("CalibrationSanityPlot_ColourTermHistogram.eps")) 
+               
+        colourTerm=outMed
+        colourError=outStd / pow (len(slopeHolder),0.5)
+    
+        #print (calibStands)
+    else:
+        logger.info("Skipping Colour Correction Estimation")        
 
     # Get rid of higher variability stars from calibration list
     varimin=(min(asarray(calibStands)[:,2])) * variabilityMultiplier
@@ -1013,34 +1018,34 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
         
         #PRINT POSTCOLOUR CORRECTION PLOTS
-        
-        # Colour Term Reference plot
-        plt.cla()
-        fig = plt.gcf()
-        outplotx=calibOut[:,6]
-        outploty=calibOut[:,2]-calibOut[:,0]
-        #Weighted fit, weighted by error in this dataset
-        weights=1/(calibOut[:,1])
-        linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
-        linB = outploty * np.sqrt(weights)
-        sqsol = np.linalg.lstsq(linA,linB, rcond=None)
-        m, c = sqsol[0]
-        x, residuals, rank, s = sqsol
-        
-        plt.xlabel(colname + ' Catalogue Colour')
-        plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
-        plt.plot(outplotx,outploty,'bo')
-        plt.plot(outplotx,m*outplotx+c,'r')
-        plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
-        plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
-        plt.errorbar(outplotx, outploty, yerr=calibOut[:,1], fmt='-o', linestyle='None')
-        plt.grid(True)
-        plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
-        fig.set_size_inches(6,3)
-        plt.savefig(colourPath / str("CalibrationSanityPlot_Colour_" + str(z) + "_Post.png"))
-        plt.savefig(colourPath  / str("CalibrationSanityPlot_Colour_" + str(z) + "_Post.eps"))
-        z=z+1
-        slopeHolder.append(m)
+        if skipcolourdetect != False:
+            # Colour Term Reference plot
+            plt.cla()
+            fig = plt.gcf()
+            outplotx=calibOut[:,6]
+            outploty=calibOut[:,2]-calibOut[:,0]
+            #Weighted fit, weighted by error in this dataset
+            weights=1/(calibOut[:,1])
+            linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
+            linB = outploty * np.sqrt(weights)
+            sqsol = np.linalg.lstsq(linA,linB, rcond=None)
+            m, c = sqsol[0]
+            x, residuals, rank, s = sqsol
+            
+            plt.xlabel(colname + ' Catalogue Colour')
+            plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
+            plt.plot(outplotx,outploty,'bo')
+            plt.plot(outplotx,m*outplotx+c,'r')
+            plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
+            plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+            plt.errorbar(outplotx, outploty, yerr=calibOut[:,1], fmt='-o', linestyle='None')
+            plt.grid(True)
+            plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+            fig.set_size_inches(6,3)
+            plt.savefig(colourPath / str("CalibrationSanityPlot_Colour_" + str(z) + "_Post.png"))
+            plt.savefig(colourPath  / str("CalibrationSanityPlot_Colour_" + str(z) + "_Post.eps"))
+            z=z+1
+            slopeHolder.append(m)
 
 
 
@@ -1074,49 +1079,50 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
 
     # Reject outliers in colour slope
-    outReject=[]
-    while True:
-        outMed=np.median(slopeHolder)
-        outStd=np.std(slopeHolder)
-        for q in range(len(slopeHolder)):
-
-            if (slopeHolder[q] >= (outMed + 3*outStd)) :
-                outReject.append(q)
-            if (slopeHolder[q] <= (outMed - 3*outStd)) :
-                outReject.append(q)
-        slopeHolder=delete(slopeHolder, outReject, axis=0)
-
-        if outReject == []:
-            break
-        outReject = []
+    if skipcolourdetect == False:
+        outReject=[]
+        while True:
+            outMed=np.median(slopeHolder)
+            outStd=np.std(slopeHolder)
+            for q in range(len(slopeHolder)):
     
-    logger.info('Median Estimated Colour CORRECTED Slope from all frames: ' + str(outMed) )
-    logger.info('Estimated Colour CORRECTED Slope Standard Deviation from all frames: ' + str(outStd))
-    logger.info('Number of frames used : ' + str(len(slopeHolder)))
-    logger.info('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)))
-                
-    with open(parentPath / "ColourCoefficients.txt", "w") as f:
-        f.write('Median Estimated Colour CORRECTED Slope from all frames: ' + str(outMed) +"\n")
-        f.write('Estimated Colour CORRECTED Slope Standard Deviation from all frames: ' + str(outStd) +"\n")
-        f.write('Number of frames used : ' + str(len(slopeHolder)) +"\n")
-        f.write('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)) +"\n")
-
-
-    # Plot histogram of colour terms
-    plt.cla()
-    fig = plt.gcf()
-    plt.hist(slopeHolder, bins=16)
-    fig.set_size_inches(6,3)
-    plt.xlabel(str(filterCode) + ' Colour Term')
-    plt.ylabel('Number of images')
-    plt.savefig(parentPath / str("CalibrationSanityPlot_CORRECTEDColourTermHistogram.png"))
-    plt.savefig(parentPath / str("CalibrationSanityPlot_CORRECTEDColourTermHistogram.eps")) 
-           
-    #colourTerm=outMed
-    #colourError=outStd / pow (len(slopeHolder),0.5)
-
-
-    # UP TO HERE ON THE COLOUR ANGLE
+                if (slopeHolder[q] >= (outMed + 3*outStd)) :
+                    outReject.append(q)
+                if (slopeHolder[q] <= (outMed - 3*outStd)) :
+                    outReject.append(q)
+            slopeHolder=delete(slopeHolder, outReject, axis=0)
+    
+            if outReject == []:
+                break
+            outReject = []
+        
+        logger.info('Median Estimated Colour CORRECTED Slope from all frames: ' + str(outMed) )
+        logger.info('Estimated Colour CORRECTED Slope Standard Deviation from all frames: ' + str(outStd))
+        logger.info('Number of frames used : ' + str(len(slopeHolder)))
+        logger.info('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)))
+                    
+        with open(parentPath / "ColourCoefficients.txt", "w") as f:
+            f.write('Median Estimated Colour CORRECTED Slope from all frames: ' + str(outMed) +"\n")
+            f.write('Estimated Colour CORRECTED Slope Standard Deviation from all frames: ' + str(outStd) +"\n")
+            f.write('Number of frames used : ' + str(len(slopeHolder)) +"\n")
+            f.write('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)) +"\n")
+    
+    
+        # Plot histogram of colour terms
+        plt.cla()
+        fig = plt.gcf()
+        plt.hist(slopeHolder, bins=16)
+        fig.set_size_inches(6,3)
+        plt.xlabel(str(filterCode) + ' Colour Term')
+        plt.ylabel('Number of images')
+        plt.savefig(parentPath / str("CalibrationSanityPlot_CORRECTEDColourTermHistogram.png"))
+        plt.savefig(parentPath / str("CalibrationSanityPlot_CORRECTEDColourTermHistogram.eps")) 
+               
+        #colourTerm=outMed
+        #colourError=outStd / pow (len(slopeHolder),0.5)
+    
+    
+        # UP TO HERE ON THE COLOUR ANGLE
 
 
     calibOverlord=asarray(calibOverlord)

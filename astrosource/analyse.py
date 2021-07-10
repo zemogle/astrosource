@@ -359,7 +359,7 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
     # photometrydata = trim_catalogue(photometrydata)
     return photometrydata
 
-def calibrated_photometry(paths, photometrydata, colourterm, colourerror, skipcolourcorrect, targetcolour):
+def calibrated_photometry(paths, photometrydata, colourterm, colourerror, skipcolourdetect, targetcolour):
     pdata = []
        
     for j, outputPhot in enumerate(photometrydata):
@@ -396,12 +396,21 @@ def calibrated_photometry(paths, photometrydata, colourterm, colourerror, skipco
         calibIndex=np.asarray(outputPhot).shape[1]-1
 
         #errCalib = median(calibCompFile[:,4]) / pow((len(calibCompFile[:,0])), 0.5)
-        
-        for i in range(outputPhot.shape[0]):
-            outputPhot[i][calibIndex-1]=ensembleMag+outputPhot[i][10] - (colourterm * targetcolour) # Calibrated Magnitude incorporating colour term
-            #outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(errCalib,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
-            outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
-            
+
+        if (targetcolour == -99.0):
+            for i in range(outputPhot.shape[0]):
+                outputPhot[i][calibIndex-1]=ensembleMag+outputPhot[i][10] # Calibrated Magnitude SKIPPING colour term
+                #outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(errCalib,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+                outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+            logger.info("No provided target colour was provided. Target did not incorporate a colour correction.")
+            logger.info("This is likely ok if your colour term is low (<<0.1). If your colour term is high (>0.1), ")
+            logger.info("then consider providing an appropriate colour for this filter using the --targetcolour option.")
+        else:
+            for i in range(outputPhot.shape[0]):
+                outputPhot[i][calibIndex-1]=ensembleMag+outputPhot[i][10] - (colourterm * targetcolour) # Calibrated Magnitude incorporating colour term
+                #outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(errCalib,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+                outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+
         # Write back to photometry data
         pdata.append(outputPhot)
 
