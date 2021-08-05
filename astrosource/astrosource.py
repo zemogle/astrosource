@@ -39,7 +39,8 @@ class TimeSeries:
         self.skipvarsearch = kwargs.get('skipvarsearch', False)
         self.mincompstars = kwargs.get('mincompstars', 0.1)
         # Colour stuff
-        self.skipcolourdetect = kwargs.get('skipcolourdetect', False)
+        self.colourdetect = kwargs.get('colourdetect', False)
+        self.linearise = kwargs.get('linearise', False)
         self.colourterm = kwargs.get('colourterm', 0.0)
         self.colourerror = kwargs.get('colourerror', 0.0)
         self.targetcolour = kwargs.get('targetcolour', -99.0)
@@ -69,7 +70,8 @@ class TimeSeries:
                                                                                 nopanstarrs=self.nopanstarrs,
                                                                                 nosdss=self.nosdss,
                                                                                 closerejectd=self.closerejectd,
-                                                                                skipcolourdetect=self.skipcolourdetect,
+                                                                                colourdetect=self.colourdetect,
+                                                                                linearise=self.linearise,
                                                                                 colourTerm=self.colourterm,
                                                                                 colourError=self.colourerror)
 
@@ -86,7 +88,7 @@ class TimeSeries:
         data = photometric_calculations(targets=self.targets, paths=self.paths, filesave=filesave)
         self.output(mode='diff', data=data)
         if self.calibrated:
-            self.data = calibrated_photometry(paths=self.paths, photometrydata=data, colourterm=self.colourterm,colourerror=self.colourerror,skipcolourdetect=self.skipcolourdetect,targetcolour=self.targetcolour)
+            self.data = calibrated_photometry(paths=self.paths, photometrydata=data, colourterm=self.colourterm,colourerror=self.colourerror,colourdetect=self.colourdetect,linearise=self.linearise,targetcolour=self.targetcolour)
             self.output(mode='calib', data=self.data)
         else:
             self.data = data
