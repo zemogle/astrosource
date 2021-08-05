@@ -1,0 +1,3 @@
+Comparison Catalogue: APASS
+Median Standard Deviation of any one star: 0.04757323883380636
+Standard Error/Uncertainty in Calibration: 0.010914049499657193
