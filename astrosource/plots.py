@@ -182,7 +182,7 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
         plt.ylabel('Apparent {} Magnitude'.format(filterCode))
         plt.plot(outplotx, outploty, 'bo')
         # plt.plot(linex, liney)
-        plt.ylim(max(outploty)-0.04, min(outploty)+0.04, 'k-')
+        plt.ylim(max(outploty)+0.04, min(outploty)-0.04, 'k-')
         plt.xlim(min(outplotx)-0.01, max(outplotx)+0.01)
         plt.grid(True)
         plt.savefig(outputPath / 'Variable{}_{}_Lightcurve.png'.format(q+1,filterCode))
@@ -216,7 +216,7 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
         logger.info("Amplitude    : "+ str(max(calibFile[:,1])-min(calibFile[:,1])))
         logger.info("Mid Magnitude: "+ str((max(calibFile[:,1])+min(calibFile[:,1]))/2))
 
-        with open(paths['parent'] / "LightcurveStats.txt", "w") as f:
+        with open(paths['parent'] / "LightcurveStats.txt", "a+") as f:
             f.write("Lightcurve Statistics \n\n")
             f.write("Variable V{}_{}\n".format(str(q+1),filterCode))
             f.write("Max Magnitude: "+ str(max(calibFile[:,1]))+"\n")
