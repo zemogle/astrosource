@@ -704,32 +704,34 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                     ### If looking for colour, remove those without matching colour information
 
                     calibStandsReject=[]
-                    for q in range(len(asarray(calibStands)[:,0])):
-                        reject=0
-                        if colourdetect == True:
-                            if np.isnan(calibStands[q][6]): # if no matching colour
+
+                    if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and calibStands != []:
+                        for q in range(len(asarray(calibStands)[:,0])):
+                            reject=0
+                            if colourdetect == True:
+                                if np.isnan(calibStands[q][6]): # if no matching colour
+                                    reject=1
+                                elif calibStands[q][6] == 0:
+                                    reject=1
+                                elif np.isnan(calibStands[q][7]):
+                                    reject=1
+                                elif calibStands[q][7] == 0:
+                                    reject=1
+                            if np.isnan(calibStands[q][4]): # If no magnitude info
                                 reject=1
-                            elif calibStands[q][6] == 0:
+                            elif calibStands[q][4] == 0:
                                 reject=1
-                            elif np.isnan(calibStands[q][7]):
+                            elif np.isnan(calibStands[q][4]):
                                 reject=1
-                            elif calibStands[q][7] == 0:
+                            elif calibStands[q][4] == 0:
                                 reject=1
-                        if np.isnan(calibStands[q][4]): # If no magnitude info
-                            reject=1
-                        elif calibStands[q][4] == 0:
-                            reject=1
-                        elif np.isnan(calibStands[q][4]):
-                            reject=1
-                        elif calibStands[q][4] == 0:
-                            reject=1
-                            
-                        if reject==1:
-                            calibStandsReject.append(q)
-                            
-                    if len(calibStandsReject) != len(asarray(calibStands)[:,0]):
-                        calibStands=delete(calibStands, calibStandsReject, axis=0)
-                                            
+                                
+                            if reject==1:
+                                calibStandsReject.append(q)
+                                
+                        if len(calibStandsReject) != len(asarray(calibStands)[:,0]):
+                            calibStands=delete(calibStands, calibStandsReject, axis=0)
+                                                
                     if asarray(calibStands).shape[0] != 0:
                         logger.info('Calibration Stars Identified below')
                         logger.info(asarray(calibStands))   

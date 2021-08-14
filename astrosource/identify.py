@@ -106,7 +106,7 @@ def convert_mjd_bjd(hdr):
     location = EarthLocation.from_geodetic(hdr['LONGITUD'], hdr['LATITUDE'], hdr['HEIGHT'])
     t = Time(hdr['MJD-OBS'], format='mjd',scale='utc', location=location)
 
-    tdbholder= (utc_tdb.JDUTC_to_BJDTDB(t, lat=hdr['LATITUDE'], longi=hdr['LONGITUD'], alt=hdr['HEIGHT'], leap_update=True))
+    tdbholder= (utc_tdb.JDUTC_to_BJDTDB(t, ra=float(pointing.ra.degree), dec=float(pointing.dec.degree), lat=hdr['LATITUDE'], longi=hdr['LONGITUD'], alt=hdr['HEIGHT'], leap_update=True))
 
     return tdbholder[0][0]
 
