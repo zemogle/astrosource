@@ -115,7 +115,10 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
     # Get list of files
     sys.stdout.write('💾 Inspecting input files\n')
     if not filelist:
-        filelist = paths['parent'].glob("*.{}".format(filetype))
+        if filetype not in ['fits', 'fit', 'fz']:
+            filelist = paths['parent'].glob("*.{}".format(filetype))
+        else:
+            filelist = paths['parent'].glob("*e91*.{}".format(filetype)) # Make sure only fully reduced LCO files are used.
     if filetype not in ['fits', 'fit', 'fz']:
         # Assume we are not dealing with image files but photometry files
         phot_list = convert_photometry_files(filelist)
