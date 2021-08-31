@@ -619,16 +619,17 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 elif cat_name == 'SDSS' and nosdss==True:
                     logger.info("Skipping SDSS")
                 else:
-                    coords = catalogue_call(avgCoord, opt, cat_name, targets=targets, closerejectd=closerejectd)
-                    if coords.cat_name == 'PanSTARRS' or coords.cat_name == 'APASS':
-                        max_sep=2.5 * arcsecond
-                    else:
-                        max_sep=1.5 * arcsecond
                     
+                    # coords = catalogue_call(avgCoord, opt, cat_name, targets=targets, closerejectd=closerejectd)
+                    # if coords.cat_name == 'PanSTARRS' or coords.cat_name == 'APASS':
+                    #     max_sep=2.5 * arcsecond
+                    # else:
+                    #     max_sep=1.5 * arcsecond
                     
                     # SKYMAPPER OVERRIDE
-                    
+                    # max_sep=1.5 * arcsecond
                     # smapdr3=genfromtxt(parentPath / 'SkymapperDR3.csv', dtype=float, delimiter=',')
+                    # coords = namedtuple(typename='data',field_names=['ra','dec','mag','emag','cat_name', 'colmatch', 'colerr'])
                     # coords.ra=smapdr3[:,0]
                     # coords.dec=smapdr3[:,1]
                     # print (opt['filter'])
@@ -666,7 +667,67 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                     #     coords.colmatch = smapdr3[:,8]
                     #     coords.colerr = smapdr3[:,9]
                     #     coords.colrev = 1
+                    
+                    # APASS OVERRIDE
+                    max_sep=2.5 * arcsecond
+                    smapdr3=genfromtxt(parentPath / 'ap10.csv', dtype=float, delimiter=',')
+                    coords = namedtuple(typename='data',field_names=['ra','dec','mag','emag','cat_name', 'colmatch', 'colerr'])
+                    coords.ra=smapdr3[:,0]
+                    coords.dec=smapdr3[:,1]
+                    print (opt['filter'])
+                                        
+                    if opt['filter'] == 'Bmag':                                      
+                        coords.mag = smapdr3[:,2]
+                        coords.emag = smapdr3[:,3]
+                        coords.colmatch = smapdr3[:,4]
+                        coords.colerr = smapdr3[:,5]
+                        coords.colrev = 0
+                        
+                    if opt['filter'] == 'Vmag':                                      
+                        coords.mag = smapdr3[:,4]
+                        coords.emag = smapdr3[:,5]
+                        coords.colmatch = smapdr3[:,2]
+                        coords.colerr = smapdr3[:,3]
+                        coords.colrev = 1
+                        
+                    if opt['filter'] == 'umag':                                      
+                        coords.mag = smapdr3[:,6]
+                        coords.emag = smapdr3[:,7]
+                        coords.colmatch = smapdr3[:,8]
+                        coords.colerr = smapdr3[:,9]
+                        coords.colrev = 0
+                    
+                    if opt['filter'] == 'gmag':                                      
+                        coords.mag = smapdr3[:,8]
+                        coords.emag = smapdr3[:,9]
+                        coords.colmatch = smapdr3[:,10]
+                        coords.colerr = smapdr3[:,11]
+                        coords.colrev = 0
+                    
+                    if opt['filter'] == 'rmag':                                      
+                        coords.mag = smapdr3[:,10]
+                        coords.emag = smapdr3[:,11]
+                        coords.colmatch = smapdr3[:,12]
+                        coords.colerr = smapdr3[:,13]
+                        coords.colrev = 0
+                        
+                    if opt['filter'] == 'imag':                                      
+                        coords.mag = smapdr3[:,12]
+                        coords.emag = smapdr3[:,13]
+                        coords.colmatch = smapdr3[:,10]
+                        coords.colerr = smapdr3[:,11]
+                        coords.colrev = 1
+                        
+                    if opt['filter'] == 'zmag':                                      
+                        coords.mag = smapdr3[:,14]
+                        coords.emag = smapdr3[:,15]
+                        coords.colmatch = smapdr3[:,12]
+                        coords.colerr = smapdr3[:,13]
+                        coords.colrev = 1
                    
+                    
+                   
+                    
                     # Save catalogue search
                     catalogueOut=np.hstack(np.array([[coords.ra],[coords.dec],[coords.mag],[coords.emag],[coords.colmatch],[coords.colerr]]))
                     savetxt(parentPath / "catalogueSearch.csv", np.asarray(catalogueOut) , delimiter=",", fmt='%0.8f')

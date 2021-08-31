@@ -41,6 +41,8 @@ def rename_data_file(prihdr, bjd=False):
     airMass=(str(prihdr['AIRMASS']).replace('.','a'))
     instruMe=(prihdr['INSTRUME']).replace(' ','').replace('/','').replace('-','')
 
+
+
     if (prihdr['MJD-OBS'] == 'UNKNOWN'):
         timeobs = 'UNKNOWN'
     elif bjd:
@@ -60,7 +62,8 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False):
         except TypeError:
             fitsobj = f.open()
             s3 = True
-        filepath = extract_photometry(fitsobj, indir, bjd)
+
+        filepath = extract_photometry(fitsobj, indir, bjd=bjd)
         if s3:
             f.close()
             filename = f.name
@@ -75,7 +78,7 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False):
     with fits.open(infile) as hdulist:
 
         if not outfile:
-            outfile = rename_data_file(hdulist[1].header)
+            outfile = rename_data_file(hdulist[1].header, bjd=bjd)
         outfile = parentPath / outfile
         w = wcs.WCS(hdulist[1].header)
         data = hdulist[2].data
@@ -114,6 +117,7 @@ def convert_mjd_bjd(hdr):
 def gather_files(paths, filelist=None, filetype="fz", bjd=False):
     # Get list of files
     sys.stdout.write('💾 Inspecting input files\n')
+
     if not filelist:
         if filetype not in ['fits', 'fit', 'fz']:
             filelist = paths['parent'].glob("*.{}".format(filetype))
@@ -123,7 +127,8 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
         # Assume we are not dealing with image files but photometry files
         phot_list = convert_photometry_files(filelist)
     else:
-        phot_list_temp = export_photometry_files(filelist, paths['parent'], bjd)
+
+        phot_list_temp = export_photometry_files(filelist, paths['parent'], bjd=bjd)
         #Convert phot_list from dict to list
         phot_list_temp = phot_list_temp.keys()
         phot_list = []

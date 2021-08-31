@@ -86,6 +86,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
                         nosdss=nosdss,
                         closerejectd=closerejectd,
                         verbose=verbose,
+                        bjd=bjd,
                         mincompstars=mincompstars,
                         colourdetect=colourdetect,
                         linearise=linearise,
