@@ -1115,11 +1115,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         # photFileAdd=np.zeros((len(photFile[:,0]),len(photFile[0,:]+3)))
         # photFileAdd[:,:-3]=photFile
         photFile=np.c_[photFile,np.zeros(len(photFile[:,0])),np.zeros(len(photFile[:,0])),np.zeros(len(photFile[:,0]))]
-        print (len(photFile[:,0]))
-        print ((photFile[:,0].shape))
-        print (photFile[:,0])
-        print (photFile)
-        
+
         for q in range(len(photFile[:,0])):
             photCoord=SkyCoord(ra=photFile[q][0]*degree, dec=photFile[q][1]*degree)
             idx,d2d,_=photCoord.match_to_catalog_sky(catCoords)
@@ -1397,7 +1393,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
 
     # Non-linearity correction routine
-    if linearise == True:
+    if linearise == False:
         logger.info("Skipping Non-linearity correction routine")
     if linearise == True:
         
