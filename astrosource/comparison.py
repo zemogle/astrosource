@@ -518,7 +518,7 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
 
     return data
 
-def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, colourdetect=False, linearise=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, colourTerm=0.0, colourError=0.0):
+def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, colourdetect=False, linearise=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, colourTerm=0.0, colourError=0.0, restrictmagbrightest=-99.9, restrictmagdimmest=99.9):
     sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
 
     FILTERS = {
@@ -542,6 +542,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                         'SkyMapper' : {'filter' : 'zPSF', 'error' : 'e_zPSF', 'colmatch' : 'rPSF', 'colerr' : 'e_rPSF', 'colname' : 'r-zs', 'colrev' : '1'},
                         'SDSS' : {'filter' : 'zmag', 'error' : 'e_zmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-zs', 'colrev' : '1'}},
                 }
+
+
 
 
     parentPath = paths['parent']
@@ -762,6 +764,22 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                     #    logger.info('Calibration Stars Identified below')
                     #    logger.info(calibStands)                
                 
+                
+                    ### remove stars that that brighter (--restrictmagbrighter) or dimmer (--restrictmagdimmer) than requested.
+                    calibStandsReject=[]
+                    if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and calibStands != []:
+                        for q in range(len(asarray(calibStands)[:,0])):
+
+                            if (calibStands[q][3] > restrictmagdimmest) or (calibStands[q][3] < restrictmagbrightest):
+                                calibStandsReject.append(q)
+                                #logger.info(calibStands[q][3])
+                        
+                        if len(calibStandsReject) != len(asarray(calibStands)[:,0]):
+                            calibStands=delete(calibStands, calibStandsReject, axis=0)
+                            
+                    logger.info('Removed ' + str(len(calibStandsReject)) + ' Stars for being too bright or too dim')
+                    
+                    
                     ### If looking for colour, remove those without matching colour information
 
                     calibStandsReject=[]
@@ -778,9 +796,9 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                                     reject=1
                                 elif calibStands[q][7] == 0:
                                     reject=1
-                            if np.isnan(calibStands[q][4]): # If no magnitude info
+                            if np.isnan(calibStands[q][3]): # If no magnitude info
                                 reject=1
-                            elif calibStands[q][4] == 0:
+                            elif calibStands[q][3] == 0:
                                 reject=1
                             elif np.isnan(calibStands[q][4]):
                                 reject=1
