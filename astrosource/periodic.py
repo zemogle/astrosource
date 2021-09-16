@@ -4,12 +4,10 @@ from numpy import (asarray, savetxt, std, max, min, genfromtxt, load, nan as npn
 import numpy as np
 import sys
 import os
-import platform
-import glob
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from pathlib import Path
 
 import logging
 
@@ -18,6 +16,22 @@ from astropy.timeseries import LombScargle
 
 logger = logging.getLogger('astrosource')
 NCPUS = 1
+
+# Note that the functions that calculate the ANOVA periodograms have been adapted from the astrobase codeset
+# These are aov_theta, resort_by_time, get_frequency_grid, sigclip_magseries, phase_magseries, aov_periodfind, phase_magseries_with_errs, aovhm_theta, aovhm_periodfind
+# The astrobase code is available here: https://github.com/waqasbhatti/astrobase
+#
+# The astrobase code was adapted rather than imported to remove dependencies unnecessary for astrosource.
+#
+# The astrobase codeset is distributed under an MIT license. For those functions, the following notice is applicable
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
 def aov_theta(times, mags, errs, frequency,
               binsize=0.05, minbin=9):
@@ -726,32 +740,12 @@ def aov_periodfind(times,
         # if we're not using autofreq, then use the provided frequencies
         if not autofreq:
             frequencies = nparange(startf, endf, stepsize)
-            # if verbose:
-            #     print(
-            #         'using %s frequency points, start P = %.3f, end P = %.3f' %
-            #         (frequencies.size, 1.0/endf, 1.0/startf)
-            #     )
+
         else:
             # this gets an automatic grid of frequencies to use
             frequencies = get_frequency_grid(stimes,
                                              minfreq=startf,
                                              maxfreq=endf)
-            # if verbose:
-            #     print(
-            #         'using autofreq with %s frequency points, '
-            #         'start P = %.3f, end P = %.3f' %
-            #         (frequencies.size,
-            #          1.0/frequencies.max(),
-            #          1.0/frequencies.min())
-            #     )
-
-        # map to parallel workers
-        # if (not nworkers) or (nworkers > NCPUS):
-        #     nworkers = 1
-        #     if verbose:
-        #         print('using %s workers...' % nworkers)
-
-        # pool = Pool(nworkers)
 
         # renormalize the working mags to zero and scale them so that the
         # variance = 1 for use with our LSP functions
@@ -760,31 +754,15 @@ def aov_periodfind(times,
         else:
             nmags = smags
 
-        # tasks = [(stimes, nmags, serrs, x, phasebinsize, mindetperbin)
-        #          for x in frequencies]
+
         lsp=[]
         for x in frequencies:
-            #task = (stimes, nmags, serrs, x, phasebinsize, mindetperbin)
-            
             theta = aov_theta(stimes, nmags, serrs, x,
                           binsize=phasebinsize, minbin=mindetperbin)
             lsp.append(theta)
 
-
-
-        #lsp = pool.map(_aov_worker, tasks)
-
-        # pool.close()
-        # pool.join()
-        # del pool
-
         lsp = nparray(lsp)
-        periods = 1.0/frequencies
-
-        #print (lsp)
-        #print (periods)
-
-        
+        periods = 1.0/frequencies   
 
         plt.plot(periods, lsp)
         #plt.gca().invert_yaxis()
@@ -1250,32 +1228,16 @@ def aovhm_periodfind(times,
         # if we're not using autofreq, then use the provided frequencies
         if not autofreq:
             frequencies = nparange(startf, endf, stepsize)
-            # if verbose:
-            #     print(
-            #         'using %s frequency points, start P = %.3f, end P = %.3f' %
-            #         (frequencies.size, 1.0/endf, 1.0/startf)
-            #     )
+           
         else:
             # this gets an automatic grid of frequencies to use
             frequencies = get_frequency_grid(stimes,
                                              minfreq=startf,
                                              maxfreq=endf)
-            # if verbose:
-            #     print(
-            #         'using autofreq with %s frequency points, '
-            #         'start P = %.3f, end P = %.3f' %
-            #         (frequencies.size,
-            #          1.0/frequencies.max(),
-            #          1.0/frequencies.min())
-            #     )
 
         # map to parallel workers
         if (not nworkers) or (nworkers > NCPUS):
             nworkers = NCPUS
-            # if verbose:
-            #     print('using %s workers...' % nworkers)
-
-        #pool = Pool(nworkers)
 
         # renormalize the working mags to zero and scale them so that the
         # variance = 1 for use with our LSP functions
@@ -1296,19 +1258,9 @@ def aovhm_periodfind(times,
         lsp=[]
         for x in frequencies:
             lsp.append(aovhm_theta(times, mags, errs, x, nharmonics, magvariance))
-        #lsp = pool.map(_aovhm_theta_worker, tasks)
-
-        #pool.close()
-        #pool.join()
-        #del pool
 
         lsp = nparray(lsp)
-        periods = 1.0/frequencies
-
-        #print (lsp)
-        #print (periods)
-
-        
+        periods = 1.0/frequencies 
 
         plt.plot(periods, lsp)
         #plt.gca().invert_yaxis()
@@ -1519,10 +1471,7 @@ def sum_stdevs (sortedPhases, sortedNormalizedFluxes, numBins):
 #########################################
 
 def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, numBins, periodPath, variableName):
-    #numBins = 10
-    #minperiod=0.2
-    #maxperiod=1
-    #periodsteps=10000
+
     periodguess_array = []
     distance_results = []
     stdev_results = []
@@ -1562,10 +1511,10 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
     # Get deviation to the left
     totalRange=np.max(stdev_results) - np.min(stdev_results)
     
-    noPDM=0
+
     if np.isnan(pdm["stdev_results"][0]) or pdm["stdev_results"][0] == 0.0:
         logger.info("Not enough datapoint coverage to undertake a Phase-Dispersion Minimization routine.")
-        noPDM=1
+
     else:
         for q in range(len(periodguess_array)):
             if periodguess_array[q]==pdm["stdev_minperiod"]:
@@ -1608,19 +1557,12 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
         if periodguess_array[q]==pdm["distance_minperiod"]:
             beginIndex=q
             beginValue=distance_results[q]
-    #print (beginIndex)
-    #print (beginValue)
     currentperiod=distance_minperiod
     stepper=0
     thresholdvalue=beginValue+(0.5*totalRange)
     while True:
-        #print (beginIndex-stepper)
-        #print (stdev_results[beginIndex-stepper])
         if distance_results[beginIndex-stepper] > thresholdvalue:
-            #print ("LEFTHAND PERIOD!")
-            #print (periodguess_array[beginIndex-stepper])
             lefthandP=periodguess_array[beginIndex-stepper]
-            #print (distance_results)
             break
         stepper=stepper+1
 
@@ -1631,17 +1573,12 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
             righthandP=periodguess_array[beginIndex+stepper]
             logger.debug("Warning: Peak period for distance method too close to top of range")
             break
-        #print (beginIndex+stepper)
-        #print (stdev_results[beginIndex+stepper])
+
         if distance_results[beginIndex+stepper] > thresholdvalue:
-            #print ("RIGHTHAND PERIOD!")
-            #print (periodguess_array[beginIndex+stepper])
             righthandP=periodguess_array[beginIndex+stepper]
-            #print (distance_results)
             break
         stepper=stepper+1
 
-    #print ("Distance method error: " + str((righthandP - lefthandP)/2))
     pdm["distance_error"] = (righthandP - lefthandP)/2
 
     return (pdm)
@@ -1664,10 +1601,9 @@ def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nter
             title=' Lomb-Scargle N=' + str(nterms) + ' Likelihood\n Period Range [' + str(
                 periodlower) + ', ' + str(periodupper) + ']')
     ax2.plot(1 / freq, power, '-k', rasterized=True)
-    #plt.savefig(periodPath / 'LombScargle_N' + str(nterms) + '_LikelihoodPlot.png')
     tempfile=str('LombScargle_N' + str(nterms) + '_LikelihoodPlot.png')
-    #plt.savefig(periodPath / 'LombScargle_N2_LikelihoodPlot.png')
     plt.savefig(periodPath / tempfile)
+    
     # Find peak of the likelihood plot (most likely frequency)
     best_freq = freq[np.argmax(power)]
 
@@ -1687,18 +1623,9 @@ def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nter
         ax.invert_yaxis()
         tempfile=str('LombScargle_N' + str(nterms) + '_Lightcurve.png')
         plt.savefig(periodPath / tempfile)
-    # print('N='+str(nterms)+' Period: '+str(1 / best_freq))
-
-    # Changes save location of the period textfile if doing batch or single files
-    # if multisearch:
-    # f = open('PeriodAlgorithmComparisonFigures/' + '/'.join(infile.split('/')[:-1]) + '/' + infile.split('/')[-1].split('.')[
-    #    0] + '_PeriodN'+str(nterms)+'.txt', 'w')
-    # else:
-    #    f = open('PeriodAlgorithmComparisonFigures/'+ infile.split('.')[0]+'/'+ infile.split('.')[0] + '_PeriodN'+str(nterms)+'.txt', 'w')
 
     best_period = 1 / best_freq
-    # f.write(str(best_period))
-    # f.close()
+
     plt.close('all')
     return (best_period)
 
@@ -1732,13 +1659,9 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         if periodsteps > 1000000:
             periodsteps = 1000000
     
-    
     logger.info("Minimum Period Tested  : " +str(minperiod))
     logger.info("Maximum Period Tested  : " +str(maxperiod))
     logger.info("Number of Period Trials: " +str(periodsteps))
-        
-
-    
     
     trialRange=[minperiod, maxperiod]
 
@@ -1765,15 +1688,13 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         if calibFile.exists():
             calibData=genfromtxt(calibFile, dtype=float, delimiter=',')
 
-        #logger.debug(minDate)
-
         pdm=phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, numBins, periodPath, variableName)
 
         plt.figure(figsize=(15, 5))
 
         logger.debug("Distance Method Estimate (days): " + str(pdm["distance_minperiod"]))
         logger.debug("Distance method error: " + str(pdm["distance_error"]))
-        # phaseTest=(varData[:,0] / (pdm["distance_minperiod"])) % 1
+
         phaseTest=(varData[:,0] / (pdm["distance_minperiod"])) % 1
         with open(paths['parent'] / "periodEstimates.txt", "a+") as f:
             f.write("Variable : "+str(variableName) +"\n")
@@ -1836,7 +1757,6 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
             logger.info("No PDM results due to lack of datapoint coverage")
         else:
             logger.debug("PDM Method Estimate (days): "+ str(pdm["stdev_minperiod"]))
-            #logger.debug(pdm["stdev_minperiod"])
             phaseTest=(varData[:,0] / (pdm["stdev_minperiod"])) % 1
             logger.debug("PDM method error: " + str(pdm["stdev_error"]))
 
@@ -1903,7 +1823,6 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         
         plt.plot(pdm["periodguess_array"], pdm["stdev_results"], linewidth=0.5)
         plt.gca().invert_yaxis()
-        #plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
         plt.xlabel(r"Trial Period")
         plt.ylabel(r"Likelihood of Period")
         plt.subplots_adjust(left=0.15, right=0.99, top=0.98, bottom=0.15, wspace=0.3, hspace=0.4)
@@ -1916,7 +1835,6 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         
         plt.plot(pdm["periodguess_array"], pdm["distance_results"], linewidth=0.5)
         plt.gca().invert_yaxis()
-        #plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
         plt.xlabel(r"Trial Period")
         plt.ylabel(r"Likelihood of Period")
         plt.subplots_adjust(left=0.15, right=0.99, top=0.98, bottom=0.15, wspace=0.3, hspace=0.4)
@@ -1928,16 +1846,6 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         
         # ANOVA and LOMB SCARGLE
         
-        # lscargoutput=pgen_lsp((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath)
-        # print ("********************************")
-        # print ("Generalised Lomb Scargle Results")
-        
-        # print (lscargoutput)
-        
-        # logger.debug("Lomb Scargle Method Estimate (days): " + str(lscargoutput["bestperiod"]))
-        # #logger.debug("Lomb Scargle Method error: " + str(lscargoutput["bestperiod"]))
-               
-        
         if len(calibData[:,0]) < 75:
             binsize=0.1
         else:
@@ -1948,30 +1856,20 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
             minperbin=10
         
         aovoutput=aov_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath)
-        #print ("*******************")
-        #print ("Theta Anova Results")
-        
-        #print (aovoutput)
         
         logger.debug("Theta Anova Method Estimate (days): " + str(aovoutput["bestperiod"]))
         
         aovhmoutput=aovhm_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath)
-        #print ("**********************")
-        #print ("Harmonic Anova Results")
-        #print (aovhmoutput)
-        
+
         logger.debug("Harmonic Anova Method Estimate (days): " + str(aovhmoutput["bestperiod"]))
-        #print("*******************")
-        #print("Lomb-Scargle Results")
+
         for nts in range(6):           
-            
-            #start = time.time()
+
             lscargoutput = LombScargleMultiterm('periodifile', (calibData[:, 0]), (calibData[:, 1]), (calibData[:, 2]),
                                                 nterms=nts+1,
                                                 periodlower=minperiod, periodupper=maxperiod, samples=20,
                                                 disablelightcurve=False, periodPath=periodPath)
-            #end = time.time()
-            #print('Finished in ' + str(end - start) + ' seconds')
+
             logger.debug('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput))
         
         

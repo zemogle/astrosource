@@ -92,7 +92,6 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False):
 
         zerosphot=zeros(counts.shape[0], dtype=float)
       
-        # savetxt(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr]), delimiter=',')
         save(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr, zerosphot, zerosphot]))
 
     return outfile
@@ -182,7 +181,6 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
             Path to newly created file containing all images which are usable for photometry
     """
     sys.stdout.write("🌟 Identify comparison stars for photometry calculations\n")
-    #Initialisation values
 
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
@@ -303,11 +301,6 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
                     if (referenceFrame.shape[0]==0):
                         logger.error("Problem file - {}".format(file))
                         logger.error("Running Loop again")
-                        #raise AstrosourceException("All Stars Removed. Try removing problematic files or raising --imgreject value")
-
-                    # if (referenceFrame.shape[0]< mincompstars):
-                    #     logger.error("Problem file - {}".format(file))
-                    #     raise AstrosourceException("There are fewer than the requested number of Comp Stars. Try removing problematic files or raising --imgreject value")
 
                 elif photFile.size < 7:
                     logger.error('**********************')
@@ -356,8 +349,6 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
             logger.error("Now trying starreject " +str(starreject) + " and imgreject " +str(imageFracReject))
             referenceFrame=originalReferenceFrame
 
-
-
     # Construct the output file containing candidate comparison stars
     outputComps=[]
     for j in range (referenceFrame.shape[0]):
@@ -375,7 +366,6 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
 
     screened_file = paths['parent'] / "screenedComps.csv"
     outputComps = asarray(outputComps)
-    # outputComps.sort(axis=0)
 
     # Reject targetstars immediately
 

@@ -66,7 +66,6 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
     minimumVariableCounts = 10000  # Do not try to detect variables dimmer than this.
     minimumNoOfObs = 10 # Minimum number of observations to count as a potential variable.
 
-
     # Load in list of used files
     fileList = []
     with open(parentPath / "usedImages.txt", "r") as f:
@@ -101,7 +100,6 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
     outputPhot = []
 
     # Get total counts for each file
-
     allCountsArray = get_total_counts(photFileArray, compFile, loopLength=compFile.shape[0])
 
     # Define targetlist as every star in referenceImage above a count threshold
@@ -139,15 +137,11 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
 
         for photFile in photFileArray:
             compList=[]
-
             fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-
             idx, d2d, d3d = varCoord.match_to_catalog_sky(fileRaDec)
             if (less(d2d.arcsecond, acceptDistance) and ((multiply(-2.5,log10(divide(photFile[idx][4],allCountsArray[allcountscount][0])))) != inf )):
-
                 diffMagHolder=append(diffMagHolder,(multiply(-2.5,log10(divide(photFile[idx][4],allCountsArray[allcountscount][0])))))
             allcountscount=add(allcountscount,1)
-
 
         ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
         while True:
@@ -164,12 +158,11 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
             if z==0:
                 break
 
-
         logger.debug("Standard Deviation in mag: {}".format(std(diffMagHolder)))
         logger.debug("Median Magnitude: {}".format(median(diffMagHolder)))
         logger.debug("Number of Observations: {}".format(asarray(diffMagHolder).shape[0]))
 
-        if (  asarray(diffMagHolder).shape[0] > minimumNoOfObs):
+        if (asarray(diffMagHolder).shape[0] > minimumNoOfObs):
             outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), asarray(diffMagHolder).shape[0]])
 
     plot_variability(outputVariableHolder, parentPath)
@@ -384,24 +377,16 @@ def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colour
         ensembleMag=-2.5*math.log10(ensMag)
         logger.info(f"Ensemble Magnitude: {ensembleMag}")
 
-
         #calculate error
         if single_value:
             ensembleMagError=calibCompFile[4]
         else:
-            #ensembleMagError=calibCompFile[:,4]
-            #ensembleMagError=average(ensembleMagError)*(1/pow(ensembleMagError.size, 0.5))
-
             ensembleMagError=0.0
             for t in range(len(calibCompFile[:,4])):
                 ensembleMagError=ensembleMagError+pow(calibCompFile[t,4],2)
             ensembleMagError=ensembleMagError/pow(len(calibCompFile[:,4]),0.5)
-            #print (tempmagerror/pow(len(calibCompFile[:,4]),0.5))
-
 
         calibIndex=np.asarray(outputPhot).shape[1]-1
-
-        #errCalib = median(calibCompFile[:,4]) / pow((len(calibCompFile[:,0])), 0.5)
 
         if (targetcolour == -99.0):
             for i in range(outputPhot.shape[0]):
