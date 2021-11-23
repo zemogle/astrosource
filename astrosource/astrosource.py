@@ -44,6 +44,8 @@ class TimeSeries:
         self.colourterm = kwargs.get('colourterm', 0.0)
         self.colourerror = kwargs.get('colourerror', 0.0)
         self.targetcolour = kwargs.get('targetcolour', -99.0)
+        self.restrictmagbrightest = kwargs.get('restrictmagbrightest', -99.0)
+        self.restrictmagdimmest = kwargs.get('restrictmagdimmest', -99.0)
         verbose = kwargs.get('verbose', False)
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
@@ -73,7 +75,9 @@ class TimeSeries:
                                                                                 colourdetect=self.colourdetect,
                                                                                 linearise=self.linearise,
                                                                                 colourTerm=self.colourterm,
-                                                                                colourError=self.colourerror)
+                                                                                colourError=self.colourerror,
+                                                                                restrictmagbrightest=self.restrictmagbrightest,
+                                                                                restrictmagdimmest=self.restrictmagdimmest)
 
                 self.calibrated = True
             except AstrosourceException as e:

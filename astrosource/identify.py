@@ -4,7 +4,7 @@ import sys
 import os
 import logging
 
-from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan
+from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan, zeros
 from astropy import units as u
 from astropy import wcs
 from astropy.coordinates import SkyCoord, EarthLocation
@@ -41,6 +41,8 @@ def rename_data_file(prihdr, bjd=False):
     airMass=(str(prihdr['AIRMASS']).replace('.','a'))
     instruMe=(prihdr['INSTRUME']).replace(' ','').replace('/','').replace('-','')
 
+
+
     if (prihdr['MJD-OBS'] == 'UNKNOWN'):
         timeobs = 'UNKNOWN'
     elif bjd:
@@ -60,13 +62,16 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False):
         except TypeError:
             fitsobj = f.open()
             s3 = True
-        filepath = extract_photometry(fitsobj, indir, bjd)
+
+        filepath = extract_photometry(fitsobj, indir, bjd=bjd)
         if s3:
             f.close()
             filename = f.name
         else:
             filename = fitsobj.name
         phot_dict[Path(filepath).name] = filename
+        
+
 
     return phot_dict
 
@@ -75,7 +80,7 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False):
     with fits.open(infile) as hdulist:
 
         if not outfile:
-            outfile = rename_data_file(hdulist[1].header)
+            outfile = rename_data_file(hdulist[1].header, bjd=bjd)
         outfile = parentPath / outfile
         w = wcs.WCS(hdulist[1].header)
         data = hdulist[2].data
@@ -84,8 +89,10 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False):
         ra, dec = w.wcs_pix2world(xpixel, ypixel, 1)
         counts = data['flux']
         countserr = data['fluxerr']
-        # savetxt(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr]), delimiter=',')
-        save(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr]))
+
+        zerosphot=zeros(counts.shape[0], dtype=float)
+      
+        save(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr, zerosphot, zerosphot]))
 
     return outfile
 
@@ -106,7 +113,7 @@ def convert_mjd_bjd(hdr):
     location = EarthLocation.from_geodetic(hdr['LONGITUD'], hdr['LATITUDE'], hdr['HEIGHT'])
     t = Time(hdr['MJD-OBS'], format='mjd',scale='utc', location=location)
 
-    tdbholder= (utc_tdb.JDUTC_to_BJDTDB(t, lat=hdr['LATITUDE'], longi=hdr['LONGITUD'], alt=hdr['HEIGHT'], leap_update=True))
+    tdbholder= (utc_tdb.JDUTC_to_BJDTDB(t, ra=float(pointing.ra.degree), dec=float(pointing.dec.degree), lat=hdr['LATITUDE'], longi=hdr['LONGITUD'], alt=hdr['HEIGHT'], leap_update=True))
 
     return tdbholder[0][0]
 
@@ -114,19 +121,24 @@ def convert_mjd_bjd(hdr):
 def gather_files(paths, filelist=None, filetype="fz", bjd=False):
     # Get list of files
     sys.stdout.write('💾 Inspecting input files\n')
+
     if not filelist:
-        filelist = paths['parent'].glob("*.{}".format(filetype))
+        if filetype not in ['fits', 'fit', 'fz']:
+            filelist = paths['parent'].glob("*.{}".format(filetype))
+        else:
+            filelist = paths['parent'].glob("*e91*.{}".format(filetype)) # Make sure only fully reduced LCO files are used.
     if filetype not in ['fits', 'fit', 'fz']:
         # Assume we are not dealing with image files but photometry files
         phot_list = convert_photometry_files(filelist)
     else:
-        phot_list_temp = export_photometry_files(filelist, paths['parent'], bjd)
+
+        phot_list_temp = export_photometry_files(filelist, paths['parent'], bjd=bjd)
         #Convert phot_list from dict to list
         phot_list_temp = phot_list_temp.keys()
         phot_list = []
         for key in phot_list_temp:
             phot_list.append(key) #SLAERT: convert dict to just the list of npy files.
-
+    
     if not phot_list:
         raise AstrosourceException("No files of type '.{}' found in {}".format(filetype, paths['parent']))
     filters = set([os.path.basename(f).split('_')[1] for f in phot_list])
@@ -169,7 +181,6 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
             Path to newly created file containing all images which are usable for photometry
     """
     sys.stdout.write("🌟 Identify comparison stars for photometry calculations\n")
-    #Initialisation values
 
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
@@ -290,11 +301,6 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
                     if (referenceFrame.shape[0]==0):
                         logger.error("Problem file - {}".format(file))
                         logger.error("Running Loop again")
-                        #raise AstrosourceException("All Stars Removed. Try removing problematic files or raising --imgreject value")
-
-                    # if (referenceFrame.shape[0]< mincompstars):
-                    #     logger.error("Problem file - {}".format(file))
-                    #     raise AstrosourceException("There are fewer than the requested number of Comp Stars. Try removing problematic files or raising --imgreject value")
 
                 elif photFile.size < 7:
                     logger.error('**********************')
@@ -343,8 +349,6 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
             logger.error("Now trying starreject " +str(starreject) + " and imgreject " +str(imageFracReject))
             referenceFrame=originalReferenceFrame
 
-
-
     # Construct the output file containing candidate comparison stars
     outputComps=[]
     for j in range (referenceFrame.shape[0]):
@@ -362,7 +366,6 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
 
     screened_file = paths['parent'] / "screenedComps.csv"
     outputComps = asarray(outputComps)
-    # outputComps.sort(axis=0)
 
     # Reject targetstars immediately
 

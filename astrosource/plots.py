@@ -38,13 +38,11 @@ def output_files(paths, photometrydata, mode='diff'):
 
         #output for EXOTIC modelling
         outputEXOTICCalib = [x for x in zip(outputPhot[:,6],magColumn,magerrColumn,outputPhot[:,7])]
-
        
         outputEXOTICCalib=asarray(outputEXOTICCalib)
         exoMedian=median(outputEXOTICCalib[:,1])
-        #outputEXOTICCalib[:,1]=(outputEXOTICCalib[:,1]-numpy.median(outputEXOTICCalib[:,1]))
+
         for q in range (outputEXOTICCalib.shape[0]):
-            #print (PhotFile[q][0])
             outputEXOTICCalib[q][1]=(1-pow(10,((outputEXOTICCalib[q][1]-exoMedian)/2.5)))+1
             outputEXOTICCalib[q][2]=(outputEXOTICCalib[q][2]/1.0857)*outputEXOTICCalib[q][1]
 
@@ -199,7 +197,6 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
         plt.ylabel('Apparent ' + str(filterCode) + ' Magnitude')
         plt.plot(outplotx,outploty,'bo')
         plt.plot(outplotxrepeat,outploty,'ro')
-        #plt.plot(linex,liney)
         plt.ylim(max(outploty)+0.04,min(outploty)-0.04,'k-')
         plt.xlim(-0.01,2.01)
         plt.errorbar(outplotx, outploty, yerr=calibFile[:,2], fmt='-o', linestyle='None')
