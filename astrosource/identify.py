@@ -101,11 +101,12 @@ def convert_photometry_files(filelist):
     for fn in filelist:
         photFile = genfromtxt(fn, dtype=float, delimiter=',')
         # reject nan entries in file
-        if photFile.size != 0: #ignore zero sized files
-            photFile=photFile[~isnan(photFile).any(axis=1)]
-            filepath = Path(fn).with_suffix('.npy')
-            save(filepath, photFile)
-            new_files.append(filepath.name)
+        if photFile.size > 16: #ignore zero sized files and files with only one or two entries
+            if max(photFile[:,0]) < 360 and max(photFile[:,1]) < 90:
+                photFile=photFile[~isnan(photFile).any(axis=1)]
+                filepath = Path(fn).with_suffix('.npy')
+                save(filepath, photFile)
+                new_files.append(filepath.name)
     return new_files
 
 def convert_mjd_bjd(hdr):
