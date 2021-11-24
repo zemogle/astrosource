@@ -38,15 +38,15 @@ def output_files(paths, photometrydata, mode='diff'):
 
         #output for EXOTIC modelling
         outputEXOTICCalib = [x for x in zip(outputPhot[:,6],magColumn,magerrColumn,outputPhot[:,7])]
-
        
         outputEXOTICCalib=asarray(outputEXOTICCalib)
         exoMedian=median(outputEXOTICCalib[:,1])
-        #outputEXOTICCalib[:,1]=(outputEXOTICCalib[:,1]-numpy.median(outputEXOTICCalib[:,1]))
+
         for q in range (outputEXOTICCalib.shape[0]):
-            #print (PhotFile[q][0])
             outputEXOTICCalib[q][1]=(1-pow(10,((outputEXOTICCalib[q][1]-exoMedian)/2.5)))+1
             outputEXOTICCalib[q][2]=(outputEXOTICCalib[q][2]/1.0857)*outputEXOTICCalib[q][1]
+
+        outputEXOTICCalib=outputEXOTICCalib[outputEXOTICCalib[:,0].argsort()]
 
         savetxt(paths['outcatPath'] / f'V{r}_{mode}EXOTIC.csv', outputEXOTICCalib, delimiter=",", fmt='%0.8f')
 
@@ -70,18 +70,19 @@ def open_photometry_files(outcatPath):
 def plot_variability(output, parentPath):
     # star Variability Plot
 
-    plt.cla()
-    outplotx = asarray(output)[:, 2]
-    outploty = asarray(output)[:, 3]
-    plt.xlabel('Mean Differential Magnitude of a Given Star')
-    plt.ylabel('Standard Deviation of Differential Magnitudes')
-    plt.plot(outplotx, outploty, 'bo')
-    # plt.plot(linex, liney)
-    plt.ylim(min(outploty)-0.04, max(outploty)+0.04, 'k-')
-    plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
-    plt.grid(True)
-    plt.savefig(parentPath / 'starVariability.png')
-    plt.savefig(parentPath / 'starVariability.eps')
+    if output != []: # Do not attempt plot if output array is empty
+        plt.cla()
+        outplotx = asarray(output)[:, 2]
+        outploty = asarray(output)[:, 3]
+        plt.xlabel('Mean Differential Magnitude of a Given Star')
+        plt.ylabel('Standard Deviation of Differential Magnitudes')
+        plt.plot(outplotx, outploty, 'bo')
+        # plt.plot(linex, liney)
+        plt.ylim(min(outploty)-0.04, max(outploty)+0.04, 'k-')
+        plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
+        plt.grid(True)
+        plt.savefig(parentPath / 'starVariability.png')
+        plt.savefig(parentPath / 'starVariability.eps')
     return
 
 
@@ -179,7 +180,7 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
         plt.ylabel('Apparent {} Magnitude'.format(filterCode))
         plt.plot(outplotx, outploty, 'bo')
         # plt.plot(linex, liney)
-        plt.ylim(max(outploty)-0.04, min(outploty)+0.04, 'k-')
+        plt.ylim(max(outploty)+0.04, min(outploty)-0.04, 'k-')
         plt.xlim(min(outplotx)-0.01, max(outplotx)+0.01)
         plt.grid(True)
         plt.savefig(outputPath / 'Variable{}_{}_Lightcurve.png'.format(q+1,filterCode))
@@ -196,11 +197,10 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
         plt.ylabel('Apparent ' + str(filterCode) + ' Magnitude')
         plt.plot(outplotx,outploty,'bo')
         plt.plot(outplotxrepeat,outploty,'ro')
-        #plt.plot(linex,liney)
         plt.ylim(max(outploty)+0.04,min(outploty)-0.04,'k-')
         plt.xlim(-0.01,2.01)
-        plt.errorbar(outplotx, outploty, yerr=3*calibFile[:,2], fmt='-o', linestyle='None')
-        plt.errorbar(outplotxrepeat, outploty, yerr=3*calibFile[:,2], fmt='-o', linestyle='None')
+        plt.errorbar(outplotx, outploty, yerr=calibFile[:,2], fmt='-o', linestyle='None')
+        plt.errorbar(outplotxrepeat, outploty, yerr=calibFile[:,2], fmt='-o', linestyle='None')
         plt.grid(True)
         plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
         fig.set_size_inches(6,3)
@@ -213,7 +213,7 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
         logger.info("Amplitude    : "+ str(max(calibFile[:,1])-min(calibFile[:,1])))
         logger.info("Mid Magnitude: "+ str((max(calibFile[:,1])+min(calibFile[:,1]))/2))
 
-        with open(paths['parent'] / "LightcurveStats.txt", "w") as f:
+        with open(paths['parent'] / "LightcurveStats.txt", "a+") as f:
             f.write("Lightcurve Statistics \n\n")
             f.write("Variable V{}_{}\n".format(str(q+1),filterCode))
             f.write("Max Magnitude: "+ str(max(calibFile[:,1]))+"\n")

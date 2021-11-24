@@ -1,6 +1,11 @@
 from pathlib import Path
 import logging
 import sys
+import os
+import ssl
+
+if (not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unverified_context', None)):
+    ssl._create_default_https_context = ssl._create_unverified_context
 
 from astrosource.analyse import find_variable_stars, photometric_calculations, calibrated_photometry
 from astrosource.comparison import find_comparisons, find_comparisons_calibrated
@@ -33,6 +38,14 @@ class TimeSeries:
         self.closerejectd = kwargs.get('closerejectd', 5.0)
         self.skipvarsearch = kwargs.get('skipvarsearch', False)
         self.mincompstars = kwargs.get('mincompstars', 0.1)
+        # Colour stuff
+        self.colourdetect = kwargs.get('colourdetect', False)
+        self.linearise = kwargs.get('linearise', False)
+        self.colourterm = kwargs.get('colourterm', 0.0)
+        self.colourerror = kwargs.get('colourerror', 0.0)
+        self.targetcolour = kwargs.get('targetcolour', -99.0)
+        self.restrictmagbrightest = kwargs.get('restrictmagbrightest', -99.0)
+        self.restrictmagdimmest = kwargs.get('restrictmagdimmest', -99.0)
         verbose = kwargs.get('verbose', False)
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
@@ -53,12 +66,19 @@ class TimeSeries:
         self.calibrated = False
         if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
             try:
-                find_comparisons_calibrated(targets=self.targets,
-                                            filterCode=self.filtercode,
-                                            paths=self.paths,
-                                            nopanstarrs=self.nopanstarrs,
-                                            nosdss=self.nosdss,
-                                            closerejectd=self.closerejectd)
+                self.colourterm, self.colourerror, _ = find_comparisons_calibrated(targets=self.targets,
+                                                                                filterCode=self.filtercode,
+                                                                                paths=self.paths,
+                                                                                nopanstarrs=self.nopanstarrs,
+                                                                                nosdss=self.nosdss,
+                                                                                closerejectd=self.closerejectd,
+                                                                                colourdetect=self.colourdetect,
+                                                                                linearise=self.linearise,
+                                                                                colourTerm=self.colourterm,
+                                                                                colourError=self.colourerror,
+                                                                                restrictmagbrightest=self.restrictmagbrightest,
+                                                                                restrictmagdimmest=self.restrictmagdimmest)
+
                 self.calibrated = True
             except AstrosourceException as e:
                 sys.stdout.write(f'🛑 {e}')
@@ -72,7 +92,7 @@ class TimeSeries:
         data = photometric_calculations(targets=self.targets, paths=self.paths, filesave=filesave)
         self.output(mode='diff', data=data)
         if self.calibrated:
-            self.data = calibrated_photometry(paths=self.paths, photometrydata=data)
+            self.data = calibrated_photometry(paths=self.paths, photometrydata=data, colourterm=self.colourterm,colourerror=self.colourerror,colourdetect=self.colourdetect,linearise=self.linearise,targetcolour=self.targetcolour)
             self.output(mode='calib', data=self.data)
         else:
             self.data = data

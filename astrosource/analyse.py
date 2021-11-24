@@ -66,7 +66,6 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
     minimumVariableCounts = 10000  # Do not try to detect variables dimmer than this.
     minimumNoOfObs = 10 # Minimum number of observations to count as a potential variable.
 
-
     # Load in list of used files
     fileList = []
     with open(parentPath / "usedImages.txt", "r") as f:
@@ -101,7 +100,6 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
     outputPhot = []
 
     # Get total counts for each file
-
     allCountsArray = get_total_counts(photFileArray, compFile, loopLength=compFile.shape[0])
 
     # Define targetlist as every star in referenceImage above a count threshold
@@ -139,15 +137,11 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
 
         for photFile in photFileArray:
             compList=[]
-
             fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-
             idx, d2d, d3d = varCoord.match_to_catalog_sky(fileRaDec)
             if (less(d2d.arcsecond, acceptDistance) and ((multiply(-2.5,log10(divide(photFile[idx][4],allCountsArray[allcountscount][0])))) != inf )):
-
                 diffMagHolder=append(diffMagHolder,(multiply(-2.5,log10(divide(photFile[idx][4],allCountsArray[allcountscount][0])))))
             allcountscount=add(allcountscount,1)
-
 
         ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
         while True:
@@ -164,12 +158,11 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
             if z==0:
                 break
 
-
         logger.debug("Standard Deviation in mag: {}".format(std(diffMagHolder)))
         logger.debug("Median Magnitude: {}".format(median(diffMagHolder)))
         logger.debug("Number of Observations: {}".format(asarray(diffMagHolder).shape[0]))
 
-        if (  asarray(diffMagHolder).shape[0] > minimumNoOfObs):
+        if (asarray(diffMagHolder).shape[0] > minimumNoOfObs):
             outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), asarray(diffMagHolder).shape[0]])
 
     plot_variability(outputVariableHolder, parentPath)
@@ -359,8 +352,9 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
     # photometrydata = trim_catalogue(photometrydata)
     return photometrydata
 
-def calibrated_photometry(paths, photometrydata):
+def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colourdetect, linearise, targetcolour):
     pdata = []
+       
     for j, outputPhot in enumerate(photometrydata):
         calibCompFile = genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
         compFile = genfromtxt(paths['parent'] / 'stdComps.csv', dtype=float, delimiter=',')
@@ -383,24 +377,32 @@ def calibrated_photometry(paths, photometrydata):
         ensembleMag=-2.5*math.log10(ensMag)
         logger.info(f"Ensemble Magnitude: {ensembleMag}")
 
-
         #calculate error
         if single_value:
             ensembleMagError=calibCompFile[4]
         else:
-            ensembleMagError=calibCompFile[:,4]
-            ensembleMagError=average(ensembleMagError)*1/pow(ensembleMagError.size, 0.5)
-
+            ensembleMagError=0.0
+            for t in range(len(calibCompFile[:,4])):
+                ensembleMagError=ensembleMagError+pow(calibCompFile[t,4],2)
+            ensembleMagError=ensembleMagError/pow(len(calibCompFile[:,4]),0.5)
 
         calibIndex=np.asarray(outputPhot).shape[1]-1
 
-        #errCalib = median(calibCompFile[:,4]) / pow((len(calibCompFile[:,0])), 0.5)
-        
-        for i in range(outputPhot.shape[0]):
-            outputPhot[i][calibIndex-1]=ensembleMag+outputPhot[i][10] # Calibrated Magnitude
-            #outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(errCalib,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error
-            outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error
-            
+        if (targetcolour == -99.0):
+            for i in range(outputPhot.shape[0]):
+                outputPhot[i][calibIndex-1]=ensembleMag+outputPhot[i][10] # Calibrated Magnitude SKIPPING colour term
+                #outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(errCalib,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+                outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+            logger.info("No provided target colour was provided. Target magnitude does not incorporate a colour correction.")
+            logger.info("This is likely ok if your colour term is low (<<0.05). If your colour term is high (>0.05), ")
+            logger.info("then consider providing an appropriate colour for this filter using the --targetcolour option")
+            logger.info("as well as an appropriate colour term for this filter (using --colourdetect or --colourterm).")
+        else:
+            for i in range(outputPhot.shape[0]):
+                outputPhot[i][calibIndex-1]=ensembleMag+outputPhot[i][10] - (colourterm * targetcolour) # Calibrated Magnitude incorporating colour term
+                #outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(errCalib,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+                outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+
         # Write back to photometry data
         pdata.append(outputPhot)
 
