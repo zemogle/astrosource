@@ -1,5 +1,7 @@
 from astrosource.identify import find_stars
 
+import pytest
+
 class TestSetup:
     def __init__(self):
         # Create tmp files we need

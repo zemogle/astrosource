@@ -1,8 +1,0 @@
-Period Estimates 
-
-Variable : V1
-Distance Method Estimate (days): 0.5295000000000001
-Distance method error: 0.005299999999999971
-PDM Method Estimate (days): 0.5293000000000001
-PDM method error: 0.004500000000000004
-
