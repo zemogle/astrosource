@@ -70,7 +70,7 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False):
         else:
             filename = fitsobj.name
         phot_dict[Path(filepath).name] = filename
-        
+
 
 
     return phot_dict
@@ -91,7 +91,7 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False):
         countserr = data['fluxerr']
 
         zerosphot=zeros(counts.shape[0], dtype=float)
-      
+
         save(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr, zerosphot, zerosphot]))
 
     return outfile
@@ -138,7 +138,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
         phot_list = []
         for key in phot_list_temp:
             phot_list.append(key) #SLAERT: convert dict to just the list of npy files.
-    
+
     if not phot_list:
         raise AstrosourceException("No files of type '.{}' found in {}".format(filetype, paths['parent']))
     filters = set([os.path.basename(f).split('_')[1] for f in phot_list])

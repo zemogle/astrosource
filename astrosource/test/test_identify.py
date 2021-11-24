@@ -58,14 +58,14 @@ def test_rename_nomjd():
 
 def test_extract_photometry(tmp_path):
     # tmp_path is a Path object for a temporary directory
-    infile = TEST_PATHS['parent'] / 'photometry_test.fits'
+    infile = TEST_PATHS['parent'] / 'photometry_teste91_1.fits'
     result_file = extract_photometry(infile, tmp_path, "test.npy")
     # Test returned file is where we expect it for given filename
     assert result_file == tmp_path / "test.npy"
 
     result_phot = numpy.load(result_file)
     test_photfile = TEST_PATHS['parent'] / 'photometry_test.csv'
-    test_phot = numpy.genfromtxt(test_photfile, dtype=float, delimiter=',')
+    test_phot = numpy.genfromtxt(test_photfile, dtype=float, delimiter=' ')
     # Test if csv file is as we expect
     assert result_phot.all() == test_phot.all()
 
