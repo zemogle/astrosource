@@ -29,7 +29,7 @@ def output_files(paths, photometrydata, mode='diff'):
         else:
             magColumn=outputPhot[:,10]
             magerrColumn=outputPhot[:,11]
-            
+
 
         outputPeransoCalib = [x for x in zip(outputPhot[:,6],magColumn,magerrColumn)]
 
@@ -38,7 +38,7 @@ def output_files(paths, photometrydata, mode='diff'):
 
         #output for EXOTIC modelling
         outputEXOTICCalib = [x for x in zip(outputPhot[:,6],magColumn,magerrColumn,outputPhot[:,7])]
-       
+
         outputEXOTICCalib=asarray(outputEXOTICCalib)
         exoMedian=median(outputEXOTICCalib[:,1])
 

@@ -81,9 +81,9 @@ class TimeSeries:
 
                 self.calibrated = True
             except AstrosourceException as e:
-                sys.stdout.write(f'🛑 {e}')
+                sys.stdout.write(f'⚠️ {e}\n')
         elif calib:
-            sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration')
+            sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration\n')
 
     def find_variables(self):
         find_variable_stars(targets=self.targets, parentPath=self.paths['parent'])

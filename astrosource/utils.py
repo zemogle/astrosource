@@ -1,10 +1,11 @@
-from numpy import asarray, genfromtxt, load, isnan, delete
 from os import getcwd, makedirs, remove
 import shutil
-import click
-import colorlog
 import logging
-import logging.config
+
+from numpy import asarray, genfromtxt, load, isnan, delete
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+import click
 from colorlog import ColoredFormatter
 from pathlib import Path
 
@@ -113,3 +114,14 @@ def get_targets(targetfile):
             targetRejecter.append(z)
         targets=delete(targets, targetRejecter, axis=0)
     return targets
+
+def convert_coords(ra, dec):
+
+    try:
+        return float(ra), float(dec)
+    except ValueError:
+        try:
+            coords = SkyCoord(f"{ra} {dec}", unit=(u.hourangle, u.deg))
+        except:
+            raise AstrosourceException("Coordinates are not valid")
+        return coords.ra.degree, coords.dec.degree
