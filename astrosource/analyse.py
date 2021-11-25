@@ -158,12 +158,13 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
             if z==0:
                 break
 
-        logger.debug("Standard Deviation in mag: {}".format(std(diffMagHolder)))
-        logger.debug("Median Magnitude: {}".format(median(diffMagHolder)))
-        logger.debug("Number of Observations: {}".format(asarray(diffMagHolder).shape[0]))
+        diffmag = asarray(diffMagHolder)
+        logger.debug("Standard Deviation in mag: {}".format(std(diffmag)))
+        logger.debug("Median Magnitude: {}".format(median(diffmag)))
+        logger.debug("Number of Observations: {}".format(diffmag.shape[0]))
 
-        if (asarray(diffMagHolder).shape[0] > minimumNoOfObs):
-            outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), asarray(diffMagHolder).shape[0]])
+        if (diffmag.shape[0] > minimumNoOfObs):
+            outputVariableHolder.append( [target[0],target[1],median(diffmag), std(diffmag), diffmag.shape[0]])
 
     plot_variability(outputVariableHolder, parentPath)
 
@@ -337,10 +338,10 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
         logger.info("Stdev   : {}".format(stdVar))
 
         outputPhot=delete(outputPhot, starReject, axis=0)
-        
+
         # Add calibration columns
         outputPhot= np.c_[outputPhot, np.ones(outputPhot.shape[0]),np.ones(outputPhot.shape[0])]
-        
+
         if outputPhot.shape[0] > 2:
             savetxt(paths['outcatPath'] / f"doerPhot_V{str(q+1)}.csv", outputPhot, delimiter=",", fmt='%0.8f')
             logger.debug('Saved doerPhot_V')
@@ -354,7 +355,7 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
 
 def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colourdetect, linearise, targetcolour):
     pdata = []
-       
+
     for j, outputPhot in enumerate(photometrydata):
         calibCompFile = genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
         compFile = genfromtxt(paths['parent'] / 'stdComps.csv', dtype=float, delimiter=',')

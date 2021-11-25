@@ -25,7 +25,7 @@ class TimeSeries:
         self.format = kwargs.get('format', 'fz')
         self.imgreject = kwargs.get('imgreject', 0.05)
         self.periodupper = kwargs.get('periodupper', -99.9)
-        self.periodlower = kwargs.get('periodlower', -99.9)
+        self.periodlower = kwargs.get('periodlower', 0.05)
         self.periodtests = kwargs.get('periodtests', -99)
         self.rejectbrighter = kwargs.get('rejectbrighter', 99)
         self.rejectdimmer = kwargs.get('rejectdimmer', 99)
@@ -81,9 +81,9 @@ class TimeSeries:
 
                 self.calibrated = True
             except AstrosourceException as e:
-                sys.stdout.write(f'🛑 {e}')
+                sys.stdout.write(f'⚠️ {e}\n')
         elif calib:
-            sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration')
+            sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration\n')
 
     def find_variables(self):
         find_variable_stars(targets=self.targets, parentPath=self.paths['parent'])
