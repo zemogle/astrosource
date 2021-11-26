@@ -1844,33 +1844,56 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
 
 
         # ANOVA
+        
         if calibFile.exists():
             if len(calibData[:,0]) < 75:
                 binsize=0.1
             else:
                 binsize=0.05
-
             minperbin=int((len(calibData[:,0])/10))
-            if minperbin > 10:
-                minperbin=10
+        else:
+            if len(varData[:,0]) < 75:
+                binsize=0.1
+            else:
+                binsize=0.05
+            minperbin=int((len(varData[:,0])/10))
+        
 
+        
+        if minperbin > 10:
+            minperbin=10
+        
+        if calibFile.exists():
             aovoutput=aov_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath, variableName=variableName)
+        else:
+            aovoutput=aov_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath, variableName=variableName)
 
-            logger.debug("Theta Anova Method Estimate (days): " + str(aovoutput["bestperiod"]))
 
+        logger.debug("Theta Anova Method Estimate (days): " + str(aovoutput["bestperiod"]))
+        
+        if calibFile.exists():
             aovhmoutput=aovhm_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName)
+        else:
+            aovhmoutput=aovhm_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName)
+            
+        logger.debug("Harmonic Anova Method Estimate (days): " + str(aovhmoutput["bestperiod"]))
 
-            logger.debug("Harmonic Anova Method Estimate (days): " + str(aovhmoutput["bestperiod"]))
 
-
-            # LOMB SCARGLE
-            for nts in range(6):
-
+        # LOMB SCARGLE
+        for nts in range(6):
+            if calibFile.exists():
                 lscargoutput = LombScargleMultiterm('periodifile', (calibData[:, 0]), (calibData[:, 1]), (calibData[:, 2]),
                                                     nterms=nts+1,
                                                     periodlower=minperiod, periodupper=maxperiod, samples=20,
                                                     disablelightcurve=False, periodPath=periodPath, variableName=variableName)
-
+    
+                logger.debug('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput))
+            else:
+                lscargoutput = LombScargleMultiterm('periodifile', (varData[:, 0]), (varData[:, 1]), (varData[:, 2]),
+                                                    nterms=nts+1,
+                                                    periodlower=minperiod, periodupper=maxperiod, samples=20,
+                                                    disablelightcurve=False, periodPath=periodPath, variableName=variableName)
+    
                 logger.debug('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput))
 
 
