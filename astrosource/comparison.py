@@ -61,6 +61,9 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
 
     compFile = remove_stars_targets(parentPath, compFile, acceptDistance, targets, removeTargets)
 
+    # Removes odd duplicate entries from comparison list
+    compFile=np.unique(compFile, axis=0)
+
     while True:
         # First half of Loop: Add up all of the counts of all of the comparison stars
         # To create a gigantic comparison star.
