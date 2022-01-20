@@ -53,7 +53,9 @@ logger = logging.getLogger('astrosource')
 @click.option('--targetcolour', '-tc', type=float, default=-99.0)
 @click.option('--restrictmagbrightest', type=float, default=-99.0)
 @click.option('--restrictmagdimmest', type=float, default=99.0)
-def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest):
+@click.option('--rejectmagbrightest', type=float, default=-99.0)
+@click.option('--rejectmagdimmest', type=float, default=99.0)
+def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest):
 
     try:
         parentPath = Path(indir)
@@ -97,7 +99,9 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
                         colourerror=colourerror,
                         targetcolour=targetcolour,
                         restrictmagbrightest=restrictmagbrightest,
-                        restrictmagdimmest=restrictmagdimmest
+                        restrictmagdimmest=restrictmagdimmest,
+                        rejectmagbrightest=rejectmagbrightest,
+                        rejectmagdimmest=rejectmagdimmest
                         )
 
         if full or comparison:

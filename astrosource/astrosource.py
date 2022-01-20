@@ -45,7 +45,9 @@ class TimeSeries:
         self.colourerror = kwargs.get('colourerror', 0.0)
         self.targetcolour = kwargs.get('targetcolour', -99.0)
         self.restrictmagbrightest = kwargs.get('restrictmagbrightest', -99.0)
-        self.restrictmagdimmest = kwargs.get('restrictmagdimmest', -99.0)
+        self.restrictmagdimmest = kwargs.get('restrictmagdimmest', 99.0)
+        self.rejectmagbrightest = kwargs.get('rejectmagbrightest', -99.0)
+        self.rejectmagdimmest = kwargs.get('rejectmagdimmest', 99.0)
         verbose = kwargs.get('verbose', False)
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
@@ -92,7 +94,7 @@ class TimeSeries:
         data = photometric_calculations(targets=self.targets, paths=self.paths, filesave=filesave)
         self.output(mode='diff', data=data)
         if self.calibrated:
-            self.data = calibrated_photometry(paths=self.paths, photometrydata=data, colourterm=self.colourterm,colourerror=self.colourerror,colourdetect=self.colourdetect,linearise=self.linearise,targetcolour=self.targetcolour)
+            self.data = calibrated_photometry(paths=self.paths, photometrydata=data, colourterm=self.colourterm,colourerror=self.colourerror,colourdetect=self.colourdetect,linearise=self.linearise,targetcolour=self.targetcolour,rejectmagbrightest=self.rejectmagbrightest,rejectmagdimmest=self.rejectmagdimmest)
             self.output(mode='calib', data=self.data)
         else:
             self.data = data

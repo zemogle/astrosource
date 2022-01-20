@@ -318,7 +318,8 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
         try:
             outputPhot=np.vstack(asarray(outputPhot))
         except ValueError:
-            raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
+            #raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
+            logger.info("This target star was not detected in your dataset. Check your input target(s) RA/Dec")
 
         ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
         stdVar=nanstd((outputPhot)[:,10])
@@ -346,15 +347,21 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
             savetxt(paths['outcatPath'] / f"doerPhot_V{str(q+1)}.csv", outputPhot, delimiter=",", fmt='%0.8f')
             logger.debug('Saved doerPhot_V')
         else:
-            raise AstrosourceException("Photometry not possible")
+            #raise AstrosourceException("Photometry not possible")
+            logger.info("Could not make photometry file, not enough observations.")
         logger.debug(array(outputPhot).shape)
 
         photometrydata.append(outputPhot)
     # photometrydata = trim_catalogue(photometrydata)
     return photometrydata
 
-def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colourdetect, linearise, targetcolour):
+def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colourdetect, linearise, targetcolour, rejectmagbrightest, rejectmagdimmest):
     pdata = []
+
+    print (rejectmagbrightest)
+    print (rejectmagdimmest)
+
+
 
     for j, outputPhot in enumerate(photometrydata):
         calibCompFile = genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
@@ -391,18 +398,29 @@ def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colour
 
         if (targetcolour == -99.0):
             for i in range(outputPhot.shape[0]):
-                outputPhot[i][calibIndex-1]=ensembleMag+outputPhot[i][10] # Calibrated Magnitude SKIPPING colour term
-                #outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(errCalib,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
-                outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+                if (ensembleMag+outputPhot[i][10]) > rejectmagbrightest and (ensembleMag+outputPhot[i][10]) < rejectmagdimmest:
+                    outputPhot[i][calibIndex-1]=ensembleMag+outputPhot[i][10] # Calibrated Magnitude SKIPPING colour term
+                    #outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(errCalib,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+                    outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+                else:
+                    outputPhot[i][calibIndex-1]=np.nan
+                    outputPhot[i][calibIndex]=np.nan
+                    
             logger.info("No provided target colour was provided. Target magnitude does not incorporate a colour correction.")
             logger.info("This is likely ok if your colour term is low (<<0.05). If your colour term is high (>0.05), ")
             logger.info("then consider providing an appropriate colour for this filter using the --targetcolour option")
             logger.info("as well as an appropriate colour term for this filter (using --colourdetect or --colourterm).")
         else:
             for i in range(outputPhot.shape[0]):
-                outputPhot[i][calibIndex-1]=ensembleMag+outputPhot[i][10] - (colourterm * targetcolour) # Calibrated Magnitude incorporating colour term
-                #outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(errCalib,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
-                outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+                if (ensembleMag+outputPhot[i][10]-(colourterm * targetcolour)) > rejectmagbrightest and (ensembleMag+outputPhot[i][10]-(colourterm * targetcolour)) < rejectmagdimmest:
+                    outputPhot[i][calibIndex-1]=ensembleMag+outputPhot[i][10] - (colourterm * targetcolour) # Calibrated Magnitude incorporating colour term
+                    #outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(errCalib,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+                    outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
+                else:
+                    outputPhot[i][calibIndex-1]=np.nan
+                    outputPhot[i][calibIndex]=np.nan
+
+        
 
         # Write back to photometry data
         pdata.append(outputPhot)
