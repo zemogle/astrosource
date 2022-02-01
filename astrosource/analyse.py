@@ -358,11 +358,6 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
 def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colourdetect, linearise, targetcolour, rejectmagbrightest, rejectmagdimmest):
     pdata = []
 
-    print (rejectmagbrightest)
-    print (rejectmagdimmest)
-
-
-
     for j, outputPhot in enumerate(photometrydata):
         calibCompFile = genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
         compFile = genfromtxt(paths['parent'] / 'stdComps.csv', dtype=float, delimiter=',')

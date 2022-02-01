@@ -159,8 +159,6 @@ def make_calibrated_plots(filterCode, paths, photometrydata):
         if  outplotx.size == 0:
             logger.info("Nothing to Plot!")
         else:
-            print (outplotx)
-            print (outploty)
             plt.xlabel('BJD')
             plt.ylabel(f'Calibrated {filterCode} Mag')
             plt.plot(outplotx, outploty, 'bo')
