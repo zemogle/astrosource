@@ -44,7 +44,7 @@ def get_total_counts(photFileArray, compFile, loopLength):
     logger.debug(allCountsArray)
     return allCountsArray
 
-def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPath=None):
+def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None):
     '''
     Find stable comparison stars for the target photometry and remove variables
 
@@ -52,17 +52,16 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
     ----------
     targetStars : list
             List of target tuples in the formal (ra, dec, 0, 0). ra and dec must be in decimal
-    acceptDistance : float
-        acceptible distance between stars in different images
     errorReject : float
         reject measurements with instrumental errors larger than this (this is not total error, just the estimated error in the single measurement of the variable)
-    acceptDistance : float
+    matchRadius : float
         Furthest distance in arcseconds for matches
 
     Returns
     -------
     outfile : str
     '''
+    
     minimumVariableCounts = 10000  # Do not try to detect variables dimmer than this.
     minimumNoOfObs = 10 # Minimum number of observations to count as a potential variable.
 
@@ -139,7 +138,7 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
             compList=[]
             fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
             idx, d2d, d3d = varCoord.match_to_catalog_sky(fileRaDec)
-            if (less(d2d.arcsecond, acceptDistance) and ((multiply(-2.5,log10(divide(photFile[idx][4],allCountsArray[allcountscount][0])))) != inf )):
+            if (less(d2d.arcsecond, matchRadius) and ((multiply(-2.5,log10(divide(photFile[idx][4],allCountsArray[allcountscount][0])))) != inf )):
                 diffMagHolder=append(diffMagHolder,(multiply(-2.5,log10(divide(photFile[idx][4],allCountsArray[allcountscount][0])))))
             allcountscount=add(allcountscount,1)
 
@@ -172,7 +171,8 @@ def find_variable_stars(targets, acceptDistance=1.0, errorReject=0.05, parentPat
 
     return outputVariableHolder
 
-def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5, filesave=True):
+def photometric_calculations(targets, paths, targetRadius, errorReject=0.5, filesave=True):
+    
     fileCount=[]
     photometrydata = []
     sys.stdout.write('🖥 Starting photometric calculations\n')
@@ -232,7 +232,7 @@ def photometric_calculations(targets, paths, acceptDistance=5.0, errorReject=0.5
             fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
             idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
             starRejected=0
-            if (less(d2d.arcsecond, acceptDistance)):
+            if (less(d2d.arcsecond, targetRadius)):
                 magErrVar = 1.0857 * (photFile[idx][5]/photFile[idx][4])
                 if magErrVar < errorReject:
 

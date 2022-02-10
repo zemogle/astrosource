@@ -36,6 +36,8 @@ class TimeSeries:
         self.nopanstarrs = kwargs.get('nopanstarrs', False)
         self.nosdss = kwargs.get('nosdss', False)
         self.closerejectd = kwargs.get('closerejectd', 5.0)
+        self.targetradius = kwargs.get('targetradius', 1.5)
+        self.matchradius = kwargs.get('matchradius', 1.0) 
         self.skipvarsearch = kwargs.get('skipvarsearch', False)
         self.mincompstars = kwargs.get('mincompstars', 0.1)
         # Colour stuff
@@ -63,7 +65,7 @@ class TimeSeries:
                                                  starreject=self.starreject,
                                                  hicounts=self.hicounts,
                                                  lowcounts=self.lowcounts)
-        find_comparisons(self.targets, self.indir, self.usedimages, thresholdCounts=self.thresholdcounts)
+        find_comparisons(self.targets, self.indir, self.usedimages, matchRadius=self.matchradius, thresholdCounts=self.thresholdcounts)
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         self.calibrated = False
         if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
@@ -88,10 +90,10 @@ class TimeSeries:
             sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration\n')
 
     def find_variables(self):
-        find_variable_stars(targets=self.targets, parentPath=self.paths['parent'])
+        find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius)
 
     def photometry(self, filesave=False):
-        data = photometric_calculations(targets=self.targets, paths=self.paths, filesave=filesave)
+        data = photometric_calculations(targets=self.targets, paths=self.paths, targetRadius=self.targetradius, filesave=filesave)
         self.output(mode='diff', data=data)
         if self.calibrated:
             self.data = calibrated_photometry(paths=self.paths, photometrydata=data, colourterm=self.colourterm,colourerror=self.colourerror,colourdetect=self.colourdetect,linearise=self.linearise,targetcolour=self.targetcolour,rejectmagbrightest=self.rejectmagbrightest,rejectmagdimmest=self.rejectmagdimmest)

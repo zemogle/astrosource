@@ -1761,7 +1761,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
             tempPeriodCatOut=asarray(tempPeriodCatOut)
             savetxt(periodPath / f"{variableName}_String_PhasedDiffMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
-        if np.isnan(pdm["stdev_results"][0]) or pdm["stdev_results"][0] == 0.0:
+        if np.isnan(pdm["stdev_results"][0]) or pdm["stdev_results"][0] == 0.0 or (varData.size < 4):
             logger.info("No PDM results due to lack of datapoint coverage")
         else:
             logger.debug("PDM Method Estimate (days): "+ str(pdm["stdev_minperiod"]))

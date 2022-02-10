@@ -42,6 +42,8 @@ logger = logging.getLogger('astrosource')
 @click.option('--lowcounts',  '-lc', type=int, default=1000, help='Count rate above which to accept a comparison star as a candidate')
 @click.option('--starreject', '-sr', type=float, default=0.3, help='Limit on fraction of stars which can be rejected without image being rejected')
 @click.option('--closerejectd', '-cr', type=float, default=5.0, help='Limiting distance (arcsecs) between potential comparisons and nearby stars')
+@click.option('--targetradius', '-tr', type=float, default=1.5, help='Limiting distance (arcsecs) away from requested target star position.')
+@click.option('--matchradius', '-mr', type=float, default=1.0, help='Limiting distance (arcsecs) when matching general stars, usually comparisons.')
 @click.option('--mincompstars', '-mc', type=float, default=0.1, help='Minimum comparison stars')
 @click.option('--nopanstarrs', '-np', is_flag=True, help='Do not use the PanSTARRS catalogue for calibration')
 @click.option('--nosdss', '-ns', is_flag=True, help='Do not use the SDSS catalogue for calibration')
@@ -55,7 +57,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--restrictmagdimmest', type=float, default=99.0)
 @click.option('--rejectmagbrightest', type=float, default=-99.0)
 @click.option('--rejectmagdimmest', type=float, default=99.0)
-def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest):
+def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius):
 
     try:
         parentPath = Path(indir)
@@ -101,7 +103,9 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
                         restrictmagbrightest=restrictmagbrightest,
                         restrictmagdimmest=restrictmagdimmest,
                         rejectmagbrightest=rejectmagbrightest,
-                        rejectmagdimmest=rejectmagdimmest
+                        rejectmagdimmest=rejectmagdimmest,
+                        targetradius=targetradius,
+                        matchradius=matchradius
                         )
 
         if full or comparison:

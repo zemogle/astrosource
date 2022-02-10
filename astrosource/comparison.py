@@ -25,7 +25,7 @@ import logging
 logger = logging.getLogger('astrosource')
 
 
-def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5, thresholdCounts=10000000, variabilityMultiplier=2.5, removeTargets=True, acceptDistance=1.0):
+def find_comparisons(targets,  parentPath=None, fileList=None, matchRadius=1.45, stdMultiplier=2.5, thresholdCounts=10000000, variabilityMultiplier=2.5, removeTargets=True):
     '''
     Find stable comparison stars for the target photometry
 
@@ -41,7 +41,7 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
             This will stop adding ensemble comparisons if it starts using stars higher than this variability
     removeTargets : int
             Set this to 1 to remove targets from consideration for comparison stars
-    acceptDistance : float
+    matchRadius: float
             Furthest distance in arcseconds for matches
 
     Returns
@@ -49,6 +49,7 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
     outfile : str
 
     '''
+    
     sys.stdout.write("⭐️ Find stable comparison stars for differential photometry\n")
     sys.stdout.flush()
     # Get list of phot files
@@ -59,7 +60,7 @@ def find_comparisons(targets, parentPath=None, fileList=None, stdMultiplier=2.5,
 
     compFile, photFileArray = read_data_files(parentPath, fileList)
 
-    compFile = remove_stars_targets(parentPath, compFile, acceptDistance, targets, removeTargets)
+    compFile = remove_stars_targets(parentPath, compFile, matchRadius, targets, removeTargets)
 
     # Removes odd duplicate entries from comparison list
     compFile=np.unique(compFile, axis=0)
