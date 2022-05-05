@@ -1638,7 +1638,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
     if minperiod==-99.9:
             minperiod=0.05
 
-    if maxperiod==-99.9:
+    if maxperiod==-99.9 or maxperiod==None:
         # Load in list of used files
         fileList = []
         with open(paths['parent'] / "usedImages.txt", "r") as f:
