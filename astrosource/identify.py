@@ -257,12 +257,15 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
                 logger.debug(file)
                 logger.debug("Image threshold size: "+str(imgsize))
                 logger.debug("Image catalogue size: "+str(photFile.size))
+                imgRejFlag=0
                 if photFile.size > imgsize and photFile.size > 7 :
                     phottmparr = asarray(photFile)
+                    # Checking existance of stars in all photometry files
+                    rejectStars=[] # A list to hold what stars are to be rejected
+                    
                     if (( phottmparr[:,0] > 360).sum() == 0) and ( phottmparr[0][0] != 'null') and ( phottmparr[0][0] != 0.0) :
 
-                        # Checking existance of stars in all photometry files
-                        rejectStars=[] # A list to hold what stars are to be rejected
+                        
 
                         # Find whether star in reference list is in this phot file, if not, reject star.
                         for j in range(referenceFrame.shape[0]):
@@ -273,12 +276,25 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
                             if (d2d.arcsecond > acceptDistance):
                                 #"No Match! Nothing within range."
                                 rejectStars.append(int(j))
-
+                                #print (j)
+                                #print (idx)
+                    
+                    else:
+                        logger.debug('**********************')
+                        logger.debug('Image Rejected due to problematic entries in Photometry File')
+                        logger.debug('**********************')
+                        imgReject=imgReject+1
+                        fileList.remove(file)
+                        imgRejFlag=1
 
                     # if the rejectstar list is not empty, remove the stars from the reference List
                     if rejectStars != []:
 
                         if not (((len(rejectStars) / referenceFrame.shape[0]) > starreject) and rejStartCounter > rejectStart):
+                            #print (len(rejectStars))
+                            
+                            #print (rejectStars)
+                            #print (referenceFrame.shape())
                             referenceFrame = delete(referenceFrame, rejectStars, axis=0)
                             logger.debug('**********************')
                             logger.debug('Stars Removed  : ' +str(len(rejectStars)))
@@ -292,7 +308,7 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
                             logger.debug('**********************')
                             imgReject=imgReject+1
                             fileList.remove(file)
-                    else:
+                    elif imgRejFlag==0:
                         logger.debug('**********************')
                         logger.debug('All Stars Present')
                         logger.debug('**********************')
