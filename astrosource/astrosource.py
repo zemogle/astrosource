@@ -15,7 +15,7 @@ from astrosource.identify import find_stars, gather_files
 from astrosource.periodic import plot_with_period
 from astrosource.plots import make_plots, make_calibrated_plots, open_photometry_files, output_files, phased_plots
 from astrosource.utils import AstrosourceException, folder_setup, cleanup, setup_logger
-
+from numpy import genfromtxt
 
 class TimeSeries:
     def __init__(self, targets, indir, **kwargs):
@@ -56,16 +56,29 @@ class TimeSeries:
         logger = setup_logger('astrosource', verbose)
         self.files, self.filtercode = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd)
 
-    def analyse(self, calib=True):
-        self.usedimages, self.stars = find_stars(targets=self.targets,
-                                                 paths=self.paths,
-                                                 fileList=self.files,
-                                                 mincompstars=self.mincompstars,
-                                                 imageFracReject=self.imgreject,
-                                                 starreject=self.starreject,
-                                                 hicounts=self.hicounts,
-                                                 lowcounts=self.lowcounts)
-        find_comparisons(self.targets, self.indir, self.usedimages, matchRadius=self.matchradius, thresholdCounts=self.thresholdcounts)
+    def analyse(self, calib=True, usescreenedcomps=False, usecompsused=False):
+
+
+        parentPath = self.paths['parent']
+            
+        if usescreenedcomps == False:
+            self.usedimages, self.stars = find_stars(targets=self.targets,
+                                                     paths=self.paths,
+                                                     fileList=self.files,
+                                                     mincompstars=self.mincompstars,
+                                                     imageFracReject=self.imgreject,
+                                                     starreject=self.starreject,
+                                                     hicounts=self.hicounts,
+                                                     lowcounts=self.lowcounts)
+            
+        else:
+            print ("Using screened Comparisons from Previous Run")
+            self.usedimages=genfromtxt(parentPath / 'usedImages.txt', dtype=str, delimiter=',')
+            self.stars=genfromtxt(parentPath / 'screenedComps.csv', dtype=str, delimiter=',')
+        
+        if usecompsused ==False:
+            find_comparisons(self.targets, self.indir, self.usedimages, matchRadius=self.matchradius, thresholdCounts=self.thresholdcounts)
+        
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         self.calibrated = False
         if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:

@@ -16,6 +16,8 @@ logger = logging.getLogger('astrosource')
 @click.option('--full', is_flag=True, help='Perform full analysis, i.e. steps 1-5')
 @click.option('--stars', is_flag=True, help='Step 1: Identify and match stars from each data file')
 @click.option('--comparison', is_flag=True, help='Step 2: Identify non-varying stars to use for comparisons')
+@click.option('--usescreenedcomps', is_flag=True, help='Use screenedComps.csv as the candidate comparison list rather than detecting them')
+@click.option('--usecompsused', is_flag=True, help='Use compsUsed.csv as the final candidate comparison list rather than calculating them')
 @click.option('--calc', is_flag=True, help='Step 3: Calculate the brightness change of the target')
 @click.option('--phot', is_flag=True, help='Step 4: Photometry calculations for either differential or calibrated')
 @click.option('--plot', is_flag=True, help='Step 5: Produce lightcurve plots')
@@ -57,7 +59,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--restrictmagdimmest', type=float, default=99.0)
 @click.option('--rejectmagbrightest', type=float, default=-99.0)
 @click.option('--rejectmagdimmest', type=float, default=99.0)
-def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius):
+def main(full, stars, comparison, usescreenedcomps, usecompsused, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius):
 
     try:
         parentPath = Path(indir)
@@ -109,7 +111,7 @@ def main(full, stars, comparison, calc, calib, phot, plot, detrend, eebls, perio
                         )
 
         if full or comparison:
-            ts.analyse()
+            ts.analyse(usescreenedcomps=usescreenedcomps, usecompsused=usecompsused)
         if (full or calc) and not skipvarsearch:
             ts.find_variables()
         if full or phot:
