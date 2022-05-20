@@ -185,6 +185,7 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
 
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
+    
 
     fileSizer=0
     logger.info("Finding image with most stars detected and reject ones with bad WCS")
@@ -218,19 +219,36 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, starreject=0.1 , acce
     logger.debug("Setting up reference Frame")
     fileRaDec = SkyCoord(ra=referenceFrame[:,0]*u.degree, dec=referenceFrame[:,1]*u.degree)
 
+
+    ##### Iterate hicounts and locounts until a reasonable sample < 250 stars are found in the middle range.
+    
+
     logger.debug("Removing stars with low or high counts")
     rejectStars=[]
     # Check star has adequate counts
-    for j in range(referenceFrame.shape[0]):
-        if ( referenceFrame[j][4] < lowcounts or referenceFrame[j][4] > hicounts ):
-            rejectStars.append(int(j))
     logger.debug("Number of stars prior")
     logger.debug(referenceFrame.shape[0])
-
-    referenceFrame=delete(referenceFrame, rejectStars, axis=0)
+    logger.debug("Initial count range, Low: " +str(lowcounts)+ " High: "+ str(hicounts))
+    settled=0
+    while settled==0:
+        for j in range(referenceFrame.shape[0]):
+            if ( referenceFrame[j][4] < lowcounts or referenceFrame[j][4] > hicounts ):
+                rejectStars.append(int(j))
+             
+    
+        #logger.debug("Number of stars attempting to reduce number of sample comparison stars")
+        #logger.debug(delete(referenceFrame, rejectStars, axis=0).shape[0])
+        
+        if delete(referenceFrame, rejectStars, axis=0).shape[0] < 250:
+            settled=1
+        else:
+            lowcounts=lowcounts+(0.05*lowcounts)
+            hicounts=hicounts-(0.05*hicounts)
+        
 
     logger.debug("Number of stars post")
-    logger.debug(referenceFrame.shape[0])
+    referenceFrame=delete(referenceFrame, rejectStars, axis=0)
+    logger.debug("Final count range, Low: " +str(int(lowcounts))+ " High: "+ str(int(hicounts)))
 
     originalReferenceFrame=referenceFrame
     originalfileList=fileList
