@@ -1916,5 +1916,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         
                     logger.debug('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput))
 
-
-    return pdm["distance_minperiod"]
+    if pdm in locals():
+        return pdm["distance_minperiod"]
+    else:
+        return 0.0
