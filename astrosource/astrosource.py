@@ -56,7 +56,7 @@ class TimeSeries:
         logger = setup_logger('astrosource', verbose)
         self.files, self.filtercode = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd)
 
-    def analyse(self, calib=True, usescreenedcomps=False, usecompsused=False):
+    def analyse(self, calib=True, usescreenedcomps=False, usecompsused=False, usecompletedcalib=False):
 
 
         parentPath = self.paths['parent']
@@ -80,27 +80,32 @@ class TimeSeries:
             find_comparisons(self.targets, self.indir, self.usedimages, matchRadius=self.matchradius, thresholdCounts=self.thresholdcounts)
         
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
-        self.calibrated = False
-        if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
-            try:
-                self.colourterm, self.colourerror, _ = find_comparisons_calibrated(targets=self.targets,
-                                                                                filterCode=self.filtercode,
-                                                                                paths=self.paths,
-                                                                                nopanstarrs=self.nopanstarrs,
-                                                                                nosdss=self.nosdss,
-                                                                                closerejectd=self.closerejectd,
-                                                                                colourdetect=self.colourdetect,
-                                                                                linearise=self.linearise,
-                                                                                colourTerm=self.colourterm,
-                                                                                colourError=self.colourerror,
-                                                                                restrictmagbrightest=self.restrictmagbrightest,
-                                                                                restrictmagdimmest=self.restrictmagdimmest)
-
-                self.calibrated = True
-            except AstrosourceException as e:
-                sys.stdout.write(f'⚠️ {e}\n')
-        elif calib:
-            sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration\n')
+        if usecompletedcalib == False:
+            self.calibrated = False
+            if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
+                try:
+                    self.colourterm, self.colourerror, _ = find_comparisons_calibrated(targets=self.targets,
+                                                                                    filterCode=self.filtercode,
+                                                                                    paths=self.paths,
+                                                                                    nopanstarrs=self.nopanstarrs,
+                                                                                    nosdss=self.nosdss,
+                                                                                    closerejectd=self.closerejectd,
+                                                                                    colourdetect=self.colourdetect,
+                                                                                    linearise=self.linearise,
+                                                                                    colourTerm=self.colourterm,
+                                                                                    colourError=self.colourerror,
+                                                                                    restrictmagbrightest=self.restrictmagbrightest,
+                                                                                    restrictmagdimmest=self.restrictmagdimmest)
+    
+                    self.calibrated = True
+                except AstrosourceException as e:
+                    sys.stdout.write(f'⚠️ {e}\n')
+            elif calib:
+                sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration\n')
+        else:
+            self.calibrated = True
+        
+        
 
     def find_variables(self):
         find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius)

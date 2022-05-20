@@ -22,6 +22,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--phot', is_flag=True, help='Step 4: Photometry calculations for either differential or calibrated')
 @click.option('--plot', is_flag=True, help='Step 5: Produce lightcurve plots')
 @click.option('--calib', is_flag=True, help='Perform calibrations for absolute photometry')
+@click.option('--usecompletedcalib', is_flag=True, help='Use the calibration already calculated')
 @click.option('--detrend', is_flag=True, help='Detrend exoplanet data')
 @click.option('--eebls', is_flag=True, help='Box fitting to search for periodic transits')
 @click.option('--indir', default=None, type=str, required=True, help='Path of directory containing LCO data files. If none is given, astrosource assumes the current directory')
@@ -59,7 +60,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--restrictmagdimmest', type=float, default=99.0)
 @click.option('--rejectmagbrightest', type=float, default=-99.0)
 @click.option('--rejectmagdimmest', type=float, default=99.0)
-def main(full, stars, comparison, usescreenedcomps, usecompsused, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius):
+def main(full, stars, comparison, usescreenedcomps, usecompsused, usecompletedcalib, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius):
 
     try:
         parentPath = Path(indir)
@@ -111,7 +112,7 @@ def main(full, stars, comparison, usescreenedcomps, usecompsused, calc, calib, p
                         )
 
         if full or comparison:
-            ts.analyse(usescreenedcomps=usescreenedcomps, usecompsused=usecompsused)
+            ts.analyse(usescreenedcomps=usescreenedcomps, usecompsused=usecompsused, usecompletedcalib=usecompletedcalib)
         if (full or calc) and not skipvarsearch:
             ts.find_variables()
         if full or phot:
