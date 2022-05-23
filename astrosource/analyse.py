@@ -118,6 +118,13 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None)
     allcountscount=0
     # For each variable calculate the variability
     outputVariableHolder=[]
+    
+    # Prep photfile coordinates
+    photFileCoords=[]
+
+    for photFile in photFileArray:
+        photFileCoords.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
+        
     q=0
     for target in targetFile:
         q=q+1
@@ -126,44 +133,64 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None)
         logger.debug("RA {}".format(target[0]))
         logger.debug("DEC {}".format(target[1]))
         varCoord = SkyCoord(target[0],(target[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
-        outputPhot=[]
-        compArray=[]
-        compList=[]
+        #outputPhot=[]
+        #compArray=[]
+        #compList=[]
 
         diffMagHolder=[]
 
         allcountscount=0
 
+        r=0
         for photFile in photFileArray:
-            compList=[]
-            fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-            idx, d2d, d3d = varCoord.match_to_catalog_sky(fileRaDec)
-            if (less(d2d.arcsecond, matchRadius) and ((multiply(-2.5,log10(divide(photFile[idx][4],allCountsArray[allcountscount][0])))) != inf )):
-                diffMagHolder=append(diffMagHolder,(multiply(-2.5,log10(divide(photFile[idx][4],allCountsArray[allcountscount][0])))))
+            #compList=[]
+            fileRaDec = photFileCoords[r]
+            r=r+1
+            idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
+            multTemp=(multiply(-2.5,log10(divide(photFile[idx][4],allCountsArray[allcountscount][0]))))
+            if less(d2d.arcsecond, matchRadius) and (multTemp != inf) :
+                diffMagHolder=append(diffMagHolder,multTemp)
             allcountscount=add(allcountscount,1)
 
+        # ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
+        # while True:
+        #     stdVar=std(diffMagHolder)
+        #     avgVar=average(diffMagHolder)
+        #     starReject=[]
+        #     z=0
+        #     for j in range(asarray(diffMagHolder).shape[0]):
+        #         if diffMagHolder[j] > avgVar+(4*stdVar) or diffMagHolder[j] < avgVar-(4*stdVar) :
+        #             starReject.append(j)
+        #             logger.debug("REJECT {}".format(diffMagHolder[j]))
+        #             z=1
+        #     diffMagHolder=delete(diffMagHolder, starReject, axis=0)
+        #     if z==0:
+        #         break
+    
         ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
+        diffMagHolder=np.array(diffMagHolder)
         while True:
             stdVar=std(diffMagHolder)
             avgVar=average(diffMagHolder)
-            starReject=[]
-            z=0
-            for j in range(asarray(diffMagHolder).shape[0]):
-                if diffMagHolder[j] > avgVar+(4*stdVar) or diffMagHolder[j] < avgVar-(4*stdVar) :
-                    starReject.append(j)
-                    logger.debug("REJECT {}".format(diffMagHolder[j]))
-                    z=1
-            diffMagHolder=delete(diffMagHolder, starReject, axis=0)
-            if z==0:
+            
+            sizeBefore=diffMagHolder.shape[0]
+            #print (sizeBefore)
+            
+            diffMagHolder[diffMagHolder > avgVar+(4*stdVar) ] = np.nan
+            diffMagHolder[diffMagHolder < avgVar-(4*stdVar) ] = np.nan
+            diffMagHolder=diffMagHolder[~np.isnan(diffMagHolder)]
+            
+            if diffMagHolder.shape[0] == sizeBefore:
                 break
+   
 
-        diffmag = asarray(diffMagHolder)
-        logger.debug("Standard Deviation in mag: {}".format(std(diffmag)))
-        logger.debug("Median Magnitude: {}".format(median(diffmag)))
-        logger.debug("Number of Observations: {}".format(diffmag.shape[0]))
+        #diffmag = asarray(diffMagHolder)
+        logger.debug("Standard Deviation in mag: {}".format(std(diffMagHolder)))
+        logger.debug("Median Magnitude: {}".format(median(diffMagHolder)))
+        logger.debug("Number of Observations: {}".format(diffMagHolder.shape[0]))
 
-        if (diffmag.shape[0] > minimumNoOfObs):
-            outputVariableHolder.append( [target[0],target[1],median(diffmag), std(diffmag), diffmag.shape[0]])
+        if (diffMagHolder.shape[0] > minimumNoOfObs):
+            outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), diffMagHolder.shape[0]])
 
     plot_variability(outputVariableHolder, parentPath)
 
