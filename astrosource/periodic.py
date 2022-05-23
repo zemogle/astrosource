@@ -1590,9 +1590,15 @@ def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nter
     #print(
     #    'using ' + str(samples) + ' samples per peak, start P = ' + str(periodlower) + ', end P = ' + str(periodupper))
     # Calculate the Lomb-Scargle periodogram values
+        
     ls = LombScargle(t, m, d, nterms=nterms)
-    freq, power = ls.autopower(samples_per_peak=samples, minimum_frequency=1 / periodupper,
-                               maximum_frequency=1 / periodlower)
+
+    try:
+        freq, power = ls.autopower(samples_per_peak=samples, minimum_frequency=1 / periodupper,
+                                   maximum_frequency=1 / periodlower)
+    except:
+        print ("Lomb Scargle failed.") # Need to hunt down a very rare but existant memory problem
+        return (0)
 
     # Create the likelihood plot
     fig2, ax2 = plt.subplots(figsize=(8, 6))
