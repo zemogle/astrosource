@@ -84,8 +84,8 @@ def find_comparisons(targets,  parentPath=None, fileList=None, matchRadius=1.45,
         stdCompMed=median(stdCompStar)
         stdCompStd=std(stdCompStar)
 
-        logger.debug(fileCount)
-        logger.debug(stdCompStar)
+        #logger.debug(fileCount)
+        #logger.debug(stdCompStar)
         logger.debug(f"Median of comparisons = {stdCompMed}")
         logger.debug(f"STD of comparisons = {stdCompStd}")
 
@@ -196,7 +196,7 @@ def find_reference_frame(photFileArray):
     for photFile in photFileArray:
         if photFile.size > fileSizer:
             referenceFrame = photFile
-            logger.debug(photFile.size)
+            #logger.debug(photFile.size)
             fileSizer = photFile.size
     logger.info("Setting up reference Frame")
     fileRaDec = SkyCoord(ra=referenceFrame[:,0]*degree, dec=referenceFrame[:,1]*degree)
@@ -228,20 +228,21 @@ def ensemble_comparisons(photFileArray, compFile):
                 matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
                 idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
                 allCounts = add(allCounts,photFile[idx][4])
-        logger.debug("Total Counts in Image: {:.2f}".format(allCounts))
+        #logger.debug("Total Counts in Image: {:.2f}".format(allCounts))
         fileCount.append(allCounts)
-    logger.debug("Total total {}".format(np.sum(np.array(fileCount))))
+    logger.debug("Total Ensemble Star Counts in Reference Frame {}".format(np.sum(np.array(fileCount))))
     return fileCount
 
 def calculate_comparison_variation(compFile, photFileArray, fileCount):
     stdCompStar=[]
     sortStars=[]
-
+    logger.debug("Calculating Variation in Individual Comparisons")
+    
     if compFile.size ==2 and compFile.shape[0]==2:
         compDiffMags = []
-        logger.debug("*************************")
-        logger.debug("RA : " + str(compFile[0]))
-        logger.debug("DEC: " + str(compFile[1]))
+        #logger.debug("*************************")
+        #logger.debug("RA : " + str(compFile[0]))
+        #logger.debug("DEC: " + str(compFile[1]))
         for q, photFile in enumerate(photFileArray):
             fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
             matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
@@ -254,7 +255,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
         medCompDiffMags=np.nanmedian(compDiffMags)
         medInstrMags= np.nanmedian(instrMags)
 
-        logger.debug("VAR: " +str(stdCompDiffMags))
+        #logger.debug("VAR: " +str(stdCompDiffMags))
         if np.isnan(stdCompDiffMags) :
             logger.error("Star Variability non rejected")
             stdCompDiffMags=99
@@ -267,9 +268,9 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
         for cf in compFile:
             compDiffMags = []
             instrMags=[]
-            logger.debug("*************************")
-            logger.debug("RA : " + str(cf[0]))
-            logger.debug("DEC: " + str(cf[1]))
+            #logger.debug("*************************")
+            #logger.debug("RA : " + str(cf[0]))
+            #logger.debug("DEC: " + str(cf[1]))
             for q, photFile in enumerate(photFileArray):
                 fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
                 matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
@@ -281,7 +282,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
             medCompDiffMags=np.nanmedian(compDiffMags)
             medInstrMags=np.nanmedian(instrMags)
 
-            logger.debug("VAR: " +str(stdCompDiffMags))
+            #logger.debug("VAR: " +str(stdCompDiffMags))
 
             if np.isnan(stdCompDiffMags) :
                 logger.error("Star Variability non rejected")
@@ -311,13 +312,13 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
 
     # Get Average RA and Dec from file
     if compFile.shape[0] == 2 and compFile.size == 2:
-        logger.debug(compFile[0])
-        logger.debug(compFile[1])
+        #logger.debug(compFile[0])
+        #logger.debug(compFile[1])
         avgCoord=SkyCoord(ra=(compFile[0])*degree, dec=(compFile[1]*degree))
 
     else:
-        logger.debug(average(compFile[:,0]))
-        logger.debug(average(compFile[:,1]))
+        #logger.debug(average(compFile[:,0]))
+        #logger.debug(average(compFile[:,1]))
 
         #remarkably dumb way of averaging around zero RA and just normal if not
         resbelow= any(ele >350.0 and ele<360.0 for ele in compFile[:,0].tolist())
@@ -336,16 +337,17 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         else:
             avgCoord=SkyCoord(ra=(average(compFile[:,0])*degree), dec=((average(compFile[:,1])*degree)))
 
-        logger.info(avgCoord)
+        #logger.info(avgCoord)
 
 
     # Check VSX for any known variable stars and remove them from the list
+    logger.info("Searching for known variable stars in VSX......")
     try:
         v=Vizier(columns=['all']) # Skymapper by default does not report the error columns
         v.ROW_LIMIT=-1
-        logger.info(avgCoord)
+        #logger.info(avgCoord)
         variableResult=v.query_region(avgCoord, '0.33 deg', catalog='VSX')
-        logger.info(variableResult)
+        #logger.info(variableResult)
         if str(variableResult)=="Empty TableList":
             logger.info("VSX Returned an Empty Table.")
             varTable=0
@@ -367,14 +369,14 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                 connected=False
 
     if varTable==1:
-        logger.debug(variableResult)
+        #logger.debug(variableResult)
 
-        logger.debug(variableResult.keys())
+        #logger.debug(variableResult.keys())
 
         raCat=array(variableResult['RAJ2000'].data)
-        logger.debug(raCat)
+        #logger.debug(raCat)
         decCat=array(variableResult['DEJ2000'].data)
-        logger.debug(decCat)
+        #logger.debug(decCat)
         varStarReject=[]
         for t in range(raCat.size):
 
@@ -392,13 +394,13 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
 
             if d2dcomp != 9999:
                 if d2dcomp.arcsecond[0] < max_sep.value:
-                    logger.debug("match!")
+                    #logger.debug("match!")
                     varStarReject.append(idxcomp)
 
         logger.debug("Number of stars prior to VSX reject")
         logger.debug(compFile.shape[0])
         compFile=delete(compFile, varStarReject, axis=0)
-        logger.debug("Number of stars post to VSX reject")
+        logger.debug("Number of stars post VSX reject")
         logger.debug(compFile.shape[0])
 
 
@@ -558,7 +560,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     # Load compsused
     compFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
-    logger.debug(compFile.shape[0])
+    #logger.debug(compFile.shape[0])
 
     if compFile.shape[0] == 13 and compFile.size == 13:
         compCoords=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
@@ -567,13 +569,13 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     # Get Average RA and Dec from file
     if compFile.shape[0] == 13 and compFile.size == 13:
-        logger.debug(compFile[0])
-        logger.debug(compFile[1])
+        #logger.debug(compFile[0])
+        #logger.debug(compFile[1])
         avgCoord=SkyCoord(ra=(compFile[0])*degree, dec=(compFile[1]*degree))
 
     else:
-        logger.debug(average(compFile[:,0]))
-        logger.debug(average(compFile[:,1]))
+        #logger.debug(average(compFile[:,0]))
+        #logger.debug(average(compFile[:,1]))
 
 
         #remarkably dumb way of averaging around zero RA and just normal if not
@@ -1068,7 +1070,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     calibStands=asarray(calibStands)
 
     z=0
-    logger.debug("CALIBRATING EACH FILE")
+    logger.debug("Calibrating each photometry file......")
     
 
     slopeHolder=[]
@@ -1076,7 +1078,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         
         #print ("**********************************")
         #print(datetime.now().strftime("%H:%M:%S"))
-        logger.debug(file)
+        #logger.debug(file)
 
         #Get the phot file into memory
         photFile = load(parentPath / file)
@@ -1455,7 +1457,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         logger.debug("CORRECTING EACH FILE FOR NONLINEARITY")
         correctFileList = calibPath.glob("*.calibrated.csv")
         for file in correctFileList:
-            logger.debug(file)
+            #logger.debug(file)
 
             # NEED TO FIX UP COMPARED!
 

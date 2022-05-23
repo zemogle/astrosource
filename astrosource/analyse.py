@@ -41,7 +41,7 @@ def get_total_counts(photFileArray, compFile, loopLength):
             if (compFile.shape[0] == 5 and compFile.size == 5) or (compFile.shape[0] == 3 and compFile.size == 3):
                 break
         allCountsArray.append([allCounts, allCountsErr])
-    logger.debug(allCountsArray)
+    #logger.debug(allCountsArray)
     return allCountsArray
 
 def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None):
@@ -125,13 +125,15 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None)
     for photFile in photFileArray:
         photFileCoords.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
         
+    logger.debug("Measuring variability of stars...... ")
+        
     q=0
     for target in targetFile:
         q=q+1
-        logger.debug("*********************")
-        logger.debug("Processing Target {}".format(str(q)))
-        logger.debug("RA {}".format(target[0]))
-        logger.debug("DEC {}".format(target[1]))
+        #logger.debug("*********************")
+        #logger.debug("Processing Target {}".format(str(q)))
+        #logger.debug("RA {}".format(target[0]))
+        #logger.debug("DEC {}".format(target[1]))
         varCoord = SkyCoord(target[0],(target[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
         #outputPhot=[]
         #compArray=[]
@@ -185,9 +187,9 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None)
    
 
         #diffmag = asarray(diffMagHolder)
-        logger.debug("Standard Deviation in mag: {}".format(std(diffMagHolder)))
-        logger.debug("Median Magnitude: {}".format(median(diffMagHolder)))
-        logger.debug("Number of Observations: {}".format(diffMagHolder.shape[0]))
+        #logger.debug("Standard Deviation in mag: {}".format(std(diffMagHolder)))
+        #logger.debug("Median Magnitude: {}".format(median(diffMagHolder)))
+        #logger.debug("Number of Observations: {}".format(diffMagHolder.shape[0]))
 
         if (diffMagHolder.shape[0] > minimumNoOfObs):
             outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), diffMagHolder.shape[0]])
@@ -376,7 +378,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.5, file
         else:
             #raise AstrosourceException("Photometry not possible")
             logger.info("Could not make photometry file, not enough observations.")
-        logger.debug(array(outputPhot).shape)
+        #logger.debug(array(outputPhot).shape)
 
         photometrydata.append(outputPhot)
     # photometrydata = trim_catalogue(photometrydata)
