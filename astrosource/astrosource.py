@@ -8,7 +8,7 @@ if (not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unveri
     ssl._create_default_https_context = ssl._create_unverified_context
 
 from astrosource.analyse import find_variable_stars, photometric_calculations, calibrated_photometry
-from astrosource.comparison import find_comparisons, find_comparisons_calibrated
+from astrosource.comparison import find_comparisons, find_comparisons_calibrated, check_comparisons_files
 from astrosource.detrend import detrend_data
 from astrosource.eebls import plot_bls
 from astrosource.identify import find_stars, gather_files
@@ -83,6 +83,10 @@ class TimeSeries:
         
         if usecompsused ==False:
             find_comparisons(self.targets, self.indir, self.usedimages, matchRadius=self.matchradius, thresholdCounts=self.thresholdcounts)
+        else:
+            self.usedimages=check_comparisons_files(self.indir, self.files, matchRadius=self.matchradius)
+            #Check stars are in images
+            
         
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         if usecompletedcalib == False:

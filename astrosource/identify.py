@@ -153,6 +153,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
     logger.debug("Filter Set: {}".format(filterCode))
     
     
+    
     if len(filters) > 1:
         raise AstrosourceException("Check your images, the script detected multiple filters in your file list. Astrosource currently only does one filter at a time.")
     return phot_list, filterCode 

@@ -28,6 +28,89 @@ import logging
 logger = logging.getLogger('astrosource')
 
 
+
+def check_comparisons_files(parentPath=None, fileList=None, matchRadius=1.45):
+    '''
+    Find stable comparison stars for the target photometry
+    '''
+
+    sys.stdout.write("⭐️ Checking Provided stars are in every image\n")
+    sys.stdout.flush()
+    
+    # Get list of phot files
+    if not parentPath:
+        parentPath = Path(os.getcwd())
+    if type(parentPath) == 'str':
+        parentPath = Path(parentPath)
+    
+    
+    
+    photFileArray = []
+    for file in fileList:
+        photFileArray.append(load(parentPath / file))
+    photFileArray = asarray(photFileArray)
+    
+    compFile = genfromtxt(parentPath / 'compsUsed.csv', dtype=float, delimiter=',')
+    
+    #print ("Constructing Sky Coords for photometry files....")
+    photSkyCoord=[]
+    for q, photFile in enumerate(photFileArray):
+        #print (q)
+        photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
+    #file1=open(parentPath / "photSkyCoord","wb")
+    #pickle.dump(photSkyCoord, file1)
+    #file1.close
+    q=0
+    
+    photFileHolder=[]
+    photSkyCoord=[]
+    for file in fileList: 
+        photFile = load(parentPath / file)
+        photFileHolder.append(photFile)
+        photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
+    
+    usedImages=[]
+    q=0
+    imageRemove=[]
+    for file in fileList:
+        #logger.debug(file)
+        photRAandDec = photSkyCoord[q]
+        # Check that each star is in the image
+        rejectImage=0
+        for j in range(compFile.shape[0]):            
+            testStar = SkyCoord(ra = compFile[j][0]*degree, dec = compFile[j][1]*degree)
+            # This is the function in the whole package which requires scipy
+            idx, d2d, _ = testStar.match_to_catalog_sky(photRAandDec)
+            if (d2d.arcsecond > matchRadius):
+                #"No Match! Nothing within range."
+                rejectImage=1
+            
+        if rejectImage==1:
+            logger.debug('**********************')
+            logger.debug('The Following file does not contain one or more of the provided comparison stars. It has been removed')
+            logger.debug(file)
+            logger.debug('**********************')
+            #fileList.remove(file)
+            imageRemove.append(q)
+        else:   
+            
+            usedImages.append(file)
+            
+        q=q+1
+    
+    fileList=delete(fileList, imageRemove, axis=0)
+    
+    used_file =parentPath / "usedImages.txt"
+    with open(used_file, "w") as f:
+        for s in usedImages:
+            filename = Path(s).name
+            f.write(str(filename) +"\n")
+    
+    logger.debug('Checking Completed.')
+    
+    return usedImages
+
+
 def find_comparisons(targets,  parentPath=None, fileList=None, matchRadius=1.45, stdMultiplier=2.5, thresholdCounts=10000000, variabilityMultiplier=2.5, removeTargets=True):
     '''
     Find stable comparison stars for the target photometry
@@ -69,19 +152,19 @@ def find_comparisons(targets,  parentPath=None, fileList=None, matchRadius=1.45,
     compFile=np.unique(compFile, axis=0)
 
     # Create or load in skycoord array
-    if os.path.exists(parentPath / "photSkyCoord"):
-        print ("Loading Sky coords for photometry files")
-        with open(parentPath / "photSkyCoord", 'rb') as f:
-            photSkyCoord=pickle.load(f)
-    else:
-        print ("Constructing Sky Coords for photometry files....")
-        photSkyCoord=[]
-        for q, photFile in enumerate(photFileArray):
-            #print (q)
-            photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
-        file1=open(parentPath / "photSkyCoord","wb")
-        pickle.dump(photSkyCoord, file1)
-        file1.close
+    # if os.path.exists(parentPath / "photSkyCoord"):
+    #     print ("Loading Sky coords for photometry files")
+    #     with open(parentPath / "photSkyCoord", 'rb') as f:
+    #         photSkyCoord=pickle.load(f)
+    # else:
+    print ("Constructing Sky Coords for photometry files....")
+    photSkyCoord=[]
+    for q, photFile in enumerate(photFileArray):
+        #print (q)
+        photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
+    #file1=open(parentPath / "photSkyCoord","wb")
+    #pickle.dump(photSkyCoord, file1)
+    #file1.close
 
     while True:
         # First half of Loop: Add up all of the counts of all of the comparison stars

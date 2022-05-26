@@ -847,7 +847,7 @@ def aov_periodfind(times,
         
         plt.plot((times/finperiods[bestperiodind])%1, mags, 'bo', linestyle='None')
         plt.plot(((times/finperiods[bestperiodind])%1)+1, mags, 'ro', linestyle='None')
-        plt.subplots_adjust(left=0.07, right=0.98, top=0.97, bottom=0.10, wspace=0.3, hspace=0.4)
+        plt.subplots_adjust(left=0.07, right=0.98, top=0.94, bottom=0.10, wspace=0.3, hspace=0.4)
         fig = plt.gcf()
         fig.set_size_inches(15,5)
         plt.gca().invert_yaxis()
@@ -1363,7 +1363,7 @@ def aovhm_periodfind(times,
         
         plt.plot((times/finperiods[bestperiodind])%1, mags, 'bo', linestyle='None')
         plt.plot(((times/finperiods[bestperiodind])%1)+1, mags, 'ro', linestyle='None')
-        plt.subplots_adjust(left=0.07, right=0.98, top=0.97, bottom=0.10, wspace=0.3, hspace=0.4)
+        plt.subplots_adjust(left=0.07, right=0.98, top=0.94, bottom=0.10, wspace=0.3, hspace=0.4)
         fig = plt.gcf()
         fig.set_size_inches(15,5)
         plt.gca().invert_yaxis()
@@ -1916,15 +1916,17 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         if minperbin > 10:
             minperbin=10
         
-        if calibFile.exists():
-            if (calibData.size > 3):
-                aovoutput=aov_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath, variableName=variableName)
-        else:
-            if (varData.size > 3):
-                aovoutput=aov_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath, variableName=variableName)
+        # Theta Anova Method off for the moment until I put in a command-line option
+        
+        # if calibFile.exists():
+        #     if (calibData.size > 3):
+        #         aovoutput=aov_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath, variableName=variableName)
+        # else:
+        #     if (varData.size > 3):
+        #         aovoutput=aov_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath, variableName=variableName)
 
 
-        logger.debug("Theta Anova Method Estimate (days): " + str(aovoutput["bestperiod"]))
+        # logger.debug("Theta Anova Method Estimate (days): " + str(aovoutput["bestperiod"]))
         
         if calibFile.exists():
             if (calibData.size > 3):
