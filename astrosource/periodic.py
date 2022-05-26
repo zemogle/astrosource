@@ -612,7 +612,7 @@ def aov_periodfind(times,
                    sigclip=10.0,
                    nworkers=None,
                    verbose=True,
-                   periodPath=None, variableName="NoName"):
+                   periodPath=None, variableName="NoName", periodsteps=10000):
     '''This runs a parallelized Analysis-of-Variance (AoV) period search.
 
     NOTE: `normalize = True` here as recommended by Schwarzenberg-Czerny 1996,
@@ -737,15 +737,18 @@ def aov_periodfind(times,
             # default end period is length of time series
             startf = 1.0/(stimes.max() - stimes.min())
 
-        # if we're not using autofreq, then use the provided frequencies
-        if not autofreq:
-            frequencies = nparange(startf, endf, stepsize)
+        # # if we're not using autofreq, then use the provided frequencies
+        # if not autofreq:
+        #     frequencies = nparange(startf, endf, stepsize)
 
-        else:
-            # this gets an automatic grid of frequencies to use
-            frequencies = get_frequency_grid(stimes,
-                                             minfreq=startf,
-                                             maxfreq=endf)
+        # else:
+        #     # this gets an automatic grid of frequencies to use
+        #     frequencies = get_frequency_grid(stimes,
+        #                                      minfreq=startf,
+        #                                      maxfreq=endf)
+
+        stepsize = (endf-startf)/periodsteps
+        frequencies = nparange(startf, endf, stepsize)
 
         # renormalize the working mags to zero and scale them so that the
         # variance = 1 for use with our LSP functions
@@ -1121,7 +1124,7 @@ def aovhm_periodfind(times,
                      sigclip=10.0,
                      nworkers=None,
                      verbose=True,
-                     periodPath=None, variableName="NoName"):
+                     periodPath=None, variableName="NoName", periodsteps=10000):
     '''This runs a parallelized harmonic Analysis-of-Variance (AoV) period
     search.
 
@@ -1243,15 +1246,21 @@ def aovhm_periodfind(times,
             # default end period is length of time series
             startf = 1.0/(stimes.max() - stimes.min())
 
-        # if we're not using autofreq, then use the provided frequencies
-        if not autofreq:
-            frequencies = nparange(startf, endf, stepsize)
 
-        else:
-            # this gets an automatic grid of frequencies to use
-            frequencies = get_frequency_grid(stimes,
-                                             minfreq=startf,
-                                             maxfreq=endf)
+    
+
+        # # if we're not using autofreq, then use the provided frequencies
+        # if not autofreq:
+        #     frequencies = nparange(startf, endf, stepsize)
+
+        # else:
+        #     # this gets an automatic grid of frequencies to use
+        #     frequencies = get_frequency_grid(stimes,
+        #                                      minfreq=startf,
+        #                                      maxfreq=endf)
+
+        stepsize = (endf-startf)/periodsteps
+        frequencies = nparange(startf, endf, stepsize)
 
         # map to parallel workers
         if (not nworkers) or (nworkers > NCPUS):
@@ -1619,7 +1628,7 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
 #########################################
 
 def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nterms=1, multisearch=False, samples=5,
-                         disablelightcurve=False, periodPath=False, variableName="NoName"):
+                         disablelightcurve=False, periodPath=False, variableName="NoName", periodsteps=10000):
     #print(
     #    'using ' + str(samples) + ' samples per peak, start P = ' + str(periodlower) + ', end P = ' + str(periodupper))
     # Calculate the Lomb-Scargle periodogram values
@@ -1632,6 +1641,12 @@ def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nter
     except:
         print ("Lomb Scargle failed.") # Need to hunt down a very rare but existant memory problem
         return (0)
+
+    if len(freq) < periodsteps:
+        freq = np.linspace(1 / periodlower, 1 / periodupper, periodsteps)
+        
+    if len(freq) > 3*periodsteps:
+        freq = np.linspace(1 / periodlower, 1 / periodupper, 3*periodsteps)
 
     # Create the likelihood plot
     fig2, ax2 = plt.subplots(figsize=(8, 6))
@@ -1920,20 +1935,20 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         
         # if calibFile.exists():
         #     if (calibData.size > 3):
-        #         aovoutput=aov_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath, variableName=variableName)
+        #         aovoutput=aov_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
         # else:
         #     if (varData.size > 3):
-        #         aovoutput=aov_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath, variableName=variableName)
+        #         aovoutput=aov_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
 
 
         # logger.debug("Theta Anova Method Estimate (days): " + str(aovoutput["bestperiod"]))
         
         if calibFile.exists():
             if (calibData.size > 3):
-                aovhmoutput=aovhm_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName)
+                aovhmoutput=aovhm_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
         else:
             if (varData.size > 3):
-                aovhmoutput=aovhm_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName)
+                aovhmoutput=aovhm_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
             
         logger.debug("Harmonic Anova Method Estimate (days): " + str(aovhmoutput["bestperiod"]))
 
@@ -1945,7 +1960,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
                     lscargoutput = LombScargleMultiterm('periodifile', (calibData[:, 0]), (calibData[:, 1]), (calibData[:, 2]),
                                                         nterms=nts+1,
                                                         periodlower=minperiod, periodupper=maxperiod, samples=20,
-                                                        disablelightcurve=False, periodPath=periodPath, variableName=variableName)
+                                                        disablelightcurve=False, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
         
                     logger.debug('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput))
             else:
@@ -1953,7 +1968,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
                     lscargoutput = LombScargleMultiterm('periodifile', (varData[:, 0]), (varData[:, 1]), (varData[:, 2]),
                                                         nterms=nts+1,
                                                         periodlower=minperiod, periodupper=maxperiod, samples=20,
-                                                        disablelightcurve=False, periodPath=periodPath, variableName=variableName)
+                                                        disablelightcurve=False, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
         
                     logger.debug('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput))
 
