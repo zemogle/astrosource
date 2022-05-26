@@ -7,6 +7,7 @@ import numpy as np
 import time
 from datetime import datetime
 
+import pickle
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -66,17 +67,32 @@ def find_comparisons(targets,  parentPath=None, fileList=None, matchRadius=1.45,
     # Removes odd duplicate entries from comparison list
     compFile=np.unique(compFile, axis=0)
 
+    # Create or load in skycoord array
+    if os.path.exists(parentPath / "photSkyCoord"):
+        print ("Loading Sky coords for photometry files")
+        with open(parentPath / "photSkyCoord", 'rb') as f:
+            photSkyCoord=pickle.load(f)
+    else:
+        print ("Constructing Sky Coords for photometry files....")
+        photSkyCoord=[]
+        for q, photFile in enumerate(photFileArray):
+            #print (q)
+            photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
+        file1=open(parentPath / "photSkyCoord","wb")
+        pickle.dump(photSkyCoord, file1)
+        file1.close
+
     while True:
         # First half of Loop: Add up all of the counts of all of the comparison stars
         # To create a gigantic comparison star.
 
         logger.debug("Please wait... calculating ensemble comparison star for each image")
-        fileCount = ensemble_comparisons(photFileArray, compFile)
+        fileCount = ensemble_comparisons(photFileArray, compFile, parentPath, photSkyCoord)
 
         # Second half of Loop: Calculate the variation in each candidate comparison star in brightness
         # compared to this gigantic comparison star.
 
-        stdCompStar, sortStars = calculate_comparison_variation(compFile, photFileArray, fileCount)
+        stdCompStar, sortStars = calculate_comparison_variation(compFile, photFileArray, fileCount, parentPath, photSkyCoord)
 
         variabilityMax=(min(stdCompStar)*variabilityMultiplier)
 
@@ -167,12 +183,18 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
                 compFile.append([sortStars[0][0],sortStars[0][1],sortStars[0][2]])
                 logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[0][2]))
                 logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
+                with open(parentPath / "EnsembleStats.txt", "w") as f:
+                    f.write("Comp " + str(j+1) + " std: " + str(sortStars[0][2]))
+                    f.write("Cumulative Counts thus far: " + str(tempCountCounter))
                 finalCountCounter=add(finalCountCounter,referenceFrame[idx][4])
 
             elif sortStars[j][2] < variabilityMax:
                 compFile.append([sortStars[j][0],sortStars[j][1],sortStars[j][2]])
                 logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[j][2]))
                 logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
+                with open(parentPath / "EnsembleStats.txt", "w") as f:
+                    f.write("Comp " + str(j+1) + " std: " + str(sortStars[j][2]))
+                    f.write("Cumulative Counts thus far: " + str(tempCountCounter))
                 finalCountCounter=add(finalCountCounter,referenceFrame[idx][4])
 
         tempCountCounter=add(tempCountCounter,referenceFrame[idx][4])
@@ -181,9 +203,16 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
     logger.debug(compFile)
 
     logger.info("Finale Ensemble Counts: " + str(finalCountCounter))
+    
+    
+        
     compFile=asarray(compFile)
 
     logger.info(str(compFile.shape[0]) + " Stable Comparison Candidates below variability threshold output to compsUsed.csv")
+
+    with open(parentPath / "EnsembleStats.txt", "w") as f:
+        f.write('Number of counts at mag zero: ' + str(finalCountCounter) +"\n")
+        f.write('Number of stars used: ' + str(j) +"\n")
 
     outfile = parentPath / "compsUsed.csv"
     savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
@@ -214,39 +243,62 @@ def read_data_files(parentPath, fileList):
     compFile = genfromtxt(screened_file, dtype=float, delimiter=',')
     return compFile, photFileArray
 
-def ensemble_comparisons(photFileArray, compFile):
+def ensemble_comparisons(photFileArray, compFile, parentPath, photSkyCoord):
+        
     fileCount = []
+    q=0
     for photFile in photFileArray:
         allCounts = 0.0
-        fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
+        #fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
         if compFile.size ==2 and compFile.shape[0]==2:
             matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-            idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+            idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
             allCounts = add(allCounts,photFile[idx][4])
         else:
             for cf in compFile:
                 matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
-                idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+                idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
                 allCounts = add(allCounts,photFile[idx][4])
-        #logger.debug("Total Counts in Image: {:.2f}".format(allCounts))
+        #logger.debug("Total Counts in Image: {:.2f}".format(allC
         fileCount.append(allCounts)
+        q=q+1
+    
+    
+    # fileCount = []
+    # for photFile in photFileArray:
+    #     allCounts = 0.0
+    #     fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
+    #     if compFile.size ==2 and compFile.shape[0]==2:
+    #         matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+    #         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+    #         allCounts = add(allCounts,photFile[idx][4])
+    #     else:
+    #         for cf in compFile:
+    #             matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
+    #             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+    #             allCounts = add(allCounts,photFile[idx][4])
+    #     #logger.debug("Total Counts in Image: {:.2f}".format(allCounts))
+    #     fileCount.append(allCounts)
     logger.debug("Total Ensemble Star Counts in Reference Frame {}".format(np.sum(np.array(fileCount))))
     return fileCount
 
-def calculate_comparison_variation(compFile, photFileArray, fileCount):
+def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPath, photSkyCoord):
     stdCompStar=[]
     sortStars=[]
     logger.debug("Calculating Variation in Individual Comparisons")
+    
+
     
     if compFile.size ==2 and compFile.shape[0]==2:
         compDiffMags = []
         #logger.debug("*************************")
         #logger.debug("RA : " + str(compFile[0]))
         #logger.debug("DEC: " + str(compFile[1]))
+        matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
         for q, photFile in enumerate(photFileArray):
-            fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-            matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-            idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+            #fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
+            
+            idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
             compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
             instrMags = -2.5 * log10(photFile[idx][4])
 
@@ -271,10 +323,11 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
             #logger.debug("*************************")
             #logger.debug("RA : " + str(cf[0]))
             #logger.debug("DEC: " + str(cf[1]))
+            matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
             for q, photFile in enumerate(photFileArray):
-                fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-                matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
-                idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+                #fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
+                
+                idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
                 compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
                 instrMags = -2.5 * log10(photFile[idx][4])
 
@@ -290,6 +343,61 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
             stdCompStar.append(stdCompDiffMags)
 
             sortStars.append([cf[0],cf[1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+
+    # if compFile.size ==2 and compFile.shape[0]==2:
+    #     compDiffMags = []
+    #     #logger.debug("*************************")
+    #     #logger.debug("RA : " + str(compFile[0]))
+    #     #logger.debug("DEC: " + str(compFile[1]))
+    #     matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+    #     for q, photFile in enumerate(photFileArray):
+    #         fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
+            
+    #         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+    #         compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
+    #         instrMags = -2.5 * log10(photFile[idx][4])
+
+
+    #     stdCompDiffMags=std(compDiffMags)
+    #     medCompDiffMags=np.nanmedian(compDiffMags)
+    #     medInstrMags= np.nanmedian(instrMags)
+
+    #     #logger.debug("VAR: " +str(stdCompDiffMags))
+    #     if np.isnan(stdCompDiffMags) :
+    #         logger.error("Star Variability non rejected")
+    #         stdCompDiffMags=99
+    #     stdCompStar.append(stdCompDiffMags)
+    #     sortStars.append([compFile[0],compFile[1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+
+
+
+    # else:
+    #     for cf in compFile:
+    #         compDiffMags = []
+    #         instrMags=[]
+    #         #logger.debug("*************************")
+    #         #logger.debug("RA : " + str(cf[0]))
+    #         #logger.debug("DEC: " + str(cf[1]))
+    #         matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
+    #         for q, photFile in enumerate(photFileArray):
+    #             fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
+                
+    #             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+    #             compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
+    #             instrMags = -2.5 * log10(photFile[idx][4])
+
+    #         stdCompDiffMags=std(compDiffMags)
+    #         medCompDiffMags=np.nanmedian(compDiffMags)
+    #         medInstrMags=np.nanmedian(instrMags)
+
+    #         #logger.debug("VAR: " +str(stdCompDiffMags))
+
+    #         if np.isnan(stdCompDiffMags) :
+    #             logger.error("Star Variability non rejected")
+    #             stdCompDiffMags=99
+    #         stdCompStar.append(stdCompDiffMags)
+
+    #         sortStars.append([cf[0],cf[1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
     return stdCompStar, sortStars
 
@@ -524,6 +632,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     FILTERS = {
                 'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag', 'colmatch' : 'Vmag', 'colerr' : 'e_Vmag', 'colname' : 'B-V', 'colrev' : '0'}},
                 'V' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag', 'colmatch' : 'Bmag', 'colerr' : 'e_Bmag', 'colname' : 'B-V', 'colrev' : '1'}},
+                'CV' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag', 'colmatch' : 'Bmag', 'colerr' : 'e_Bmag', 'colname' : 'B-V', 'colrev' : '1'}},
                 'up' : {'SDSS' : {'filter' : 'umag', 'error' : 'e_umag', 'colmatch' : 'gmag', 'colerr' : 'e_gmag', 'colname' : 'u-g', 'colrev' : '0'},
                         'SkyMapper' : {'filter' : 'uPSF', 'error' : 'e_uPSF', 'colmatch' : 'gPSF', 'colerr' : 'e_gPSF', 'colname' : 'u-g', 'colrev' : '0'}},
                 'gp' : {'SDSS' : {'filter' : 'gmag', 'error' : 'e_gmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'g-r', 'colrev' : '0'},
@@ -555,6 +664,9 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     fileList=[]
     for line in (parentPath / "usedImages.txt").read_text().strip().split('\n'):
         fileList.append(line.strip())
+
+    if filterCode == 'clear':
+        filterCode = 'CV'
 
     logger.debug("Filter Set: " + filterCode)
 

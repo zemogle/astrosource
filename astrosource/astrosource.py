@@ -40,6 +40,8 @@ class TimeSeries:
         self.matchradius = kwargs.get('matchradius', 1.0) 
         self.skipvarsearch = kwargs.get('skipvarsearch', False)
         self.mincompstars = kwargs.get('mincompstars', 0.1)
+        self.mincompstarstotal = kwargs.get('mincompstarstotal', -99)
+        self.maxcandidatestars= kwargs.get('maxcandidatestars', 10000)
         # Colour stuff
         self.colourdetect = kwargs.get('colourdetect', False)
         self.linearise = kwargs.get('linearise', False)
@@ -50,6 +52,7 @@ class TimeSeries:
         self.restrictmagdimmest = kwargs.get('restrictmagdimmest', 99.0)
         self.rejectmagbrightest = kwargs.get('rejectmagbrightest', -99.0)
         self.rejectmagdimmest = kwargs.get('rejectmagdimmest', 99.0)
+        self.varsearchthresh = kwargs.get('varsearchthresh', 10000)
         verbose = kwargs.get('verbose', False)
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
@@ -66,10 +69,12 @@ class TimeSeries:
                                                      paths=self.paths,
                                                      fileList=self.files,
                                                      mincompstars=self.mincompstars,
+                                                     mincompstarstotal=self.mincompstarstotal,
                                                      imageFracReject=self.imgreject,
                                                      starreject=self.starreject,
                                                      hicounts=self.hicounts,
-                                                     lowcounts=self.lowcounts)
+                                                     lowcounts=self.lowcounts,
+                                                     maxcandidatestars=self.maxcandidatestars)
             
         else:
             print ("Using screened Comparisons from Previous Run")
@@ -82,8 +87,9 @@ class TimeSeries:
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         if usecompletedcalib == False:
             self.calibrated = False
-            if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs']:
+            if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs', 'CV']:
                 try:
+                    
                     self.colourterm, self.colourerror, _ = find_comparisons_calibrated(targets=self.targets,
                                                                                     filterCode=self.filtercode,
                                                                                     paths=self.paths,
@@ -108,7 +114,7 @@ class TimeSeries:
         
 
     def find_variables(self):
-        find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius)
+        find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius, varsearchthresh=self.varsearchthresh)
 
     def photometry(self, filesave=False):
         data = photometric_calculations(targets=self.targets, paths=self.paths, targetRadius=self.targetradius, filesave=filesave)

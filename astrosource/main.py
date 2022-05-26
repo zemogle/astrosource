@@ -47,10 +47,13 @@ logger = logging.getLogger('astrosource')
 @click.option('--closerejectd', '-cr', type=float, default=5.0, help='Limiting distance (arcsecs) between potential comparisons and nearby stars')
 @click.option('--targetradius', '-tr', type=float, default=1.5, help='Limiting distance (arcsecs) away from requested target star position.')
 @click.option('--matchradius', '-mr', type=float, default=1.0, help='Limiting distance (arcsecs) when matching general stars, usually comparisons.')
-@click.option('--mincompstars', '-mc', type=float, default=0.1, help='Minimum comparison stars')
+@click.option('--mincompstars', '-mc', type=float, default=0.1, help='Minimum comparison stars as a fraction of detected stars')
+@click.option('--mincompstarstotal', '-mct', type=float, default=-99, help='Minimum comparison stars as a given number')
+@click.option('--maxcandidatestars', '-mcs', type=float, default=10000, help='Maximum number of candidate stars to begin search with')
 @click.option('--nopanstarrs', '-np', is_flag=True, help='Do not use the PanSTARRS catalogue for calibration')
 @click.option('--nosdss', '-ns', is_flag=True, help='Do not use the SDSS catalogue for calibration')
 @click.option('--skipvarsearch', '-sv', is_flag=True, help='Skip variability calculations for identified stars')
+@click.option('--varsearchthresh', '-svt', type=float, default=10000, help='Threshold counts above which to detect variability')
 @click.option('--colourdetect', '-cc', is_flag=True)
 @click.option('--linearise', '-cc', is_flag=True)
 @click.option('--colourterm', '-ct', type=float, default=0.0)
@@ -60,7 +63,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--restrictmagdimmest', type=float, default=99.0)
 @click.option('--rejectmagbrightest', type=float, default=-99.0)
 @click.option('--rejectmagdimmest', type=float, default=99.0)
-def main(full, stars, comparison, usescreenedcomps, usecompsused, usecompletedcalib, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius):
+def main(full, stars, comparison, usescreenedcomps, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, skipvarsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius):
 
     try:
         parentPath = Path(indir)
@@ -79,6 +82,9 @@ def main(full, stars, comparison, usescreenedcomps, usecompsused, usecompletedca
             target_file = parentPath / target_file
             targets = get_targets(target_file)
 
+        if usecompsused == True:
+            usescreenedcomps = True
+
         ts = TimeSeries(indir=parentPath,
                         targets=targets,
                         format=format,
@@ -95,9 +101,11 @@ def main(full, stars, comparison, usescreenedcomps, usecompsused, usecompletedca
                         nopanstarrs=nopanstarrs,
                         nosdss=nosdss,
                         closerejectd=closerejectd,
+                        maxcandidatestars=maxcandidatestars,
                         verbose=verbose,
                         bjd=bjd,
                         mincompstars=mincompstars,
+                        mincompstarstotal=mincompstarstotal,
                         colourdetect=colourdetect,
                         linearise=linearise,
                         colourterm=colourterm,
@@ -108,7 +116,8 @@ def main(full, stars, comparison, usescreenedcomps, usecompsused, usecompletedca
                         rejectmagbrightest=rejectmagbrightest,
                         rejectmagdimmest=rejectmagdimmest,
                         targetradius=targetradius,
-                        matchradius=matchradius
+                        matchradius=matchradius,
+                        varsearchthresh=varsearchthresh
                         )
 
         if full or comparison:

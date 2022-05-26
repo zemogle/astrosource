@@ -44,7 +44,7 @@ def get_total_counts(photFileArray, compFile, loopLength):
     #logger.debug(allCountsArray)
     return allCountsArray
 
-def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None):
+def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None, varsearchthresh=10000):
     '''
     Find stable comparison stars for the target photometry and remove variables
 
@@ -61,8 +61,10 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None)
     -------
     outfile : str
     '''
+    print ("varsearchthresh")
+    print (varsearchthresh)
     
-    minimumVariableCounts = 10000  # Do not try to detect variables dimmer than this.
+    #minimumVariableCounts = 10000  # Do not try to detect variables dimmer than this.
     minimumNoOfObs = 10 # Minimum number of observations to count as a potential variable.
 
     # Load in list of used files
@@ -107,7 +109,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None)
     # Although remove stars that are below the variable countrate
     starReject=[]
     for q in range(targetFile.shape[0]):
-        if targetFile[q][4] < minimumVariableCounts:
+        if targetFile[q][4] < varsearchthresh:
             starReject.append(q)
     logger.debug("Total number of stars in reference Frame: {}".format(targetFile.shape[0]))
     targetFile = delete(targetFile, starReject, axis=0)
