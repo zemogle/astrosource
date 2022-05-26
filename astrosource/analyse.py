@@ -6,6 +6,7 @@ from astropy.coordinates import SkyCoord
 import glob
 import sys
 from pathlib import Path
+import shutil
 
 import math
 import os
@@ -218,6 +219,14 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.5, file
         logger.debug("Differential")
         compFile=genfromtxt(paths['parent'] / 'compsUsed.csv', dtype=float, delimiter=',')
         calibFlag=0
+
+    # clear output plots, cats and period fodlers and regenerate
+    folders = ['periods', 'checkplots', 'eelbs', 'outputcats','outputplots','trimcats']
+    for fd in folders:
+        if (paths['parent'] / fd).exists():
+            shutil.rmtree(paths['parent'] / fd)
+            os.mkdir(paths['parent'] / fd)
+
 
     # Get total counts for each file
     if compFile.shape[0]== 5 and compFile.size ==5:

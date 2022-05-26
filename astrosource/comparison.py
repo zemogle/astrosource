@@ -6,6 +6,7 @@ from collections import namedtuple
 import numpy as np
 import time
 from datetime import datetime
+import shutil
 
 import pickle
 import matplotlib
@@ -1184,6 +1185,13 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     z=0
     logger.debug("Calibrating each photometry file......")
     
+    # clear calibcats directory and regenerate
+    folders = ['calibcats']
+    for fd in folders:
+        if (paths['parent'] / fd).exists():
+            shutil.rmtree(paths['parent'] / fd)
+            os.mkdir(paths['parent'] / fd)
+
 
     slopeHolder=[]
     for file in fileList:

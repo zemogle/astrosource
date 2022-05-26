@@ -769,7 +769,7 @@ def aov_periodfind(times,
         #plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
         plt.xlabel(r"Trial Period")
         plt.ylabel(r"Likelihood of Period")
-        plt.savefig(periodPath / f"{variableName}_ANOVALikelihoodPlot.png")
+        plt.savefig(periodPath / f"{variableName}_ANOVAThetaLikelihoodPlot.png")
         plt.clf()
 
         # find the nbestpeaks for the periodogram: 1. sort the lsp array by
@@ -844,7 +844,25 @@ def aov_periodfind(times,
                 peakcount = peakcount + 1
 
             prevperiod = period
-
+        
+        plt.plot((times/finperiods[bestperiodind])%1, mags, 'bo', linestyle='None')
+        plt.plot(((times/finperiods[bestperiodind])%1)+1, mags, 'ro', linestyle='None')
+        plt.subplots_adjust(left=0.07, right=0.98, top=0.97, bottom=0.10, wspace=0.3, hspace=0.4)
+        fig = plt.gcf()
+        fig.set_size_inches(15,5)
+        plt.gca().invert_yaxis()
+        plt.title("Period: " + str(finperiods[bestperiodind]))
+        plt.xlim(-0.01,2.01)
+        #plt.gca().invert_yaxis()
+        #plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
+        plt.xlabel(r"Phase")
+        plt.ylabel(r"Magnitude")
+        plt.savefig(periodPath / f"{variableName}_ANOVAThetaLightcurve.png")
+        plt.clf()
+        
+        
+ 
+        
         return {'bestperiod':finperiods[bestperiodind],
                 'bestlspval':finlsp[bestperiodind],
                 'nbestpeaks':nbestpeaks,
@@ -1342,6 +1360,21 @@ def aovhm_periodfind(times,
                 peakcount = peakcount + 1
 
             prevperiod = period
+        
+        plt.plot((times/finperiods[bestperiodind])%1, mags, 'bo', linestyle='None')
+        plt.plot(((times/finperiods[bestperiodind])%1)+1, mags, 'ro', linestyle='None')
+        plt.subplots_adjust(left=0.07, right=0.98, top=0.97, bottom=0.10, wspace=0.3, hspace=0.4)
+        fig = plt.gcf()
+        fig.set_size_inches(15,5)
+        plt.gca().invert_yaxis()
+        plt.title("Period: " + str(finperiods[bestperiodind]))
+        plt.xlim(-0.01,2.01)
+        #plt.gca().invert_yaxis()
+        #plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
+        plt.xlabel(r"Phase")
+        plt.ylabel(r"Magnitude")
+        plt.savefig(periodPath / f"{variableName}_ANOVAHarmonicLightcurve.png")
+        plt.clf()
 
         return {'bestperiod':finperiods[bestperiodind],
                 'bestlspval':finlsp[bestperiodind],
@@ -1904,7 +1937,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
 
 
         # LOMB SCARGLE
-        for nts in range(6):
+        for nts in range(2):
             if calibFile.exists():
                 if (calibData.size > 3):
                     lscargoutput = LombScargleMultiterm('periodifile', (calibData[:, 0]), (calibData[:, 1]), (calibData[:, 2]),
