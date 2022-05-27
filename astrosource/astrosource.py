@@ -38,7 +38,7 @@ class TimeSeries:
         self.closerejectd = kwargs.get('closerejectd', 5.0)
         self.targetradius = kwargs.get('targetradius', 1.5)
         self.matchradius = kwargs.get('matchradius', 1.0) 
-        self.skipvarsearch = kwargs.get('skipvarsearch', False)
+        self.varsearch = kwargs.get('varsearch', False)
         self.mincompstars = kwargs.get('mincompstars', 0.1)
         self.mincompstarstotal = kwargs.get('mincompstarstotal', -99)
         self.maxcandidatestars= kwargs.get('maxcandidatestars', 10000)
