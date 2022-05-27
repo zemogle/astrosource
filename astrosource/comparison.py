@@ -1272,7 +1272,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     folders = ['calibcats']
     for fd in folders:
         if (paths['parent'] / fd).exists():
-            shutil.rmtree(paths['parent'] / fd)
+            shutil.rmtree(paths['parent'] / fd, ignore_errors=True )
             os.mkdir(paths['parent'] / fd)
 
 

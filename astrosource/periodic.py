@@ -1633,20 +1633,23 @@ def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nter
     #    'using ' + str(samples) + ' samples per peak, start P = ' + str(periodlower) + ', end P = ' + str(periodupper))
     # Calculate the Lomb-Scargle periodogram values
         
-    ls = LombScargle(t, m, d, nterms=nterms)
+    ls = LombScargle(t, m, d, nterms=nterms, fit_mean=True)
 
+    # create equally spaced test in time space, then swap to unequal spaces in frequency    
+    freq = np.linspace( periodlower, periodupper, periodsteps)  
+    freq = 1/freq
+
+    
     try:
-        freq, power = ls.autopower(samples_per_peak=samples, minimum_frequency=1 / periodupper,
-                                   maximum_frequency=1 / periodlower)
+        
+        #freq, power = ls.autopower(samples_per_peak=samples, minimum_frequency=1 / periodupper,
+        #                           maximum_frequency=1 / periodlower)
+        power = ls.power(freq)
     except:
         print ("Lomb Scargle failed.") # Need to hunt down a very rare but existant memory problem
         return (0)
 
-    if len(freq) < periodsteps:
-        freq = np.linspace(1 / periodlower, 1 / periodupper, periodsteps)
-        
-    if len(freq) > 3*periodsteps:
-        freq = np.linspace(1 / periodlower, 1 / periodupper, 3*periodsteps)
+    
 
     # Create the likelihood plot
     fig2, ax2 = plt.subplots(figsize=(8, 6))
