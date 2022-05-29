@@ -124,6 +124,10 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
     # Get list of files
     sys.stdout.write('💾 Inspecting input files\n')
 
+    # Remove old npy files
+    for fname in paths['parent'].glob("*.npy"):
+        os.remove(fname)
+
     if not filelist:
         if filetype not in ['fits', 'fit', 'fz']:
             filelist = paths['parent'].glob("*.{}".format(filetype))

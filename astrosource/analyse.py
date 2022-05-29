@@ -62,10 +62,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     -------
     outfile : str
     '''
-    print ("varsearchthresh")
-    print (varsearchthresh)
-    
-    #minimumVariableCounts = 10000  # Do not try to detect variables dimmer than this.
+
     minimumNoOfObs = 10 # Minimum number of observations to count as a potential variable.
 
     # Load in list of used files
