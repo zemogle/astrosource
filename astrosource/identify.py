@@ -4,7 +4,7 @@ import sys
 import os
 import logging
 
-from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan, zeros
+from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan, zeros, max, min, nan
 from astropy import units as u
 from astropy.units import degree, arcsecond
 from astropy import wcs
@@ -76,7 +76,7 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False):
 
     return phot_dict
 
-def extract_photometry(infile, parentPath, outfile=None, bjd=False):
+def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefraction=0.05):
 
     with fits.open(infile) as hdulist:
 
@@ -93,11 +93,32 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False):
 
         zerosphot=zeros(counts.shape[0], dtype=float)
 
-        save(outfile, transpose([ra, dec, xpixel, ypixel, counts, countserr, zerosphot, zerosphot]))
+        photFile = transpose([ra, dec, xpixel, ypixel, counts, countserr, zerosphot, zerosphot])
+        
+        if photFile.size > 16: #ignore zero sized files and files with only one or two entries
+            if max(photFile[:,0]) < 360 and max(photFile[:,1]) < 90:
+                photFile=photFile[~isnan(photFile).any(axis=1)]
+                
+                # Remove edge detections
+                raRange=(max(photFile[:,0])-min(photFile[:,0]))
+                decRange=(max(photFile[:,1])-min(photFile[:,1]))
+                raMin=min(photFile[:,0])
+                raMax=max(photFile[:,0])
+                decMin=min(photFile[:,1])
+                decMax=max(photFile[:,1])                
+                raClip=raRange*ignoreedgefraction
+                decClip=decRange*ignoreedgefraction
+                photFile[:,0][photFile[:,0] < raMin + raClip ] = nan
+                photFile[:,0][photFile[:,0] > raMax - raClip ] = nan
+                photFile[:,1][photFile[:,1] > decMax - decClip ] = nan
+                photFile[:,1][photFile[:,1] < decMin + decClip ] = nan                
+                photFile=photFile[~isnan(photFile).any(axis=1)]
+
+        save(outfile, photFile)
 
     return outfile
 
-def convert_photometry_files(filelist):
+def convert_photometry_files(filelist, ignoreedgefraction=0.05):
     new_files = []
     for fn in filelist:
         photFile = genfromtxt(fn, dtype=float, delimiter=',')
@@ -105,6 +126,23 @@ def convert_photometry_files(filelist):
         if photFile.size > 16: #ignore zero sized files and files with only one or two entries
             if max(photFile[:,0]) < 360 and max(photFile[:,1]) < 90:
                 photFile=photFile[~isnan(photFile).any(axis=1)]
+                
+                # Remove edge detections
+                raRange=(max(photFile[:,0])-min(photFile[:,0]))
+                decRange=(max(photFile[:,1])-min(photFile[:,1]))
+                raMin=min(photFile[:,0])
+                raMax=max(photFile[:,0])
+                decMin=min(photFile[:,1])
+                decMax=max(photFile[:,1])                
+                raClip=raRange*ignoreedgefraction
+                decClip=decRange*ignoreedgefraction
+                photFile[:,0][photFile[:,0] < raMin + raClip ] = nan
+                photFile[:,0][photFile[:,0] > raMax - raClip ] = nan
+                photFile[:,1][photFile[:,1] > decMax - decClip ] = nan
+                photFile[:,1][photFile[:,1] < decMin + decClip ] = nan                
+                photFile=photFile[~isnan(photFile).any(axis=1)]
+            
+                
                 filepath = Path(fn).with_suffix('.npy')
                 save(filepath, photFile)
                 new_files.append(filepath.name)
@@ -120,9 +158,13 @@ def convert_mjd_bjd(hdr):
     return tdbholder[0][0]
 
 
-def gather_files(paths, filelist=None, filetype="fz", bjd=False):
+def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefraction=0.05):
     # Get list of files
     sys.stdout.write('💾 Inspecting input files\n')
+
+
+    #print (ignoreedgefraction)
+    #sys.exit()
 
     # Remove old npy files
     for fname in paths['parent'].glob("*.npy"):
@@ -135,10 +177,10 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False):
             filelist = paths['parent'].glob("*e91*.{}".format(filetype)) # Make sure only fully reduced LCO files are used.
     if filetype not in ['fits', 'fit', 'fz']:
         # Assume we are not dealing with image files but photometry files
-        phot_list = convert_photometry_files(filelist)
+        phot_list = convert_photometry_files(filelist, ignoreedgefraction)
     else:
 
-        phot_list_temp = export_photometry_files(filelist, paths['parent'], bjd=bjd)
+        phot_list_temp = export_photometry_files(filelist, paths['parent'], bjd=bjd, ignoreedgefraction=ignoreedgefraction)
         #Convert phot_list from dict to list
         phot_list_temp = phot_list_temp.keys()
         phot_list = []

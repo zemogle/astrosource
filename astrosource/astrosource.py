@@ -39,6 +39,11 @@ class TimeSeries:
         self.targetradius = kwargs.get('targetradius', 1.5)
         self.matchradius = kwargs.get('matchradius', 1.0) 
         self.varsearch = kwargs.get('varsearch', False)
+        self.varsearchthresh = kwargs.get('varsearchthresh', 10000)
+        self.varsearchstdev = kwargs.get('varsearchstdev', 1.5) 
+        self.varsearchmagwidth = kwargs.get('varsearchmagwidth', 0.5) 
+        self.varsearchminimages = kwargs.get('varsearchminimages', 0.3)
+        
         self.mincompstars = kwargs.get('mincompstars', 0.1)
         self.mincompstarstotal = kwargs.get('mincompstarstotal', -99)
         self.maxcandidatestars= kwargs.get('maxcandidatestars', 10000)
@@ -52,12 +57,14 @@ class TimeSeries:
         self.restrictmagdimmest = kwargs.get('restrictmagdimmest', 99.0)
         self.rejectmagbrightest = kwargs.get('rejectmagbrightest', -99.0)
         self.rejectmagdimmest = kwargs.get('rejectmagdimmest', 99.0)
-        self.varsearchthresh = kwargs.get('varsearchthresh', 10000)
+        self.ignoreedgefraction = kwargs.get('ignoreedgefraction', 0.05)
+        
+        
         verbose = kwargs.get('verbose', False)
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
         logger = setup_logger('astrosource', verbose)
-        self.files, self.filtercode = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd)
+        self.files, self.filtercode = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd,ignoreedgefraction=self.ignoreedgefraction)
 
     def analyse(self, calib=True, usescreenedcomps=False, usecompsused=False, usecompletedcalib=False):
 
@@ -118,7 +125,7 @@ class TimeSeries:
         
 
     def find_variables(self):
-        find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius, varsearchthresh=self.varsearchthresh)
+        find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius, varsearchthresh=self.varsearchthresh, varsearchstdev=self.varsearchstdev, varsearchmagwidth=self.varsearchmagwidth, varsearchminimages=self.varsearchminimages)
 
     def photometry(self, filesave=False):
         data = photometric_calculations(targets=self.targets, paths=self.paths, targetRadius=self.targetradius, filesave=filesave)

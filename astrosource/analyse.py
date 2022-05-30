@@ -49,7 +49,7 @@ def get_total_counts(photFileArray, compFile, loopLength):
     #logger.debug(allCountsArray)
     return allCountsArray
 
-def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None, varsearchthresh=10000):
+def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None, varsearchthresh=10000, varsearchstdev=2.0, varsearchmagwidth=0.25, varsearchminimages=0.3):
     '''
     Find stable comparison stars for the target photometry and remove variables
 
@@ -67,7 +67,13 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     outfile : str
     '''
 
-    minimumNoOfObs = 10 # Minimum number of observations to count as a potential variable.
+    print (varsearchstdev)
+    print (varsearchmagwidth)
+    print (varsearchminimages)
+    #sys.exit()
+
+
+    #minimumNoOfObs = 10 # Minimum number of observations to count as a potential variable.
 
     # Load in list of used files
     fileList = []
@@ -75,6 +81,10 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
         for line in f:
             fileList.append(line.strip())
 
+    # allocate minimum images to detect
+    minimumNoOfObs=int(varsearchminimages*len(fileList))
+    logger.debug("Minimum number of observations to detect: " + str(minimumNoOfObs))
+    
     # LOAD Phot FILES INTO LIST
     photFileArray = []
     for file in fileList:
@@ -202,49 +212,52 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     savetxt(parentPath / "starVariability.csv", outputVariableHolder, delimiter=",", fmt='%0.8f')
     
+    
+    
+    
     ## Routine that actually pops out potential variables.
     starVar = np.asarray(outputVariableHolder)
     
     meanMags = starVar[:,2]
     variations = starVar[:,3]
 
-    print (meanMags)
-    print (variations)
+    #print (meanMags)
+    #print (variations)
 
-    xStepSize= 0.5
+    xStepSize= varsearchmagwidth
     yStepSize=0.02
-    print (np.min(meanMags))
-    print (np.max(meanMags))
+    #print (np.min(meanMags))
+    #print (np.max(meanMags))
     xbins = np.arange(np.min(meanMags), np.max(meanMags), xStepSize)
-    print (xbins)
+    #print (xbins)
     #ybins = np.linspace(np.min(variations), np.max(variations), num=10)
     ybins = np.arange(np.min(variations), np.max(variations), yStepSize)
-    print (ybins)
+    #print (ybins)
 
 
     #print (np.digitize(meanMags, bins))
     #binStarVar = np.histogram()
 
-    H, xedges, yedges = np.histogram2d(meanMags, variations, bins=(xbins, ybins))
+    #H, xedges, yedges = np.histogram2d(meanMags, variations, bins=(xbins, ybins))
 
 
-    print (H.T)
+    #print (H.T)
 
-    H=H.T
+    #H=H.T
 
 
     #split it into one array and identify variables in bins with centre
     variationsByMag=[]
     potentialVariables=[]
     for xbinner in range(len (xbins)):
-        print (xbinner)
-        print (xbins[xbinner])
+        #print (xbinner)
+        #print (xbins[xbinner])
         starsWithin=[]
         for q in range(len(meanMags)):
             if meanMags[q] >= xbins[xbinner] and meanMags[q] < xbins[xbinner]+xStepSize:
                 starsWithin.append(variations[q])
-        print (np.mean(starsWithin))
-        print (np.std(starsWithin))
+        #print (np.mean(starsWithin))
+        #print (np.std(starsWithin))
         meanStarsWithin= (np.mean(starsWithin))
         stdStarsWithin= (np.std(starsWithin))
         variationsByMag.append([xbins[xbinner]+0.5*xStepSize,meanStarsWithin,stdStarsWithin])
@@ -252,13 +265,13 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
         # At this point extract RA and Dec of stars that may be variable
         for q in range(len(starVar[:,2])):
             if starVar[q,2] >= xbins[xbinner] and starVar[q,2] < xbins[xbinner]+xStepSize:
-                if starVar[q,3] > (meanStarsWithin + 2*stdStarsWithin):
+                if starVar[q,3] > (meanStarsWithin + varsearchstdev*stdStarsWithin):
                     #print (starVar[q,3])
                     potentialVariables.append([starVar[q,0],starVar[q,1],starVar[q,2],starVar[q,3]])
                     
         
-    print (variationsByMag)
-    print (potentialVariables)
+    #print (variationsByMag)
+    #print (potentialVariables)
         
 
     potentialVariables=np.array(potentialVariables)
@@ -323,8 +336,13 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.5, file
     folders = ['periods', 'checkplots', 'eelbs', 'outputcats','outputplots','trimcats']
     for fd in folders:
         if (paths['parent'] / fd).exists():
-            shutil.rmtree(paths['parent'] / fd)
-            os.mkdir(paths['parent'] / fd)
+            shutil.rmtree(paths['parent'] / fd, ignore_errors=True )
+            try:
+                os.mkdir(paths['parent'] / fd)
+            except OSError:
+                print ("Creation of the directory %s failed" % paths['parent'])
+            else:
+                print ("Successfully created the directory %s " % paths['parent'])
 
 
     # Get total counts for each file
