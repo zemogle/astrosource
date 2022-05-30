@@ -7,7 +7,7 @@ import glob
 import sys
 from pathlib import Path
 import shutil
-
+import time
 import math
 import os
 
@@ -67,13 +67,6 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     outfile : str
     '''
 
-    print (varsearchstdev)
-    print (varsearchmagwidth)
-    print (varsearchminimages)
-    #sys.exit()
-
-
-    #minimumNoOfObs = 10 # Minimum number of observations to count as a potential variable.
 
     # Load in list of used files
     fileList = []
@@ -315,7 +308,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     return outputVariableHolder
 
-def photometric_calculations(targets, paths, targetRadius, errorReject=0.5, filesave=True):
+def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, filesave=True):
     
     fileCount=[]
     photometrydata = []
@@ -337,6 +330,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.5, file
     for fd in folders:
         if (paths['parent'] / fd).exists():
             shutil.rmtree(paths['parent'] / fd, ignore_errors=True )
+            time.sleep(0.1)
             try:
                 os.mkdir(paths['parent'] / fd)
             except OSError:
@@ -434,6 +428,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.5, file
             else:
                 starDistanceRejCount=starDistanceRejCount+1
                 starRejected=1
+                
             if ( starRejected == 1):
 
                     #templist is a temporary holder of the resulting file.
@@ -483,10 +478,44 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.5, file
         avgVar=nanmean((outputPhot)[:,10])
         starReject=[]
         stdevReject=0
-        for j in range(asarray(outputPhot).shape[0]):
-            if outputPhot[j][10] > avgVar+(4*stdVar) or outputPhot[j][10] < avgVar-(4*stdVar) :
-                starReject.append(j)
-                stdevReject=stdevReject+1
+        # Reject by simple major stdev elimination
+        while True:
+            starReject=[]
+            for j in range(asarray(outputPhot).shape[0]):
+                
+                if outputPhot[j][10] > avgVar+(4*stdVar) or outputPhot[j][10] < avgVar-(4*stdVar) :
+                    starReject.append(j)
+                    stdevReject=stdevReject+1
+            
+            if starReject != []:
+                outputPhot=delete(outputPhot, starReject, axis=0)
+            else:
+                break
+        
+        # Reject by outsized error elimination
+        
+        while True:
+            errorsArray=[]
+            for j in range(asarray(outputPhot).shape[0]):
+                errorsArray.append(outputPhot[j][11])
+            errorsArray=np.asarray(errorsArray)
+            #print (errorsArray)
+            stdErrors=nanstd(errorsArray)
+            avgErrors=nanmean(errorsArray)      
+            #print (stdErrors)
+            #print (avgErrors)
+            starReject=[]
+            for j in range(asarray(outputPhot).shape[0]):
+                if outputPhot[j][11] > avgErrors+(4*stdErrors):
+                    starReject.append(j)
+                    starErrorRejCount=starErrorRejCount+1
+            
+            if starReject != []:
+                outputPhot=delete(outputPhot, starReject, axis=0)
+            else:
+                break
+                    
+        #sys.exit()
         sys.stdout.write('\n')
         logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
         logger.info("Rejected Error Measurements: : {}".format(starErrorRejCount))

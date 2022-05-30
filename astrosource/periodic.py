@@ -1681,7 +1681,7 @@ def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nter
         tempfile=str(f"{variableName}_LombScargle_N" + str(nterms) + "_Lightcurve.png")
         plt.savefig(periodPath / tempfile)
 
-    best_period = 1 / best_freq
+    best_period = 1 / best_freq    
 
     plt.close('all')
     return (best_period)
