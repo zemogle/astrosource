@@ -59,6 +59,9 @@ class TimeSeries:
         self.rejectmagdimmest = kwargs.get('rejectmagdimmest', 99.0)
         self.ignoreedgefraction = kwargs.get('ignoreedgefraction', 0.05)
         
+        self.outliererror = kwargs.get('outliererror', 4)
+        self.outlierstdev = kwargs.get('outlierstdev', 4)
+        
         
         verbose = kwargs.get('verbose', False)
         bjd = kwargs.get('bjd', False)
@@ -128,7 +131,7 @@ class TimeSeries:
         find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius, varsearchthresh=self.varsearchthresh, varsearchstdev=self.varsearchstdev, varsearchmagwidth=self.varsearchmagwidth, varsearchminimages=self.varsearchminimages)
 
     def photometry(self, filesave=False):
-        data = photometric_calculations(targets=self.targets, paths=self.paths, targetRadius=self.targetradius, filesave=filesave)
+        data = photometric_calculations(targets=self.targets, paths=self.paths, targetRadius=self.targetradius, filesave=filesave, outliererror=self.outliererror, outlierstdev=self.outlierstdev)
         self.output(mode='diff', data=data)
         if self.calibrated:
             self.data = calibrated_photometry(paths=self.paths, photometrydata=data, colourterm=self.colourterm,colourerror=self.colourerror,colourdetect=self.colourdetect,linearise=self.linearise,targetcolour=self.targetcolour,rejectmagbrightest=self.rejectmagbrightest,rejectmagdimmest=self.rejectmagdimmest)

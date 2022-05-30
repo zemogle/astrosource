@@ -308,8 +308,8 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     return outputVariableHolder
 
-def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, filesave=True):
-    
+def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, filesave=True, outliererror=4, outlierstdev=4):
+      
     fileCount=[]
     photometrydata = []
     sys.stdout.write('🖥 Starting photometric calculations\n')

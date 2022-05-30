@@ -59,6 +59,10 @@ logger = logging.getLogger('astrosource')
 @click.option('--varsearchminimages', '-svt', type=float, default=0.3, help='Fraction of number of images a variable star has to be in to be detected')
 @click.option('--ignoreedgefraction', '-svt', type=float, default=0.05, help='Ignore stars that are within this fraction of the edge of the RA and DEC range')
 
+@click.option('--outliererror', '-svt', type=float, default=4, help='Ignore measurements that have an error this many standard deviatons above the mean')
+@click.option('--outlierstdev', '-svt', type=float, default=4, help='Ignore measurements that have a magnitude this many standard deviatons outside the mean')
+
+
 @click.option('--colourdetect', '-cc', is_flag=True)
 @click.option('--linearise', '-cc', is_flag=True)
 @click.option('--colourterm', '-ct', type=float, default=0.0)
@@ -68,7 +72,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--restrictmagdimmest', type=float, default=99.0)
 @click.option('--rejectmagbrightest', type=float, default=-99.0)
 @click.option('--rejectmagdimmest', type=float, default=99.0)
-def main(full, stars, comparison, usescreenedcomps, varsearchstdev, varsearchmagwidth, varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius):
+def main(full, stars, comparison, usescreenedcomps, outliererror, outlierstdev, varsearchstdev, varsearchmagwidth, varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius):
 
     try:
         parentPath = Path(indir)
@@ -129,7 +133,9 @@ def main(full, stars, comparison, usescreenedcomps, varsearchstdev, varsearchmag
                         varsearchstdev=varsearchstdev, 
                         varsearchmagwidth=varsearchmagwidth,
                         varsearchminimages=varsearchminimages,
-                        ignoreedgefraction=ignoreedgefraction
+                        ignoreedgefraction=ignoreedgefraction,
+                        outliererror=outliererror,
+                        outlierstdev=outlierstdev
                         )
 
         if full or comparison:

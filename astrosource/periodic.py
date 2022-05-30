@@ -775,6 +775,10 @@ def aov_periodfind(times,
         plt.savefig(periodPath / f"{variableName}_ANOVAThetaLikelihoodPlot.png")
         plt.clf()
 
+        # Output likelihood csv
+        tempfile=str(f"{variableName}_ANOVATheta_Likelihood.csv")
+        savetxt(periodPath / tempfile, np.column_stack(periods, lsp), delimiter=",", fmt='%0.8f')
+
         # find the nbestpeaks for the periodogram: 1. sort the lsp array by
         # highest value first 2. go down the values until we find five
         # values that are separated by at least periodepsilon in period
@@ -863,7 +867,9 @@ def aov_periodfind(times,
         plt.savefig(periodPath / f"{variableName}_ANOVAThetaLightcurve.png")
         plt.clf()
         
-        
+        # Output lightcurve csv
+        tempfile=str(f"{variableName}_ANOVATheta_Lightcurve.csv")
+        savetxt(periodPath / tempfile, np.column_stack((times/finperiods[bestperiodind])%1, times, mags), delimiter=",", fmt='%0.8f')
  
         
         return {'bestperiod':finperiods[bestperiodind],
@@ -1296,6 +1302,10 @@ def aovhm_periodfind(times,
         plt.ylabel(r"Likelihood of Period")
         plt.savefig(periodPath / f"{variableName}_ANOVAharmonic_LikelihoodPlot.png")
         plt.clf()
+        
+        # Output likelihood csv
+        tempfile=str(f"{variableName}_ANOVAharmonic_Likelihood.csv")
+        savetxt(periodPath / tempfile, np.column_stack(periods, lsp), delimiter=",", fmt='%0.8f')
 
 
         # find the nbestpeaks for the periodogram: 1. sort the lsp array by
@@ -1384,6 +1394,10 @@ def aovhm_periodfind(times,
         plt.ylabel(r"Magnitude")
         plt.savefig(periodPath / f"{variableName}_ANOVAHarmonicLightcurve.png")
         plt.clf()
+        
+        # Output lightcurve csv
+        tempfile=str(f"{variableName}_ANOVAHarmonic_Lightcurve.csv")
+        savetxt(periodPath / tempfile, np.column_stack((times/finperiods[bestperiodind])%1, times, mags), delimiter=",", fmt='%0.8f')
 
         return {'bestperiod':finperiods[bestperiodind],
                 'bestlspval':finlsp[bestperiodind],
@@ -1664,6 +1678,12 @@ def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nter
     # Find peak of the likelihood plot (most likely frequency)
     best_freq = freq[np.argmax(power)]
 
+    # Output likelihood csv
+    tempfile=str(f"{variableName}_LombScargle_N" + str(nterms) + "_Likelihood.csv")
+    savetxt(periodPath / tempfile, np.column_stack(1 / freq, power), delimiter=",", fmt='%0.8f')
+    
+    
+
     if not disablelightcurve:
         # Create phased lightcurve for fourier fit
         phase_fit = np.linspace(0, 1, 100)
@@ -1680,6 +1700,10 @@ def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nter
         ax.invert_yaxis()
         tempfile=str(f"{variableName}_LombScargle_N" + str(nterms) + "_Lightcurve.png")
         plt.savefig(periodPath / tempfile)
+        
+        # Output lightcurve csv
+        tempfile=str(f"{variableName}_LombScargle_N" + str(nterms) + "_Lightcurve.csv")
+        savetxt(periodPath / tempfile, np.column_stack((t * best_freq) % 1, t, m), delimiter=",", fmt='%0.8f')
 
     best_period = 1 / best_freq    
 

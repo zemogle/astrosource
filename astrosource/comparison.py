@@ -1277,8 +1277,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 os.mkdir(paths['parent'] / fd)
             except OSError:
                 print ("Creation of the directory %s failed" % paths['parent'])
-            else:
-                print ("Successfully created the directory %s " % paths['parent'])
+
 
 
     slopeHolder=[]
