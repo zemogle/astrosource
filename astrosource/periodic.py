@@ -869,7 +869,7 @@ def aov_periodfind(times,
         
         # Output lightcurve csv
         tempfile=str(f"{variableName}_ANOVATheta_Lightcurve.csv")
-        savetxt(periodPath / tempfile, np.column_stack((times/finperiods[bestperiodind])%1, times, mags), delimiter=",", fmt='%0.8f')
+        savetxt(periodPath / tempfile, np.column_stack(((times/finperiods[bestperiodind])%1, times, mags)), delimiter=",", fmt='%0.8f')
  
         
         return {'bestperiod':finperiods[bestperiodind],
@@ -1305,7 +1305,7 @@ def aovhm_periodfind(times,
         
         # Output likelihood csv
         tempfile=str(f"{variableName}_ANOVAharmonic_Likelihood.csv")
-        savetxt(periodPath / tempfile, np.column_stack(periods, lsp), delimiter=",", fmt='%0.8f')
+        savetxt(periodPath / tempfile, np.column_stack((periods, lsp)), delimiter=",", fmt='%0.8f')
 
 
         # find the nbestpeaks for the periodogram: 1. sort the lsp array by
@@ -1397,7 +1397,7 @@ def aovhm_periodfind(times,
         
         # Output lightcurve csv
         tempfile=str(f"{variableName}_ANOVAHarmonic_Lightcurve.csv")
-        savetxt(periodPath / tempfile, np.column_stack((times/finperiods[bestperiodind])%1, times, mags), delimiter=",", fmt='%0.8f')
+        savetxt(periodPath / tempfile, np.column_stack(((times/finperiods[bestperiodind])%1, times, mags)), delimiter=",", fmt='%0.8f')
 
         return {'bestperiod':finperiods[bestperiodind],
                 'bestlspval':finlsp[bestperiodind],
@@ -1680,7 +1680,7 @@ def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nter
 
     # Output likelihood csv
     tempfile=str(f"{variableName}_LombScargle_N" + str(nterms) + "_Likelihood.csv")
-    savetxt(periodPath / tempfile, np.column_stack(1 / freq, power), delimiter=",", fmt='%0.8f')
+    savetxt(periodPath / tempfile, np.column_stack((1 / freq, power)), delimiter=",", fmt='%0.8f')
     
     
 
@@ -1703,7 +1703,7 @@ def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nter
         
         # Output lightcurve csv
         tempfile=str(f"{variableName}_LombScargle_N" + str(nterms) + "_Lightcurve.csv")
-        savetxt(periodPath / tempfile, np.column_stack((t * best_freq) % 1, t, m), delimiter=",", fmt='%0.8f')
+        savetxt(periodPath / tempfile, np.column_stack(((t * best_freq) % 1, t, m)), delimiter=",", fmt='%0.8f')
 
     best_period = 1 / best_freq    
 
@@ -1969,6 +1969,8 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
 
 
         # logger.debug("Theta Anova Method Estimate (days): " + str(aovoutput["bestperiod"]))
+        #with open(paths['parent'] / "periodEstimates.txt", "a+") as f:            
+        #    f.write("Theta Anova Method Estimate (days): " + str(aovoutput["bestperiod"])+"\n")
         
         if calibFile.exists():
             if (calibData.size > 3):
@@ -1978,7 +1980,8 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
                 aovhmoutput=aovhm_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
             
         logger.debug("Harmonic Anova Method Estimate (days): " + str(aovhmoutput["bestperiod"]))
-
+        with open(paths['parent'] / "periodEstimates.txt", "a+") as f:            
+            f.write("Harmonic Anova Method Estimate (days): " + str(aovhmoutput["bestperiod"])+"\n")
 
         # LOMB SCARGLE
         for nts in range(2):
@@ -1990,6 +1993,8 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
                                                         disablelightcurve=False, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
         
                     logger.debug('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput))
+                    with open(paths['parent'] / "periodEstimates.txt", "a+") as f:            
+                        f.write('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput)+"\n")
             else:
                 if (varData.size > 3):
                     lscargoutput = LombScargleMultiterm('periodifile', (varData[:, 0]), (varData[:, 1]), (varData[:, 2]),
@@ -1998,6 +2003,8 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
                                                         disablelightcurve=False, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
         
                     logger.debug('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput))
+                    with open(paths['parent'] / "periodEstimates.txt", "a+") as f:            
+                        f.write('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput)+"\n")
 
     if 'pdm' in locals():
         return pdm["distance_minperiod"]

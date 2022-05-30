@@ -1570,7 +1570,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.savefig(parentPath / str("CalibrationSanityPlot_Magnitude.png"))
         plt.savefig(parentPath / str("CalibrationSanityPlot_Magnitude.eps"))
 
-        with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "a+") as f:
+        with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "w+") as f:
             f.write("Magnitude slope     : " + str(m)+"\n")
             f.write("Magnitude zeropoint : " + str(c) +"\n")
             if not residuals.size == 0:

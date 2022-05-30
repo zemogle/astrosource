@@ -269,7 +269,13 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     potentialVariables=np.array(potentialVariables)
     savetxt(parentPath / "potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f')
-    #savetxt("potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f')
+   
+    
+    
+    
+    plot_variability(outputVariableHolder, potentialVariables, parentPath)
+
+
     fig, ax = plt.subplots(figsize =(10, 7))
     plt.hist2d(meanMags, variations, bins =[xbins, ybins], cmap = plt.cm.nipy_spectral)
     plt.colorbar()
@@ -278,33 +284,8 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     ax.set_ylabel('Variation (Standard Deviation)') 
     plt.plot(potentialVariables[:,2],potentialVariables[:,3],'ro')
     plt.tight_layout()
-    # fig=plt.figure()
-    # #fig.set_size_inches(17,3)
-    # #fig = plt.figure(figsize=(7, 3))
-    # #ax = fig.add_subplot(131, title='imshow: square bins')
-    # #plt.imshow(H, interpolation='nearest', origin='lower')#,
-    # plt.imshow(H, interpolation='nearest', origin='lower')#,
-    #         #extent=[xbins[0], xbins[-1], ybins[0], ybins[-1]])
-    # plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
-
-    # #ax = fig.add_subplot(132, title='pcolormesh: actual edges',
-    # #        aspect='equal')
-    # #X, Y = np.meshgrid(xbins, ybins)
-    # #ax.pcolormesh(X, Y, H)
-
-    # # ax = fig.add_subplot(133, title='NonUniformImage: interpolated',
-    # #         aspect='equal', xlim=xbins[[0, -1]], ylim=ybins[[0, -1]])
-    # # im = NonUniformImage(ax, interpolation='bilinear')
-    # # xcenters = (xedges[:-1] + xedges[1:]) / 2
-    # # ycenters = (yedges[:-1] + yedges[1:]) / 2
-    # # im.set_data(xcenters, ycenters, H)
-    # #ax.images.append(im)
 
     plt.savefig(parentPath / "Variation2DHistogram.png")
-    
-    
-    
-    plot_variability(outputVariableHolder, potentialVariables, parentPath)
 
     return outputVariableHolder
 
@@ -335,8 +316,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                 os.mkdir(paths['parent'] / fd)
             except OSError:
                 print ("Creation of the directory %s failed" % paths['parent'])
-            else:
-                print ("Successfully created the directory %s " % paths['parent'])
+
 
 
     # Get total counts for each file
