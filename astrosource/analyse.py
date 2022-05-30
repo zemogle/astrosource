@@ -203,7 +203,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     savetxt(parentPath / "starVariability.csv", outputVariableHolder, delimiter=",", fmt='%0.8f')
     
     ## Routine that actually pops out potential variables.
-    starVar = outputVariableHolder
+    starVar = np.asarray(outputVariableHolder)
     
     meanMags = starVar[:,2]
     variations = starVar[:,3]
