@@ -76,7 +76,7 @@ def open_photometry_files(outcatPath):
     return photometrydata
 
 
-def plot_variability(output, parentPath):
+def plot_variability(output, variableID, parentPath):
     # star Variability Plot
 
     if output != []: # Do not attempt plot if output array is empty
@@ -108,6 +108,39 @@ def plot_variability(output, parentPath):
         plt.grid(True)
         plt.savefig(parentPath / 'starVariability_Large.png')
         plt.savefig(parentPath / 'starVariability_Large.eps')
+        
+        plt.cla()
+        outplotx = asarray(output)[:, 2]
+        outploty = asarray(output)[:, 3]
+        plt.xlabel('Mean Differential Magnitude of a Given Star')
+        plt.ylabel('Standard Deviation of Differential Magnitudes')
+        plt.plot(outplotx, outploty, 'bo')
+        plt.plot(variableID[:,2],variableID[:,3],'ro')
+        # plt.plot(linex, liney)
+        plt.ylim(min(outploty)-0.04, max(outploty)+0.04, 'k-')
+        plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
+        plt.grid(True)
+        plt.savefig(parentPath / 'starVariability_withID.png')
+        plt.savefig(parentPath / 'starVariability_withID.eps')
+        
+
+        plt.cla()
+        fig = plt.gcf()
+        outplotx = asarray(output)[:, 2]
+        outploty = asarray(output)[:, 3]
+        plt.xlabel('Mean Differential Magnitude of a Given Star')
+        plt.ylabel('Standard Deviation of Differential Magnitudes')
+        plt.plot(outplotx, outploty, 'bo')
+        plt.plot(variableID[:,2],variableID[:,3],'ro')
+        fig.set_size_inches(16,9)
+        # plt.plot(linex, liney)
+        plt.ylim(min(outploty)-0.04, max(outploty)+0.04, 'k-')
+        plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
+        plt.grid(True)
+        plt.savefig(parentPath / 'starVariability_Large_withID.png')
+        plt.savefig(parentPath / 'starVariability_Large_withID.eps')
+        
+        
     return
 
 

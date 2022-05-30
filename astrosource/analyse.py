@@ -16,6 +16,10 @@ import logging
 from astrosource.utils import photometry_files_to_array, AstrosourceException
 from astrosource.plots import plot_variability
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 logger = logging.getLogger('astrosource')
 
 
@@ -194,9 +198,107 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
         if (diffMagHolder.shape[0] > minimumNoOfObs):
             outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), diffMagHolder.shape[0]])
 
-    plot_variability(outputVariableHolder, parentPath)
+    
 
     savetxt(parentPath / "starVariability.csv", outputVariableHolder, delimiter=",", fmt='%0.8f')
+    
+    ## Routine that actually pops out potential variables.
+    starVar = outputVariableHolder
+    
+    meanMags = starVar[:,2]
+    variations = starVar[:,3]
+
+    print (meanMags)
+    print (variations)
+
+    xStepSize= 0.5
+    yStepSize=0.02
+    print (np.min(meanMags))
+    print (np.max(meanMags))
+    xbins = np.arange(np.min(meanMags), np.max(meanMags), xStepSize)
+    print (xbins)
+    #ybins = np.linspace(np.min(variations), np.max(variations), num=10)
+    ybins = np.arange(np.min(variations), np.max(variations), yStepSize)
+    print (ybins)
+
+
+    #print (np.digitize(meanMags, bins))
+    #binStarVar = np.histogram()
+
+    H, xedges, yedges = np.histogram2d(meanMags, variations, bins=(xbins, ybins))
+
+
+    print (H.T)
+
+    H=H.T
+
+
+    #split it into one array and identify variables in bins with centre
+    variationsByMag=[]
+    potentialVariables=[]
+    for xbinner in range(len (xbins)):
+        print (xbinner)
+        print (xbins[xbinner])
+        starsWithin=[]
+        for q in range(len(meanMags)):
+            if meanMags[q] >= xbins[xbinner] and meanMags[q] < xbins[xbinner]+xStepSize:
+                starsWithin.append(variations[q])
+        print (np.mean(starsWithin))
+        print (np.std(starsWithin))
+        meanStarsWithin= (np.mean(starsWithin))
+        stdStarsWithin= (np.std(starsWithin))
+        variationsByMag.append([xbins[xbinner]+0.5*xStepSize,meanStarsWithin,stdStarsWithin])
+        
+        # At this point extract RA and Dec of stars that may be variable
+        for q in range(len(starVar[:,2])):
+            if starVar[q,2] >= xbins[xbinner] and starVar[q,2] < xbins[xbinner]+xStepSize:
+                if starVar[q,3] > (meanStarsWithin + 2*stdStarsWithin):
+                    #print (starVar[q,3])
+                    potentialVariables.append([starVar[q,0],starVar[q,1],starVar[q,2],starVar[q,3]])
+                    
+        
+    print (variationsByMag)
+    print (potentialVariables)
+        
+
+    potentialVariables=np.array(potentialVariables)
+    savetxt(parentPath / "potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f')
+    #savetxt("potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f')
+    fig, ax = plt.subplots(figsize =(10, 7))
+    plt.hist2d(meanMags, variations, bins =[xbins, ybins], cmap = plt.cm.nipy_spectral)
+    plt.colorbar()
+    plt.title("Variation Histogram")
+    ax.set_xlabel('Mean Differential Magnitude') 
+    ax.set_ylabel('Variation (Standard Deviation)') 
+    plt.plot(potentialVariables[:,2],potentialVariables[:,3],'ro')
+    plt.tight_layout()
+    # fig=plt.figure()
+    # #fig.set_size_inches(17,3)
+    # #fig = plt.figure(figsize=(7, 3))
+    # #ax = fig.add_subplot(131, title='imshow: square bins')
+    # #plt.imshow(H, interpolation='nearest', origin='lower')#,
+    # plt.imshow(H, interpolation='nearest', origin='lower')#,
+    #         #extent=[xbins[0], xbins[-1], ybins[0], ybins[-1]])
+    # plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+
+    # #ax = fig.add_subplot(132, title='pcolormesh: actual edges',
+    # #        aspect='equal')
+    # #X, Y = np.meshgrid(xbins, ybins)
+    # #ax.pcolormesh(X, Y, H)
+
+    # # ax = fig.add_subplot(133, title='NonUniformImage: interpolated',
+    # #         aspect='equal', xlim=xbins[[0, -1]], ylim=ybins[[0, -1]])
+    # # im = NonUniformImage(ax, interpolation='bilinear')
+    # # xcenters = (xedges[:-1] + xedges[1:]) / 2
+    # # ycenters = (yedges[:-1] + yedges[1:]) / 2
+    # # im.set_data(xcenters, ycenters, H)
+    # #ax.images.append(im)
+
+    plt.savefig(parentPath / "Variation2DHistogram.png")
+    
+    
+    
+    plot_variability(outputVariableHolder, potentialVariables, parentPath)
 
     return outputVariableHolder
 
