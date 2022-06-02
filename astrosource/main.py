@@ -62,6 +62,8 @@ logger = logging.getLogger('astrosource')
 @click.option('--outliererror', '-svt', type=float, default=4, help='Ignore measurements that have an error this many standard deviatons above the mean')
 @click.option('--outlierstdev', '-svt', type=float, default=4, help='Ignore measurements that have a magnitude this many standard deviatons outside the mean')
 
+@click.option('--variablehunt', '-cc', is_flag=True, help='Do a variable search in astrosource and then use the potentialVariables as a targetlist')
+@click.option('--notarget', '-cc', is_flag=True, help='Do not provide a target and use astrosource for other means')
 
 @click.option('--colourdetect', '-cc', is_flag=True)
 @click.option('--linearise', '-cc', is_flag=True)
@@ -72,7 +74,8 @@ logger = logging.getLogger('astrosource')
 @click.option('--restrictmagdimmest', type=float, default=99.0)
 @click.option('--rejectmagbrightest', type=float, default=-99.0)
 @click.option('--rejectmagdimmest', type=float, default=99.0)
-def main(full, stars, comparison, usescreenedcomps, outliererror, outlierstdev, varsearchstdev, varsearchmagwidth, varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius):
+
+def main(full, stars, comparison, variablehunt, notarget, usescreenedcomps, outliererror, outlierstdev, varsearchstdev, varsearchmagwidth, varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests, rejectbrighter, rejectdimmer, thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius):
 
     try:
         parentPath = Path(indir)
@@ -80,9 +83,13 @@ def main(full, stars, comparison, usescreenedcomps, outliererror, outlierstdev, 
             cleanup(parentPath)
             logger.info('All output files removed')
             return
-        if not (ra and dec) and not target_file:
-            logger.error("Either RA and Dec or a targetfile must be specified")
-            return
+        if not (ra and dec) and not target_file and not variablehunt:
+            #logger.error("Either RA and Dec or a targetfile must be specified")
+            logger.error("No specified RA or Dec nor targetfile nor request for a variable hunt. It is assumed you have no target to analyse.")
+            notarget=True
+            #return
+
+
 
         if ra and dec:
             ra, dec = convert_coords(ra, dec)
@@ -90,6 +97,11 @@ def main(full, stars, comparison, usescreenedcomps, outliererror, outlierstdev, 
         elif target_file:
             target_file = parentPath / target_file
             targets = get_targets(target_file)
+        elif notarget == True or variablehunt == True:
+            targets = None
+            
+        if variablehunt == True:
+            varsearch=True
 
         if usecompletedcalib == True:
             usecompsused = True
@@ -120,6 +132,8 @@ def main(full, stars, comparison, usescreenedcomps, outliererror, outlierstdev, 
                         mincompstarstotal=mincompstarstotal,
                         colourdetect=colourdetect,
                         linearise=linearise,
+                        variablehunt=variablehunt,
+                        notarget=notarget,
                         colourterm=colourterm,
                         colourerror=colourerror,
                         targetcolour=targetcolour,
@@ -142,10 +156,15 @@ def main(full, stars, comparison, usescreenedcomps, outliererror, outlierstdev, 
             ts.analyse(usescreenedcomps=usescreenedcomps, usecompsused=usecompsused, usecompletedcalib=usecompletedcalib)
         if (full or calc) and varsearch:
             ts.find_variables()
-        if full or phot:
-            ts.photometry(filesave=True)
-        if full or plot:
-            ts.plot(detrend=detrend, period=period, eebls=eebls, filesave=True)
+
+        if variablehunt == True:
+            targets = get_targets(parentPath / 'potentialVariables.csv')
+            
+        if targets != None:
+            if full or phot:
+                ts.photometry(filesave=True, targets=targets)
+            if full or plot:
+                ts.plot(detrend=detrend, period=period, eebls=eebls, filesave=True)
 
         sys.stdout.write("✅ AstroSource analysis complete\n")
 

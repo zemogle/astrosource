@@ -275,7 +275,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     
     plot_variability(outputVariableHolder, potentialVariables, parentPath)
 
-
+    plt.cla()
     fig, ax = plt.subplots(figsize =(10, 7))
     plt.hist2d(meanMags, variations, bins =[xbins, ybins], cmap = plt.cm.nipy_spectral)
     plt.colorbar()
@@ -327,6 +327,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
     allCountsArray = get_total_counts(photFileArray, compFile, loopLength)
 
     allcountscount=0
+
 
     if len(targets)== 4 and targets.size == 4:
         loopLength=1

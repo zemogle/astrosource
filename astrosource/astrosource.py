@@ -50,6 +50,11 @@ class TimeSeries:
         # Colour stuff
         self.colourdetect = kwargs.get('colourdetect', False)
         self.linearise = kwargs.get('linearise', False)
+        
+        self.variablehunt = kwargs.get('variablehunt', False)
+        self.notarget = kwargs.get('notarget', False)
+        
+        
         self.colourterm = kwargs.get('colourterm', 0.0)
         self.colourerror = kwargs.get('colourerror', 0.0)
         self.targetcolour = kwargs.get('targetcolour', -99.0)
@@ -130,7 +135,8 @@ class TimeSeries:
     def find_variables(self):
         find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius, varsearchthresh=self.varsearchthresh, varsearchstdev=self.varsearchstdev, varsearchmagwidth=self.varsearchmagwidth, varsearchminimages=self.varsearchminimages)
 
-    def photometry(self, filesave=False):
+    def photometry(self, filesave=False, targets=None):
+        self.targets=targets
         data = photometric_calculations(targets=self.targets, paths=self.paths, targetRadius=self.targetradius, filesave=filesave, outliererror=self.outliererror, outlierstdev=self.outlierstdev)
         self.output(mode='diff', data=data)
         if self.calibrated:
