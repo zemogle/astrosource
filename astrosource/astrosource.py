@@ -47,6 +47,9 @@ class TimeSeries:
         self.mincompstars = kwargs.get('mincompstars', 0.1)
         self.mincompstarstotal = kwargs.get('mincompstarstotal', -99)
         self.maxcandidatestars= kwargs.get('maxcandidatestars', 10000)
+        
+        self.lowestcounts= kwargs.get('lowestcounts', 1800)
+        
         # Colour stuff
         self.colourdetect = kwargs.get('colourdetect', False)
         self.linearise = kwargs.get('linearise', False)
@@ -72,7 +75,7 @@ class TimeSeries:
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
         logger = setup_logger('astrosource', verbose)
-        self.files, self.filtercode = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd,ignoreedgefraction=self.ignoreedgefraction)
+        self.files, self.filtercode = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd,ignoreedgefraction=self.ignoreedgefraction, lowest=self.lowestcounts)
 
     def analyse(self, calib=True, usescreenedcomps=False, usecompsused=False, usecompletedcalib=False):
 

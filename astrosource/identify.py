@@ -76,7 +76,7 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False):
 
     return phot_dict
 
-def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefraction=0.05):
+def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefraction=0.05, lowestcounts=1800):
 
     with fits.open(infile) as hdulist:
 
@@ -113,12 +113,18 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
                 photFile[:,1][photFile[:,1] > decMax - decClip ] = nan
                 photFile[:,1][photFile[:,1] < decMin + decClip ] = nan                
                 photFile=photFile[~isnan(photFile).any(axis=1)]
+                
+                #remove lowcounts
+                rejectStars=where(photFile[:,4] < lowestcounts)[0]
+                #print (d2d)
+                #print (max_sep)
+                photFile=delete(photFile, rejectStars, axis=0)
 
         save(outfile, photFile)
 
     return outfile
 
-def convert_photometry_files(filelist, ignoreedgefraction=0.05):
+def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=1800):
     new_files = []
     for fn in filelist:
         photFile = genfromtxt(fn, dtype=float, delimiter=',')
@@ -141,11 +147,19 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05):
                 photFile[:,1][photFile[:,1] > decMax - decClip ] = nan
                 photFile[:,1][photFile[:,1] < decMin + decClip ] = nan                
                 photFile=photFile[~isnan(photFile).any(axis=1)]
+                
+                #remove lowcounts
+                rejectStars=where(photFile[:,4] < lowestcounts)[0]
+                #print (d2d)
+                #print (max_sep)
+                photFile=delete(photFile, rejectStars, axis=0)
+                #print (len(rejectStars))
             
                 
                 filepath = Path(fn).with_suffix('.npy')
                 save(filepath, photFile)
                 new_files.append(filepath.name)
+    #sys.exit()
     return new_files
 
 def convert_mjd_bjd(hdr):
@@ -158,10 +172,9 @@ def convert_mjd_bjd(hdr):
     return tdbholder[0][0]
 
 
-def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefraction=0.05):
+def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefraction=0.05, lowest=1800):
     # Get list of files
     sys.stdout.write('💾 Inspecting input files\n')
-
 
     #print (ignoreedgefraction)
     #sys.exit()
@@ -177,10 +190,10 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
             filelist = paths['parent'].glob("*e91*.{}".format(filetype)) # Make sure only fully reduced LCO files are used.
     if filetype not in ['fits', 'fit', 'fz']:
         # Assume we are not dealing with image files but photometry files
-        phot_list = convert_photometry_files(filelist, ignoreedgefraction)
+        phot_list = convert_photometry_files(filelist, ignoreedgefraction, lowestcounts=lowest)
     else:
 
-        phot_list_temp = export_photometry_files(filelist, paths['parent'], bjd=bjd, ignoreedgefraction=ignoreedgefraction)
+        phot_list_temp = export_photometry_files(filelist, paths['parent'], bjd=bjd, ignoreedgefraction=ignoreedgefraction, lowestcounts=lowest)
         #Convert phot_list from dict to list
         phot_list_temp = phot_list_temp.keys()
         phot_list = []
