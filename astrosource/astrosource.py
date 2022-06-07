@@ -27,8 +27,7 @@ class TimeSeries:
         self.periodupper = kwargs.get('periodupper', -99.9)
         self.periodlower = kwargs.get('periodlower', -99.9)
         self.periodtests = kwargs.get('periodtests', -99)
-        self.rejectbrighter = kwargs.get('rejectbrighter', 99)
-        self.rejectdimmer = kwargs.get('rejectdimmer', 99)
+
         self.thresholdcounts = kwargs.get('thresholdcounts', 1000000)
         self.hicounts = kwargs.get('hicounts', 3000000)
         self.lowcounts = kwargs.get('lowcounts', 5000)
