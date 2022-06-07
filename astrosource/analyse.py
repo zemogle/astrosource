@@ -268,6 +268,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
         
 
     potentialVariables=np.array(potentialVariables)
+    logger.debug("Potential Variables Identified: " + str(potentialVariables.shape[0]))
     savetxt(parentPath / "potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f')
    
     

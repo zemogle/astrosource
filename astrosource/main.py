@@ -3,7 +3,7 @@ import click
 import sys
 import logging
 
-from numpy import array
+from numpy import array, all
 from astropy.utils.exceptions import AstropyWarning, AstropyDeprecationWarning
 
 from astrosource.astrosource import TimeSeries
@@ -159,8 +159,10 @@ def main(full, stars, comparison, variablehunt, notarget, usescreenedcomps, outl
 
         if variablehunt == True:
             targets = get_targets(parentPath / 'potentialVariables.csv')
-            
-        if targets != None:
+        
+
+        
+        if targets is not None:
             if full or phot:
                 ts.photometry(filesave=True, targets=targets)
             if full or plot:

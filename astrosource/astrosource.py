@@ -80,16 +80,16 @@ class TimeSeries:
         parentPath = self.paths['parent']
             
         if usescreenedcomps == False:
-            self.usedimages, self.stars = find_stars(targets=self.targets,
-                                                     paths=self.paths,
-                                                     fileList=self.files,
-                                                     mincompstars=self.mincompstars,
-                                                     mincompstarstotal=self.mincompstarstotal,
-                                                     imageFracReject=self.imgreject,
-                                                     starreject=self.starreject,
-                                                     hicounts=self.hicounts,
-                                                     lowcounts=self.lowcounts,
-                                                     maxcandidatestars=self.maxcandidatestars)
+            self.usedimages, self.stars, self.photCoords, self.photFileHolder = find_stars(targets=self.targets,
+                                                                                 paths=self.paths,
+                                                                                 fileList=self.files,
+                                                                                 mincompstars=self.mincompstars,
+                                                                                 mincompstarstotal=self.mincompstarstotal,
+                                                                                 imageFracReject=self.imgreject,
+                                                                                 starreject=self.starreject,
+                                                                                 hicounts=self.hicounts,
+                                                                                 lowcounts=self.lowcounts,
+                                                                                 maxcandidatestars=self.maxcandidatestars)
             
         else:
             print ("Using screened Comparisons from Previous Run")
@@ -120,7 +120,9 @@ class TimeSeries:
                                                                                     colourTerm=self.colourterm,
                                                                                     colourError=self.colourerror,
                                                                                     restrictmagbrightest=self.restrictmagbrightest,
-                                                                                    restrictmagdimmest=self.restrictmagdimmest)
+                                                                                    restrictmagdimmest=self.restrictmagdimmest,
+                                                                                    photCoordsFile=self.photCoords,
+                                                                                    photFileHolder=self.photFileHolder)
     
                     self.calibrated = True
                 except AstrosourceException as e:

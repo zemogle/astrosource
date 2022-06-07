@@ -357,6 +357,8 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, mincompstarstotal=-99
             
             
         q=0
+        photReject=[]
+        
         for file in fileList:
             #print (q)
             #print (photSkyCoord[q])
@@ -409,6 +411,7 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, mincompstarstotal=-99
                         logger.debug('**********************')
                         imgReject=imgReject+1
                         fileList.remove(file)
+                        photReject.append(q)
                         imgRejFlag=1
 
                     # if the rejectstar list is not empty, remove the stars from the reference List
@@ -431,6 +434,7 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, mincompstarstotal=-99
                             logger.debug(len(rejectStars) / referenceFrame.shape[0])
                             logger.debug('**********************')
                             imgReject=imgReject+1
+                            photReject.append(q)
                             fileList.remove(file)
                     elif imgRejFlag==0:
                         logger.debug('**********************')
@@ -448,17 +452,20 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, mincompstarstotal=-99
                     logger.error("WCS Coordinates broken")
                     logger.error('**********************')
                     wcsFileReject=wcsFileReject+1
+                    photReject.append(q)
                     fileList.remove(file)
                 else:
                     logger.error('**********************')
                     logger.error("CONTAINS TOO FEW STARS")
                     logger.error('**********************')
                     loFileReject=loFileReject+1
+                    photReject.append(q)
                     fileList.remove(file)
                 sys.stdout.write('.')
                 sys.stdout.flush()
             q=q+1
-            
+        
+        
         # Raise values of imgreject and starreject for next attempt
         starreject=starreject-0.025
         imageFracReject=imageFracReject+0.05
@@ -491,7 +498,10 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, mincompstarstotal=-99
             logger.error("Now trying starreject " +str(starreject) + " and imgreject " +str(imageFracReject))
             referenceFrame=originalReferenceFrame
 
-
+    # Remove files and Hold the photSkyCoords in memory
+    photSkyCoord=delete(photSkyCoord, photReject, axis=0)
+    photFileHolder=delete(photFileHolder, photReject, axis=0)
+    
     # Construct the output file containing candidate comparison stars
     outputComps=[]
     for j in range (referenceFrame.shape[0]):
@@ -513,7 +523,7 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, mincompstarstotal=-99
     # Reject targetstars immediately
 
     # Remove targets from consideration
-    if targets != None:
+    if targets is not None:
         if targets.shape == (4,):
             targets = [targets]
     
@@ -548,9 +558,9 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, mincompstarstotal=-99
             filename = Path(s).name
             f.write(str(filename) +"\n")
     # If a new usedimages.txt has been made, make sure that there is no photcoords in directory
-    if os.path.exists(paths['parent'] / "photSkyCoord"):
-        os.remove(paths['parent'] / "photSkyCoord")
+    #if os.path.exists(paths['parent'] / "photSkyCoord"):
+    #    os.remove(paths['parent'] / "photSkyCoord")
 
     sys.stdout.write('\n')
 
-    return usedImages, outputComps
+    return usedImages, outputComps, photSkyCoord, photFileHolder
