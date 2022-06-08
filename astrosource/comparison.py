@@ -784,35 +784,39 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
     
         logger.info("Number of calibration sources after removal of sources near targets: "+str(len(resp)))
 
+    if len(resp) == 0:
+        logger.info("Looks like your catalogue has too many sources next to nearby sources. ABORTING.")
 
     # Remove any star that has invalid values for mag or magerror
-    catReject=[]
+    if len(resp) != 0:
+        catReject=[]
+        
+        #print (resp[opt['filter']])
+        
+        for q in range(len(resp)):
+            if np.asarray(resp[opt['filter']][q]) == 0.0 or np.asarray(resp[opt['error']][q]) == 0.0 or np.isnan(resp[opt['filter']][q]) or np.isnan(resp[opt['error']][q]):
+                catReject.append(q)
+        del resp[catReject]
+        logger.info(f"Stars rejected that are have invalid mag or magerror entries: {len(catReject)}")
     
-    #print (resp[opt['filter']])
-    
-    for q in range(len(resp)):
-        if np.asarray(resp[opt['filter']][q]) == 0.0 or np.asarray(resp[opt['error']][q]) == 0.0 or np.isnan(resp[opt['filter']][q]) or np.isnan(resp[opt['error']][q]):
-            catReject.append(q)
-    del resp[catReject]
-    logger.info(f"Stars rejected that are have invalid mag or magerror entries: {len(catReject)}")
-
-    if len(resp) == 0:
-        logger.info("Looks like your catalogue doesn't have any suitable comparison magnitudes. ABORTING.")
-        sys.exit()
+        if len(resp) == 0:
+            logger.info("Looks like your catalogue doesn't have any suitable comparison magnitudes. ABORTING.")
+            
 
     # Remove any star from calibration catalogue that has another star in the catalogue within closerejectd arcseconds of it.
-    catReject=[]
-    while True:
-        fileRaDec = SkyCoord(ra=resp[radecname['ra']].data*degree, dec=resp[radecname['dec']].data*degree)
-        idx, d2d, _ = fileRaDec.match_to_catalog_sky(fileRaDec, nthneighbor=2) # Closest matches that isn't itself.
-        catReject = []
-        for q in range(len(d2d)):
-            if d2d[q] < closerejectd*arcsecond:
-                catReject.append(q)
-        if catReject == []:
-            break
-        del resp[catReject]
-        logger.info(f"Stars rejected that are too close (<5arcsec) in calibration catalogue: {len(catReject)}")
+    if len(resp) != 0:
+        catReject=[]
+        while True:
+            fileRaDec = SkyCoord(ra=resp[radecname['ra']].data*degree, dec=resp[radecname['dec']].data*degree)
+            idx, d2d, _ = fileRaDec.match_to_catalog_sky(fileRaDec, nthneighbor=2) # Closest matches that isn't itself.
+            catReject = []
+            for q in range(len(d2d)):
+                if d2d[q] < closerejectd*arcsecond:
+                    catReject.append(q)
+            if catReject == []:
+                break
+            del resp[catReject]
+            logger.info(f"Stars rejected that are too close (<5arcsec) in calibration catalogue: {len(catReject)}")
 
     logger.info(f"Number of calibration sources after removal of sources near other sources: {len(resp)}")
 
@@ -934,6 +938,13 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 else:
 
                     coords = catalogue_call(avgCoord, opt, cat_name, targets=targets, closerejectd=closerejectd)
+                    # If no results try next catalogue
+                    #print (len(coords.ra))
+                    if len(coords.ra) == 0:
+                        coords=[]
+                        raise AstrosourceException("Empty catalogue produced from catalogue call")
+                        
+                    
                     if coords.cat_name == 'PanSTARRS' or coords.cat_name == 'APASS':
                         max_sep=2.5 * arcsecond
                     else:
@@ -1086,7 +1097,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
                     logger.info('Removed ' + str(len(calibStandsReject)) + ' Calibration Stars for being too bright or too dim')
 
-
                     ### If looking for colour, remove those without matching colour information
 
                     calibStandsReject=[]
@@ -1135,7 +1145,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         except AstrosourceException as e:
             logger.debug(e)
 
-    if not coords:
+    if not coords or len(coords.ra)==0:
         raise AstrosourceException(f"Could not find coordinate match in any catalogues for {filterCode}")
 
     savetxt(parentPath / "calibStandsAll.csv", calibStands , delimiter=",", fmt='%0.8f')
