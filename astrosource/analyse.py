@@ -20,6 +20,7 @@ from astrosource.plots import plot_variability
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 
 logger = logging.getLogger('astrosource')
 
@@ -285,7 +286,17 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     plt.cla()
     fig, ax = plt.subplots(figsize =(10, 7))
-    plt.hist2d(meanMags, variations, bins =[xbins, ybins], cmap = plt.cm.nipy_spectral)
+    #plt.hist2d(meanMags, variations, bins =[xbins, ybins], cmap = plt.cm.nipy_spectral)
+    # A low hump with a spike coming out of the top right.  Needs to have
+    #X = meanMags
+    #Y = variations
+    # z/colour axis on a log scale so we see both hump and spike.  linear
+    # scale only shows the spike.
+    #Z1 = np.exp(-X**2 - Y**2)
+    #Z2 = np.exp(-(X * 10)**2 - (Y * 10)**2)
+    #Z = Z1 + 50 * Z2
+    #plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(vmin=variations.min(), vmax=variations.max()), cmap = plt.cm.Purples)
+    plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(), cmap = plt.cm.Purples)
     plt.colorbar()
     plt.title("Variation Histogram")
     ax.set_xlabel('Mean Differential Magnitude') 
