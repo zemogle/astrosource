@@ -296,12 +296,12 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     #Z2 = np.exp(-(X * 10)**2 - (Y * 10)**2)
     #Z = Z1 + 50 * Z2
     #plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(vmin=variations.min(), vmax=variations.max()), cmap = plt.cm.Purples)
-    plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(), cmap = plt.cm.Purples)
+    plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(), cmap = plt.cm.YlOrRd)
     plt.colorbar()
     plt.title("Variation Histogram")
     ax.set_xlabel('Mean Differential Magnitude') 
     ax.set_ylabel('Variation (Standard Deviation)') 
-    plt.plot(potentialVariables[:,2],potentialVariables[:,3],'ro')
+    plt.plot(potentialVariables[:,2],potentialVariables[:,3],'bo')
     plt.tight_layout()
 
     plt.savefig(parentPath / "Variation2DHistogram.png")
