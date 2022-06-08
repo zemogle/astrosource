@@ -52,6 +52,7 @@ class TimeSeries:
         # Colour stuff
         self.colourdetect = kwargs.get('colourdetect', False)
         self.linearise = kwargs.get('linearise', False)
+        self.calibsave = kwargs.get('calibsave', False)
         
         self.variablehunt = kwargs.get('variablehunt', False)
         self.notarget = kwargs.get('notarget', False)
@@ -74,7 +75,7 @@ class TimeSeries:
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
         logger = setup_logger('astrosource', verbose)
-        self.files, self.filtercode = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd,ignoreedgefraction=self.ignoreedgefraction, lowest=self.lowestcounts)
+        self.files, self.filtercode, self.photFileHolder, self.photCoords = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd,ignoreedgefraction=self.ignoreedgefraction, lowest=self.lowestcounts)
 
     def analyse(self, calib=True, usescreenedcomps=False, usecompsused=False, usecompletedcalib=False):
 
@@ -82,9 +83,11 @@ class TimeSeries:
         parentPath = self.paths['parent']
             
         if usescreenedcomps == False:
-            self.usedimages, self.stars, self.photCoords, self.photFileHolder = find_stars(targets=self.targets,
+            self.usedimages, self.stars, self.photFileHolder, self.photCoords = find_stars(targets=self.targets,
                                                                                  paths=self.paths,
                                                                                  fileList=self.files,
+                                                                                 photCoords=self.photCoords, 
+                                                                                 photFileHolder=self.photFileHolder,
                                                                                  mincompstars=self.mincompstars,
                                                                                  mincompstarstotal=self.mincompstarstotal,
                                                                                  imageFracReject=self.imgreject,
@@ -92,18 +95,22 @@ class TimeSeries:
                                                                                  hicounts=self.hicounts,
                                                                                  lowcounts=self.lowcounts,
                                                                                  maxcandidatestars=self.maxcandidatestars)
-            
+            #print (len(self.usedimages))
+            #print (len(self.photFileHolder))
+            #print (len(self.photCoords))
+            #sys.exit()
         else:
             print ("Using screened Comparisons from Previous Run")
             self.usedimages=genfromtxt(parentPath / 'usedImages.txt', dtype=str, delimiter=',')
             self.stars=genfromtxt(parentPath / 'screenedComps.csv', dtype=str, delimiter=',')
         
         if usecompsused ==False:
-            find_comparisons(self.targets, self.indir, self.usedimages, matchRadius=self.matchradius, thresholdCounts=self.thresholdcounts)
+            find_comparisons(self.targets, self.indir, self.usedimages,photFileArray=self.photFileHolder, photSkyCoord=self.photCoords,  matchRadius=self.matchradius, thresholdCounts=self.thresholdcounts)
         else:
             self.usedimages=check_comparisons_files(self.indir, self.files, matchRadius=self.matchradius)
             #Check stars are in images
-            
+        
+        
         
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         if usecompletedcalib == False:
@@ -124,7 +131,8 @@ class TimeSeries:
                                                                                     restrictmagbrightest=self.restrictmagbrightest,
                                                                                     restrictmagdimmest=self.restrictmagdimmest,
                                                                                     photCoordsFile=self.photCoords,
-                                                                                    photFileHolder=self.photFileHolder)
+                                                                                    photFileHolder=self.photFileHolder,
+                                                                                    calibSave=self.calibsave)
     
                     self.calibrated = True
                 except AstrosourceException as e:
@@ -141,6 +149,7 @@ class TimeSeries:
 
     def photometry(self, filesave=False, targets=None):
         self.targets=targets
+
         data = photometric_calculations(targets=self.targets, paths=self.paths, targetRadius=self.targetradius, filesave=filesave, outliererror=self.outliererror, outlierstdev=self.outlierstdev,photCoordsFile=self.photCoords,photFileArray=self.photFileHolder, fileList=self.usedimages)
         self.output(mode='diff', data=data)
         if self.calibrated:

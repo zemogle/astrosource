@@ -111,7 +111,7 @@ def check_comparisons_files(parentPath=None, fileList=None, matchRadius=1.45):
     return usedImages
 
 
-def find_comparisons(targets,  parentPath=None, fileList=None, matchRadius=1.45, stdMultiplier=2.5, thresholdCounts=10000000, variabilityMultiplier=2.5, removeTargets=True):
+def find_comparisons(targets,  parentPath=None, fileList=None, photFileArray=None, photSkyCoord=None, matchRadius=1.45, stdMultiplier=2.5, thresholdCounts=10000000, variabilityMultiplier=2.5, removeTargets=True):
     '''
     Find stable comparison stars for the target photometry
 
@@ -144,7 +144,10 @@ def find_comparisons(targets,  parentPath=None, fileList=None, matchRadius=1.45,
     if type(parentPath) == 'str':
         parentPath = Path(parentPath)
 
-    compFile, photFileArray = read_data_files(parentPath, fileList)
+    #compFile, photFileArray = read_data_files(parentPath, fileList)
+
+    screened_file = parentPath / "screenedComps.csv"
+    compFile = genfromtxt(screened_file, dtype=float, delimiter=',')
 
     compFile = remove_stars_targets(parentPath, compFile, matchRadius, targets, removeTargets)
 
@@ -157,11 +160,11 @@ def find_comparisons(targets,  parentPath=None, fileList=None, matchRadius=1.45,
     #     with open(parentPath / "photSkyCoord", 'rb') as f:
     #         photSkyCoord=pickle.load(f)
     # else:
-    print ("Constructing Sky Coords for photometry files....")
-    photSkyCoord=[]
-    for q, photFile in enumerate(photFileArray):
-        #print (q)
-        photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
+    # print ("Constructing Sky Coords for photometry files....")
+    # photSkyCoord=[]
+    # for q, photFile in enumerate(photFileArray):
+    #     #print (q)
+    #     photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
     #file1=open(parentPath / "photSkyCoord","wb")
     #pickle.dump(photSkyCoord, file1)
     #file1.close
@@ -369,6 +372,7 @@ def ensemble_comparisons(photFileArray, compFile, parentPath, photSkyCoord):
             matchCoord = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
         #print (compFile[:,0])
         #testStars=SkyCoord(ra = referenceFrame[:,0]*u.degree, dec = referenceFrame[:,1]*u.degree)
+
         idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
         #rejectStars=where(d2d.arcsecond > acceptDistance)[0] 
         #print (photFile[idx,4])
@@ -783,11 +787,18 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
 
     # Remove any star that has invalid values for mag or magerror
     catReject=[]
+    
+    #print (resp[opt['filter']])
+    
     for q in range(len(resp)):
         if np.asarray(resp[opt['filter']][q]) == 0.0 or np.asarray(resp[opt['error']][q]) == 0.0 or np.isnan(resp[opt['filter']][q]) or np.isnan(resp[opt['error']][q]):
             catReject.append(q)
     del resp[catReject]
     logger.info(f"Stars rejected that are have invalid mag or magerror entries: {len(catReject)}")
+
+    if len(resp) == 0:
+        logger.info("Looks like your catalogue doesn't have any suitable comparison magnitudes. ABORTING.")
+        sys.exit()
 
     # Remove any star from calibration catalogue that has another star in the catalogue within closerejectd arcseconds of it.
     catReject=[]
@@ -817,7 +828,7 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
 
     return data
 
-def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, colourdetect=False, linearise=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, colourTerm=0.0, colourError=0.0, restrictmagbrightest=-99.9, restrictmagdimmest=99.9, photCoordsFile=None, photFileHolder=None):
+def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, colourdetect=False, linearise=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, colourTerm=0.0, colourError=0.0, restrictmagbrightest=-99.9, restrictmagdimmest=99.9, photCoordsFile=None, photFileHolder=None, calibSave=False):
     
 
     sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
@@ -1619,8 +1630,9 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
         file = Path(file)
         #Save the calibrated photfiles to the calib directory
-        savetxt(calibPath / "{}.calibrated.{}".format(file.stem, 'csv'), photFile, delimiter=",", fmt='%0.8f')
-        savetxt(calibPath / "{}.compared.{}".format(file.stem, 'csv'), calibOut, delimiter=",", fmt='%0.8f')
+        if calibSave != False:
+            savetxt(calibPath / "{}.calibrated.{}".format(file.stem, 'csv'), photFile, delimiter=",", fmt='%0.8f')
+            savetxt(calibPath / "{}.compared.{}".format(file.stem, 'csv'), calibOut, delimiter=",", fmt='%0.8f')
 
 
         #PRINT POSTCOLOUR CORRECTION PLOTS

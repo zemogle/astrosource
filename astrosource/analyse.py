@@ -300,6 +300,12 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
     photometrydata = []
     sys.stdout.write('🖥 Starting photometric calculations\n')
 
+
+    #print (photFileArray)
+    #print (fileList)
+    # print (len(photFileArray))
+    # print (len(fileList))
+    # sys.exit()
     #photFileArray,fileList = photometry_files_to_array(paths['parent'])
 
     if (paths['parent'] / 'calibCompsUsed.csv').exists():
@@ -366,6 +372,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
         #compList=[]
         allcountscount=0
 
+        
         for imgs, photFile in enumerate(photFileArray):
             sys.stdout.write('.')
             #compList=[]
