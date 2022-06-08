@@ -80,7 +80,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--notarget',  is_flag=True, help='Do not provide a target and use astrosource for other means')
 
 @click.option('--colourdetect',  is_flag=True, help='Run a routine to detect the colour term for the filter')
-@click.option('--linearise',  is_flag=True, help='Use the calibration to make the measurements linear (for slopes > 0.01 or 0.02 in mag)')
+@click.option('--linearise',  is_flag=True, help='Use the calibration to make the measurements linear across the magnitude range (for slopes > 0.01 or 0.02 in mag)')
 @click.option('--colourterm',  type=float, default=0.0, help='Provide a known colour term for the filter')
 @click.option('--colourerror',  type=float, default=0.0, help='Provide a known colour error for the filter')
 @click.option('--targetcolour',  type=float, default=-99.0, help='Provide a known colour for the target')

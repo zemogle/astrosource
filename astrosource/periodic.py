@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 
 import logging
 
-from astrosource.utils import photometry_files_to_array, AstrosourceException
+#from astrosource.utils import photometry_files_to_array, AstrosourceException
+from astrosource.utils import AstrosourceException
 from astropy.timeseries import LombScargle
 
 logger = logging.getLogger('astrosource')

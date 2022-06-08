@@ -111,7 +111,7 @@ class TimeSeries:
             if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs', 'CV']:
                 try:
                     
-                    self.colourterm, self.colourerror, _ = find_comparisons_calibrated(targets=self.targets,
+                    self.colourterm, self.colourerror, self.calibcompsused = find_comparisons_calibrated(targets=self.targets,
                                                                                     filterCode=self.filtercode,
                                                                                     paths=self.paths,
                                                                                     nopanstarrs=self.nopanstarrs,
@@ -137,14 +137,14 @@ class TimeSeries:
         
 
     def find_variables(self):
-        find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius, varsearchthresh=self.varsearchthresh, varsearchstdev=self.varsearchstdev, varsearchmagwidth=self.varsearchmagwidth, varsearchminimages=self.varsearchminimages)
+        find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius, varsearchthresh=self.varsearchthresh, varsearchstdev=self.varsearchstdev, varsearchmagwidth=self.varsearchmagwidth, varsearchminimages=self.varsearchminimages, photCoords=self.photCoords)
 
     def photometry(self, filesave=False, targets=None):
         self.targets=targets
-        data = photometric_calculations(targets=self.targets, paths=self.paths, targetRadius=self.targetradius, filesave=filesave, outliererror=self.outliererror, outlierstdev=self.outlierstdev)
+        data = photometric_calculations(targets=self.targets, paths=self.paths, targetRadius=self.targetradius, filesave=filesave, outliererror=self.outliererror, outlierstdev=self.outlierstdev,photCoordsFile=self.photCoords,photFileArray=self.photFileHolder, fileList=self.usedimages)
         self.output(mode='diff', data=data)
         if self.calibrated:
-            self.data = calibrated_photometry(paths=self.paths, photometrydata=data, colourterm=self.colourterm,colourerror=self.colourerror,colourdetect=self.colourdetect,linearise=self.linearise,targetcolour=self.targetcolour,rejectmagbrightest=self.rejectmagbrightest,rejectmagdimmest=self.rejectmagdimmest)
+            self.data = calibrated_photometry(paths=self.paths, photometrydata=data, colourterm=self.colourterm,colourerror=self.colourerror,colourdetect=self.colourdetect,linearise=self.linearise,targetcolour=self.targetcolour,rejectmagbrightest=self.rejectmagbrightest,rejectmagdimmest=self.rejectmagdimmest, calibCompFile=self.calibcompsused)
             self.output(mode='calib', data=self.data)
         else:
             self.data = data

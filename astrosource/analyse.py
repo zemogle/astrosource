@@ -13,7 +13,8 @@ import os
 
 import logging
 
-from astrosource.utils import photometry_files_to_array, AstrosourceException
+#from astrosource.utils import photometry_files_to_array, AstrosourceException
+from astrosource.utils import AstrosourceException
 from astrosource.plots import plot_variability
 
 import matplotlib
@@ -23,16 +24,19 @@ import matplotlib.pyplot as plt
 logger = logging.getLogger('astrosource')
 
 
-def get_total_counts(photFileArray, compFile, loopLength):
+def get_total_counts(photFileArray, compFile, loopLength, photCoords):
 
     compArray = []
     allCountsArray = []
     logger.debug("***************************************")
     logger.debug("Calculating total counts")
+    counter=0
     for photFile in photFileArray:
         allCounts = 0.0
         allCountsErr = 0.0
-        fileRaDec = SkyCoord(ra=photFile[:, 0]*degree, dec=photFile[:, 1]*degree)
+        #fileRaDec = SkyCoord(ra=photFile[:, 0]*degree, dec=photFile[:, 1]*degree)
+        fileRaDec = photCoords[counter]
+        counter=counter+1
         #Array of comp measurements
         for j in range(loopLength):
             if compFile.size == 2 or (compFile.shape[0]== 3 and compFile.size ==3) or (compFile.shape[0]== 5 and compFile.size ==5):
@@ -49,7 +53,7 @@ def get_total_counts(photFileArray, compFile, loopLength):
     #logger.debug(allCountsArray)
     return allCountsArray
 
-def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None, varsearchthresh=10000, varsearchstdev=2.0, varsearchmagwidth=0.25, varsearchminimages=0.3):
+def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None, varsearchthresh=10000, varsearchstdev=2.0, varsearchmagwidth=0.25, varsearchminimages=0.3, photCoords=None):
     '''
     Find stable comparison stars for the target photometry and remove variables
 
@@ -106,7 +110,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     outputPhot = []
 
     # Get total counts for each file
-    allCountsArray = get_total_counts(photFileArray, compFile, loopLength=compFile.shape[0])
+    allCountsArray = get_total_counts(photFileArray, compFile, loopLength=compFile.shape[0], photCoords=photCoords)
 
     # Define targetlist as every star in referenceImage above a count threshold
     logger.debug("Setting up Variable Search List")
@@ -290,13 +294,13 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     return outputVariableHolder
 
-def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, filesave=True, outliererror=4, outlierstdev=4):
+def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, filesave=True, outliererror=4, outlierstdev=4,photCoordsFile=None, photFileArray=None, fileList=None):
       
     fileCount=[]
     photometrydata = []
     sys.stdout.write('🖥 Starting photometric calculations\n')
 
-    photFileArray,fileList = photometry_files_to_array(paths['parent'])
+    #photFileArray,fileList = photometry_files_to_array(paths['parent'])
 
     if (paths['parent'] / 'calibCompsUsed.csv').exists():
         logger.debug("Calibrated")
@@ -320,12 +324,13 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
 
 
 
+    
     # Get total counts for each file
     if compFile.shape[0]== 5 and compFile.size ==5:
         loopLength=1
     else:
         loopLength=compFile.shape[0]
-    allCountsArray = get_total_counts(photFileArray, compFile, loopLength)
+    allCountsArray = get_total_counts(photFileArray, compFile, loopLength, photCoords=photCoordsFile)
 
     allcountscount=0
 
@@ -334,6 +339,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
         loopLength=1
     else:
         loopLength=targets.shape[0]
+
     # For each variable calculate all the things
     for q in range(loopLength):
         starErrorRejCount=0
@@ -356,13 +362,15 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
         # Grabbing variable rows
         logger.debug("Extracting and Measuring Differential Magnitude in each Photometry File")
         outputPhot=[] # new
-        compArray=[]
-        compList=[]
+        #compArray=[]
+        #compList=[]
         allcountscount=0
+
         for imgs, photFile in enumerate(photFileArray):
             sys.stdout.write('.')
-            compList=[]
-            fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
+            #compList=[]
+            #fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
+            fileRaDec = photCoordsFile[imgs]
             idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
             starRejected=0
             if (less(d2d.arcsecond, targetRadius)):
@@ -398,7 +406,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                             matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
                         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
                         tempList=append(tempList, photFileArray[imgs][idx][4])
-                    # logger.debug(f"{tempList}")
+                    #logger.debug(f"{tempList}")
                     outputPhot.append(tempList)
 
                     fileCount.append(allCountsArray[allcountscount][0])
@@ -407,14 +415,16 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                 else:
                     starErrorRejCount=starErrorRejCount+1
                     starRejected=1
+                    
             else:
                 starDistanceRejCount=starDistanceRejCount+1
                 starRejected=1
                 
             if ( starRejected == 1):
+                    #print (starRejected)
 
                     #templist is a temporary holder of the resulting file.
-                    tempList=photFileArray[imgs][idx,:]
+                    tempList=photFileArray[imgs][idx,0:6]
                     googFile = Path(fileList[imgs]).name
                     tempList=append(tempList, float(googFile.split("_")[2].replace("d",".")))
                     tempList=append(tempList, float(googFile.split("_")[4].replace("a",".")))
@@ -443,18 +453,29 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                     fileCount.append(allCountsArray[allcountscount][0])
                     allcountscount=allcountscount+1
 
+
+
+        
+        #print (outputPhot[j][11])
         # Check for dud images
         imageReject=[]
         for j in range(asarray(outputPhot).shape[0]):
             if isnan(outputPhot[j][11]):
                 imageReject.append(j)
+        #print (imageReject)
         outputPhot=delete(outputPhot, imageReject, axis=0)
+        
+        outputPhot=np.vstack(asarray(outputPhot))
+
         try:
             outputPhot=np.vstack(asarray(outputPhot))
         except ValueError:
             #raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
             logger.info("This target star was not detected in your dataset. Check your input target(s) RA/Dec")
 
+       
+        #sys.exit()
+        #outputPhot=asarray
         ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
         stdVar=nanstd((outputPhot)[:,10])
         avgVar=nanmean((outputPhot)[:,10])
@@ -523,12 +544,12 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
     # photometrydata = trim_catalogue(photometrydata)
     return photometrydata
 
-def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colourdetect, linearise, targetcolour, rejectmagbrightest, rejectmagdimmest):
+def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colourdetect, linearise, targetcolour, rejectmagbrightest, rejectmagdimmest, calibCompFile):
     pdata = []
-
+    #calibCompFile = genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
     for j, outputPhot in enumerate(photometrydata):
-        calibCompFile = genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
-        compFile = genfromtxt(paths['parent'] / 'stdComps.csv', dtype=float, delimiter=',')
+        
+        #compFile = genfromtxt(paths['parent'] / 'stdComps.csv', dtype=float, delimiter=',')
         logger.info("Calibrating Photometry")
         # Load in calibrated magnitudes and add them
         single_value = True if calibCompFile.shape[0] == 5 and calibCompFile.size != 25 else False

@@ -340,8 +340,18 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, mincompstarstotal=-99
     referenceFrame=delete(referenceFrame, rejectStars, axis=0)
     logger.debug("Final count range, Low: " +str(int(lowcounts))+ " High: "+ str(int(hicounts)))
 
+    #Prepping files.
+    photSkyCoord=[]
+    photFileHolder=[]
+    for file in fileList: 
+        photFile = load(paths['parent'] / file)
+        photFileHolder.append(photFile)
+        photSkyCoord.append(SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree))
+
     originalReferenceFrame=referenceFrame
     originalfileList=fileList
+    originalphotSkyCoord=photSkyCoord
+    originalphotFileHolder=photFileHolder
     compchecker=0
 
     mincompstars=int(referenceFrame.shape[0]*mincompstars) # Transform mincompstars variable from fraction of stars into number of stars.
@@ -360,13 +370,7 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, mincompstarstotal=-99
         loFileReject = 0 # Number of images rejected due to too few stars in the photometry file
         wcsFileReject=0
         
-        #Prepping files.
-        photSkyCoord=[]
-        photFileHolder=[]
-        for file in fileList: 
-            photFile = load(paths['parent'] / file)
-            photFileHolder.append(photFile)
-            photSkyCoord.append(SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree))
+        
             
             
         q=0
@@ -478,6 +482,9 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, mincompstarstotal=-99
                 sys.stdout.flush()
             q=q+1
         
+        # Remove files and Hold the photSkyCoords in memory
+        photSkyCoord=delete(photSkyCoord, photReject, axis=0)
+        photFileHolder=delete(photFileHolder, photReject, axis=0)
         
         # Raise values of imgreject and starreject for next attempt
         starreject=starreject-0.025
@@ -504,6 +511,8 @@ def find_stars(targets, paths, fileList, mincompstars=0.1, mincompstarstotal=-99
             imageFracReject=0.05
             referenceFrame=originalReferenceFrame
             fileList=originalfileList
+            photSkyCoord=originalphotSkyCoord
+            photFileHolder=originalphotFileHolder
 
         elif (compchecker < mincompstars):
             logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
