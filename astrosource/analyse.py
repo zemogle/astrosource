@@ -53,7 +53,7 @@ def get_total_counts(photFileArray, compFile, loopLength, photCoords):
     #logger.debug(allCountsArray)
     return allCountsArray
 
-def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None, varsearchthresh=10000, varsearchstdev=2.0, varsearchmagwidth=0.25, varsearchminimages=0.3, photCoords=None):
+def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None, varsearchthresh=10000, varsearchstdev=2.0, varsearchmagwidth=0.25, varsearchminimages=0.3, photCoords=None, photFileHolder=None, fileList=None):
     '''
     Find stable comparison stars for the target photometry and remove variables
 
@@ -72,23 +72,26 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     '''
 
 
-    # Load in list of used files
-    fileList = []
-    with open(parentPath / "usedImages.txt", "r") as f:
-        for line in f:
-            fileList.append(line.strip())
+    # # Load in list of used files
+    # fileList = []
+    # with open(parentPath / "usedImages.txt", "r") as f:
+    #     for line in f:
+    #         fileList.append(line.strip())
+
+    photFileArray=photFileHolder
+    photFileCoords=photCoords
 
     # allocate minimum images to detect
     minimumNoOfObs=int(varsearchminimages*len(fileList))
     logger.debug("Minimum number of observations to detect: " + str(minimumNoOfObs))
     
-    # LOAD Phot FILES INTO LIST
-    photFileArray = []
-    for file in fileList:
-        photFileArray.append(load(parentPath / file))
+    # # LOAD Phot FILES INTO LIST
+    # photFileArray = []
+    # for file in fileList:
+    #     photFileArray.append(load(parentPath / file))
 
-    if not photFileArray:
-        raise AstrosourceException("No input files")
+    #if not photFileArray:
+    #    raise AstrosourceException("No input files")
 
     # LOAD IN COMPARISON FILE
     preFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
@@ -131,10 +134,10 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     outputVariableHolder=[]
     
     # Prep photfile coordinates
-    photFileCoords=[]
+    #photFileCoords=[]
 
-    for photFile in photFileArray:
-        photFileCoords.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
+    #for photFile in photFileArray:
+    #    photFileCoords.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
         
     logger.debug("Measuring variability of stars...... ")
         
