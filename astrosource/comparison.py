@@ -1628,9 +1628,11 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         
 
 
-        file = Path(file)
+        
         #Save the calibrated photfiles to the calib directory
-        if calibSave != False:
+        if calibSave == True:
+            #print ("SPLAY")
+            file = Path(file)
             savetxt(calibPath / "{}.calibrated.{}".format(file.stem, 'csv'), photFile, delimiter=",", fmt='%0.8f')
             savetxt(calibPath / "{}.compared.{}".format(file.stem, 'csv'), calibOut, delimiter=",", fmt='%0.8f')
 
