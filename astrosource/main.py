@@ -78,6 +78,8 @@ logger = logging.getLogger('astrosource')
 @click.option('--outlierstdev', type=float, default=4, help='Ignore measurements that have a magnitude this many standard deviatons outside the mean')
 
 @click.option('--variablehunt', is_flag=True, help='Do a variable search in astrosource and then use the potentialVariables as a targetlist')
+@click.option('--usepreviousvarsearch', is_flag=True, help='Do not repeat the variability measurements for all stars, use the previously calculated ones')
+
 @click.option('--notarget',  is_flag=True, help='Do not provide a target and use astrosource for other means')
 
 @click.option('--colourdetect',  is_flag=True, help='Run a routine to detect the colour term for the filter')
@@ -90,7 +92,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--rejectmagbrightest', type=float, default=-99.0, help='Remove calibrated measurements brighter than this from target results')
 @click.option('--rejectmagdimmest', type=float, default=99.0, help='Remove calibrated measurements dimmer than this from target results')
 
-def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescreenedcomps, calibsave, outliererror, outlierstdev, varsearchstdev, varsearchmagwidth, varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests,  thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius):
+def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescreenedcomps, usepreviousvarsearch, calibsave, outliererror, outlierstdev, varsearchstdev, varsearchmagwidth, varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests,  thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius):
 
     try:
         parentPath = Path(indir)
@@ -149,6 +151,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
                         calibsave=calibsave,
                         notarget=notarget,
                         usescreenedcomps=usescreenedcomps,
+                        usepreviousvarsearch=usepreviousvarsearch,
                         colourterm=colourterm,
                         colourerror=colourerror,
                         targetcolour=targetcolour,
@@ -170,7 +173,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
 
         if full or comparison:
             ts.analyse(usescreenedcomps=usescreenedcomps, usecompsused=usecompsused, usecompletedcalib=usecompletedcalib)
-        if (full or calc) and varsearch:
+        if (full or calc) and varsearch and not usepreviousvarsearch:
             ts.find_variables()
 
         if variablehunt == True:
