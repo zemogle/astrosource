@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import os
 import logging
+import pickle
 
 from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan, zeros, max, min, nan, where
 from astropy import units as u
@@ -222,6 +223,8 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
     #print (ignoreedgefraction)
     #sys.exit()
 
+
+
     # Remove old npy files
     #for fname in paths['parent'].glob("*.npy"):
     #    os.remove(fname)
@@ -261,8 +264,10 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
     
     if len(filters) > 1:
         raise AstrosourceException("Check your images, the script detected multiple filters in your file list. Astrosource currently only does one filter at a time.")
-        
     
+    file1=open(paths['parent'] / "filterCode","wb")
+    pickle.dump(filterCode, file1)
+    file1.close
         
     return phot_list, filterCode, photFileHolder, photSkyCoord
 
@@ -303,6 +308,12 @@ def find_stars(targets, paths, fileList, photCoords=None, photFileHolder=None, m
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
     
+    #If a new usedimages.txt has been made, make sure that there is no photcoords in directory
+    if os.path.exists(paths['parent'] / "photSkyCoord"):
+        os.remove(paths['parent'] / "photSkyCoord")
+    if os.path.exists(paths['parent'] / "photFileHolder"):
+        os.remove(paths['parent'] / "photFileHolder")
+
 
 
     fileSizer=0
@@ -651,5 +662,14 @@ def find_stars(targets, paths, fileList, photCoords=None, photFileHolder=None, m
     # print (len(photCoords))
     # print (len(usedImages))
     # sys.exit()
+
+        
+    file1=open(paths['parent'] / "photSkyCoord","wb")
+    pickle.dump(photCoords, file1)
+    file1.close
+    
+    file1=open(paths['parent'] / "photFileHolder","wb")
+    pickle.dump(photFileHolder, file1)
+    file1.close
 
     return fileList, outputComps, photFileHolder, photCoords

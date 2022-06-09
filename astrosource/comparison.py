@@ -29,7 +29,7 @@ logger = logging.getLogger('astrosource')
 
 
 
-def check_comparisons_files(parentPath=None, fileList=None, matchRadius=1.45):
+def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, photSkyCoord=None, matchRadius=1.45):
     '''
     Find stable comparison stars for the target photometry
     '''
@@ -45,29 +45,29 @@ def check_comparisons_files(parentPath=None, fileList=None, matchRadius=1.45):
     
     
     
-    photFileArray = []
-    for file in fileList:
-        photFileArray.append(load(parentPath / file))
-    photFileArray = asarray(photFileArray)
+    # photFileArray = []
+    # for file in fileList:
+    #     photFileArray.append(load(parentPath / file))
+    # photFileArray = asarray(photFileArray)
     
     compFile = genfromtxt(parentPath / 'compsUsed.csv', dtype=float, delimiter=',')
     
-    #print ("Constructing Sky Coords for photometry files....")
-    photSkyCoord=[]
-    for q, photFile in enumerate(photFileArray):
-        #print (q)
-        photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
-    #file1=open(parentPath / "photSkyCoord","wb")
-    #pickle.dump(photSkyCoord, file1)
-    #file1.close
-    q=0
+    # #print ("Constructing Sky Coords for photometry files....")
+    # photSkyCoord=[]
+    # for q, photFile in enumerate(photFileArray):
+    #     #print (q)
+    #     photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
+    # #file1=open(parentPath / "photSkyCoord","wb")
+    # #pickle.dump(photSkyCoord, file1)
+    # #file1.close
+    # q=0
     
-    photFileHolder=[]
-    photSkyCoord=[]
-    for file in fileList: 
-        photFile = load(parentPath / file)
-        photFileHolder.append(photFile)
-        photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
+    # photFileHolder=[]
+    # photSkyCoord=[]
+    # for file in fileList: 
+    #     photFile = load(parentPath / file)
+    #     photFileHolder.append(photFile)
+    #     photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
     
     usedImages=[]
     q=0
@@ -99,6 +99,8 @@ def check_comparisons_files(parentPath=None, fileList=None, matchRadius=1.45):
         q=q+1
     
     fileList=delete(fileList, imageRemove, axis=0)
+    photSkyCoord=delete(photSkyCoord, imageRemove, axis=0)
+    photFileArray=delete(photFileArray, imageRemove, axis=0)
     
     used_file =parentPath / "usedImages.txt"
     with open(used_file, "w") as f:
@@ -108,7 +110,7 @@ def check_comparisons_files(parentPath=None, fileList=None, matchRadius=1.45):
     
     logger.debug('Checking Completed.')
     
-    return usedImages
+    return usedImages, photSkyCoord, photFileArray
 
 
 def find_comparisons(targets,  parentPath=None, fileList=None, photFileArray=None, photSkyCoord=None, matchRadius=1.45, stdMultiplier=2.5, thresholdCounts=10000000, variabilityMultiplier=2.5, removeTargets=True):

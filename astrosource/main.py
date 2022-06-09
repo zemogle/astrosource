@@ -148,6 +148,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
                         variablehunt=variablehunt,
                         calibsave=calibsave,
                         notarget=notarget,
+                        usescreenedcomps=usescreenedcomps,
                         colourterm=colourterm,
                         colourerror=colourerror,
                         targetcolour=targetcolour,

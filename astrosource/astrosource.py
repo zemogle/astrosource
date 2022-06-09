@@ -3,6 +3,7 @@ import logging
 import sys
 import os
 import ssl
+import pickle
 
 if (not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unverified_context', None)):
     ssl._create_default_https_context = ssl._create_unverified_context
@@ -56,7 +57,7 @@ class TimeSeries:
         
         self.variablehunt = kwargs.get('variablehunt', False)
         self.notarget = kwargs.get('notarget', False)
-        
+        self.usescreenedcomps = kwargs.get('usescreenedcomps', False)
         
         self.colourterm = kwargs.get('colourterm', 0.0)
         self.colourerror = kwargs.get('colourerror', 0.0)
@@ -75,7 +76,13 @@ class TimeSeries:
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
         logger = setup_logger('astrosource', verbose)
-        self.files, self.filtercode, self.photFileHolder, self.photCoords = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd,ignoreedgefraction=self.ignoreedgefraction, lowest=self.lowestcounts)
+        
+        
+        #print (self.usescreenedcomps)
+        #sys.exit()
+        
+        if self.usescreenedcomps == False:
+            self.files, self.filtercode, self.photFileHolder, self.photCoords = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd,ignoreedgefraction=self.ignoreedgefraction, lowest=self.lowestcounts)
 
     def analyse(self, calib=True, usescreenedcomps=False, usecompsused=False, usecompletedcalib=False):
 
@@ -101,13 +108,30 @@ class TimeSeries:
             #sys.exit()
         else:
             print ("Using screened Comparisons from Previous Run")
+            # Create or load in skycoord array
+            if os.path.exists(parentPath / "photSkyCoord"):
+                 print ("Loading Sky coords for photometry files")
+                 with open(parentPath / "photSkyCoord", 'rb') as f:
+                     self.photCoords=pickle.load(f)
+            #Create or load in photfileholder array
+            if os.path.exists(parentPath / ""):
+                print ("Loading Sky coords for photometry files")
+                with open(parentPath / "photFileHolder", 'rb') as f:
+                    self.photFileHolder=pickle.load(f)
+            if os.path.exists(parentPath / ""):
+                print ("Loading filterCode")
+                with open(parentPath / "filterCode", 'rb') as f:
+                    self.filtercode=pickle.load(f)
             self.usedimages=genfromtxt(parentPath / 'usedImages.txt', dtype=str, delimiter=',')
-            self.stars=genfromtxt(parentPath / 'screenedComps.csv', dtype=str, delimiter=',')
+            self.stars=genfromtxt(parentPath / 'screenedComps.csv', dtype=float, delimiter=',')
         
+        #print (usecompsused)
+        #sys.exit()
         if usecompsused ==False:
             find_comparisons(self.targets, self.indir, self.usedimages,photFileArray=self.photFileHolder, photSkyCoord=self.photCoords,  matchRadius=self.matchradius, thresholdCounts=self.thresholdcounts)
         else:
-            self.usedimages=check_comparisons_files(self.indir, self.files, matchRadius=self.matchradius)
+            self.files=genfromtxt(parentPath / 'usedImages.txt', dtype=str, delimiter=',')
+            self.usedimages,self.photCoords,self.photFileHolder=check_comparisons_files(self.indir, self.files, photFileArray=self.photFileHolder, photSkyCoord=self.photCoords, matchRadius=self.matchradius)
             #Check stars are in images
         
         
@@ -140,6 +164,7 @@ class TimeSeries:
             elif calib:
                 sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration\n')
         else:
+            self.calibcompsused=genfromtxt(parentPath / 'calibCompsUsed.csv', dtype=float, delimiter=',')
             self.calibrated = True
         
         
