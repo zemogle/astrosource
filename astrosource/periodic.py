@@ -1774,6 +1774,9 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         if calibFile.exists():
             if (calibData.size > 3):
                 pdm=phase_dispersion_minimization(calibData, periodsteps, minperiod, maxperiod, numBins, periodPath, variableName)
+            else:
+                logger.info("Calibration File not large enough to run period methods on Calibrated data, running on differential data")
+                pdm=phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, numBins, periodPath, variableName)
         else:
             pdm=phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, numBins, periodPath, variableName)
 
@@ -1946,6 +1949,13 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
                 else:
                     binsize=0.05
                 minperbin=int((len(calibData[:,0])/10))
+            elif (varData.size > 3):
+                if len(varData[:,0]) < 75:
+                    binsize=0.1
+                else:
+                    binsize=0.05
+                minperbin=int((len(varData[:,0])/10))
+                
         else:
             if (varData.size > 3):
                 if len(varData[:,0]) < 75:
@@ -1954,10 +1964,12 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
                     binsize=0.05
                 minperbin=int((len(varData[:,0])/10))
         
-
-        
-        if minperbin > 10:
-            minperbin=10
+        if 'minperbin' in locals():
+            if minperbin > 10:
+                minperbin=10
+        else:
+            minperbin = 3
+            
         
         # Theta Anova Method off for the moment until I put in a command-line option
         
@@ -1976,6 +1988,9 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         if calibFile.exists():
             if (calibData.size > 3):
                 aovhmoutput=aovhm_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
+            elif (varData.size > 3):                
+                aovhmoutput=aovhm_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
+                
         else:
             if (varData.size > 3):
                 aovhmoutput=aovhm_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)

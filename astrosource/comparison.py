@@ -1511,10 +1511,14 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         notNanTemp=photFile[np.isnan(photFile).any(axis=1)] #rows where any value is nan
         notNanTemp[:,4]=-2.5*log10(notNanTemp[:,4]) -(colourTerm*notNanTemp[:,8])
         
-        
+        emptyCalibFlag=0
         NanTemp=photFile[~np.isnan(photFile).any(axis=1)] #rows where no value is nan
-        NanTemp[:,4]=-2.5*log10(photFile[:,4])
-        NanTemp[:,10]=2 # 2 means that there was no colour to use to embed the colour.
+        if len(NanTemp) != 0:            
+            NanTemp[:,4]=-2.5*log10(photFile[:,4])
+            NanTemp[:,10]=2 # 2 means that there was no colour to use to embed the colour.
+        else:
+            emptyCalibFlag=1
+        
         
         photFile=np.concatenate([notNanTemp,NanTemp])
         del notNanTemp
@@ -1699,6 +1703,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         sys.stdout.flush()
     
     #print(datetime.now().strftime("%H:%M:%S"))
+
+    if emptyCalibFlag==1:
+        logger.info("\nSome or all of the photometry files did not calibrate successfully due to NAN values in the calibration catalogue.")
+    
 
     # Reject outliers in colour slope
     if colourdetect == True:
