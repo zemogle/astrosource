@@ -119,6 +119,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
             
         if variablehunt == True:
             varsearch=True
+            full=True
 
         if usecompletedcalib == True:
             usecompsused = True

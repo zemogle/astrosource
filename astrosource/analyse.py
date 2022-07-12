@@ -484,71 +484,80 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
             if isnan(outputPhot[j][11]):
                 imageReject.append(j)
         #print (imageReject)
+        #print (outputPhot)
         outputPhot=delete(outputPhot, imageReject, axis=0)
         
-        outputPhot=np.vstack(asarray(outputPhot))
+        #print (outputPhot)
+        
+        #outputPhot=np.vstack(asarray(outputPhot))
 
         try:
             outputPhot=np.vstack(asarray(outputPhot))
+        
+       
+            #sys.exit()
+            #outputPhot=asarray
+            ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
+            stdVar=nanstd((outputPhot)[:,10])
+            avgVar=nanmean((outputPhot)[:,10])
+            starReject=[]
+            stdevReject=0
+            # Reject by simple major stdev elimination
+            while True:
+                starReject=[]
+                for j in range(asarray(outputPhot).shape[0]):
+                    
+                    if outputPhot[j][10] > avgVar+(4*stdVar) or outputPhot[j][10] < avgVar-(4*stdVar) :
+                        starReject.append(j)
+                        stdevReject=stdevReject+1
+                
+                if starReject != []:
+                    outputPhot=delete(outputPhot, starReject, axis=0)
+                else:
+                    break
+            
+            # Reject by outsized error elimination
+            
+            while True:
+                errorsArray=[]
+                for j in range(asarray(outputPhot).shape[0]):
+                    errorsArray.append(outputPhot[j][11])
+                errorsArray=np.asarray(errorsArray)
+                #print (errorsArray)
+                stdErrors=nanstd(errorsArray)
+                avgErrors=nanmean(errorsArray)      
+                #print (stdErrors)
+                #print (avgErrors)
+                starReject=[]
+                for j in range(asarray(outputPhot).shape[0]):
+                    if outputPhot[j][11] > avgErrors+(4*stdErrors):
+                        starReject.append(j)
+                        starErrorRejCount=starErrorRejCount+1
+                
+                if starReject != []:
+                    outputPhot=delete(outputPhot, starReject, axis=0)
+                else:
+                    break
+                        
+            #sys.exit()
+            sys.stdout.write('\n')
+            logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
+            logger.info("Rejected Error Measurements: : {}".format(starErrorRejCount))
+            logger.info("Rejected Distance Measurements: : {}".format(starDistanceRejCount))
+            logger.info("Variability of Comparisons")
+            logger.info("Average : {}".format(avgVar))
+            logger.info("Stdev   : {}".format(stdVar))
+            
+            outputPhot=delete(outputPhot, starReject, axis=0)
+
         except ValueError:
             #raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
-            logger.info("This target star was not detected in your dataset. Check your input target(s) RA/Dec")
+            logger.info("\nThis target star was not detected in your dataset. Check your input target(s) RA/Dec")
+            #logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
+            logger.info("Rejected Error Measurements: : {}".format(starErrorRejCount))
+            logger.info("Rejected Distance Measurements: : {}".format(starDistanceRejCount))
 
-       
-        #sys.exit()
-        #outputPhot=asarray
-        ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
-        stdVar=nanstd((outputPhot)[:,10])
-        avgVar=nanmean((outputPhot)[:,10])
-        starReject=[]
-        stdevReject=0
-        # Reject by simple major stdev elimination
-        while True:
-            starReject=[]
-            for j in range(asarray(outputPhot).shape[0]):
-                
-                if outputPhot[j][10] > avgVar+(4*stdVar) or outputPhot[j][10] < avgVar-(4*stdVar) :
-                    starReject.append(j)
-                    stdevReject=stdevReject+1
-            
-            if starReject != []:
-                outputPhot=delete(outputPhot, starReject, axis=0)
-            else:
-                break
         
-        # Reject by outsized error elimination
-        
-        while True:
-            errorsArray=[]
-            for j in range(asarray(outputPhot).shape[0]):
-                errorsArray.append(outputPhot[j][11])
-            errorsArray=np.asarray(errorsArray)
-            #print (errorsArray)
-            stdErrors=nanstd(errorsArray)
-            avgErrors=nanmean(errorsArray)      
-            #print (stdErrors)
-            #print (avgErrors)
-            starReject=[]
-            for j in range(asarray(outputPhot).shape[0]):
-                if outputPhot[j][11] > avgErrors+(4*stdErrors):
-                    starReject.append(j)
-                    starErrorRejCount=starErrorRejCount+1
-            
-            if starReject != []:
-                outputPhot=delete(outputPhot, starReject, axis=0)
-            else:
-                break
-                    
-        #sys.exit()
-        sys.stdout.write('\n')
-        logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
-        logger.info("Rejected Error Measurements: : {}".format(starErrorRejCount))
-        logger.info("Rejected Distance Measurements: : {}".format(starDistanceRejCount))
-        logger.info("Variability of Comparisons")
-        logger.info("Average : {}".format(avgVar))
-        logger.info("Stdev   : {}".format(stdVar))
-
-        outputPhot=delete(outputPhot, starReject, axis=0)
 
         # Add calibration columns
         outputPhot= np.c_[outputPhot, np.ones(outputPhot.shape[0]),np.ones(outputPhot.shape[0])]

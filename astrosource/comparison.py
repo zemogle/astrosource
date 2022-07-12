@@ -1464,6 +1464,9 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         
         #print (photFile[idx,8])
         
+        #print (photFile.shape)
+        #print (photFile.size)
+        
         photFile[:,8]=np.nan
         photFile[:,9]=np.nan
         photFile[:,10]=0
