@@ -124,7 +124,13 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
                 photFile[:,0][photFile[:,0] < raMin + raClip ] = nan
                 photFile[:,0][photFile[:,0] > raMax - raClip ] = nan
                 photFile[:,1][photFile[:,1] > decMax - decClip ] = nan
-                photFile[:,1][photFile[:,1] < decMin + decClip ] = nan                
+                photFile[:,1][photFile[:,1] < decMin + decClip ] = nan     
+                #remove odd zero entries
+                photFile[:,0][photFile[:,0] == 0.0 ] = nan
+                photFile[:,0][photFile[:,0] == 0.0 ] = nan
+                photFile[:,1][photFile[:,1] == 0.0 ] = nan
+                photFile[:,1][photFile[:,1] == 0.0 ] = nan  
+                
                 photFile=photFile[~isnan(photFile).any(axis=1)]
                 
                 #remove lowcounts
@@ -132,6 +138,8 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
                 #print (d2d)
                 #print (max_sep)
                 photFile=delete(photFile, rejectStars, axis=0)
+
+                
 
                 #new_files.append(outname)
                # photFileHolder.append(photFile)
@@ -170,7 +178,12 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
                             photFile[:,0][photFile[:,0] < raMin + raClip ] = nan
                             photFile[:,0][photFile[:,0] > raMax - raClip ] = nan
                             photFile[:,1][photFile[:,1] > decMax - decClip ] = nan
-                            photFile[:,1][photFile[:,1] < decMin + decClip ] = nan                
+                            photFile[:,1][photFile[:,1] < decMin + decClip ] = nan   
+                            #remove odd zero entries
+                            photFile[:,0][photFile[:,0] == 0.0 ] = nan
+                            photFile[:,0][photFile[:,0] == 0.0 ] = nan
+                            photFile[:,1][photFile[:,1] == 0.0 ] = nan
+                            photFile[:,1][photFile[:,1] == 0.0 ] = nan  
                             photFile=photFile[~isnan(photFile).any(axis=1)]
                             
                             #remove lowcounts
