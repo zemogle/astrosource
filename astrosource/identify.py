@@ -334,7 +334,7 @@ def find_stars(targets, paths, fileList, photCoords=None, photFileHolder=None, m
     referenceFrame = None
 
     counter=0
-    print (photFileHolder)
+    #print (photFileHolder)
     for file in fileList:
         photFile = photFileHolder[counter]
         
@@ -385,7 +385,7 @@ def find_stars(targets, paths, fileList, photCoords=None, photFileHolder=None, m
     #print (referenceFrame[:,4])
     #print (where((referenceFrame[:,4] < lowcounts) | (referenceFrame[:,4] > hicounts))[0])
     #sys.exit()
-    print (referenceFrame)
+    #print (referenceFrame)
     rejectStars=where((referenceFrame[:,4] < lowcounts) | (referenceFrame[:,4] > hicounts))[0]
     referenceFrame=delete(referenceFrame, rejectStars, axis=0)
     logger.debug("Number of stars after first cut")
@@ -431,6 +431,7 @@ def find_stars(targets, paths, fileList, photCoords=None, photFileHolder=None, m
     originalfileList=fileList
     originalphotSkyCoord=photCoords
     originalphotFileHolder=photFileHolder
+    originalRejectStart=rejectStart
     compchecker=0
 
     mincompstars=int(referenceFrame.shape[0]*mincompstars) # Transform mincompstars variable from fraction of stars into number of stars.
@@ -440,6 +441,9 @@ def find_stars(targets, paths, fileList, photCoords=None, photFileHolder=None, m
         mincompstars=100
     if mincompstarstotal != -99:
         mincompstars=mincompstarstotal
+    initialMincompstars=mincompstars
+    
+    rfCounter=0
     ##### Looper function to automatically cycle through more restrictive values for imageFracReject and starreject
     while (compchecker < mincompstars): # Keep going until you get the minimum number of Comp Stars
         imgsize=imageFracReject * fileSizer # set threshold size
@@ -454,8 +458,8 @@ def find_stars(targets, paths, fileList, photCoords=None, photFileHolder=None, m
             
         q=0
         photReject=[]
-        
-        for file in fileList:
+
+        for Nholder in range(len(photFileHolder)):
             #print (q)
             #print (photSkyCoord[q])
             
@@ -575,10 +579,82 @@ def find_stars(targets, paths, fileList, photCoords=None, photFileHolder=None, m
         if imageFracReject > 0.8:
             imageFracReject = 0.8
 
-        if starreject == 0.15 and imageFracReject == 0.8 and mincompstars ==1:
-            logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
+        if starreject == 0.15 and imageFracReject == 0.8 and mincompstars ==1 and rejectStart==1 and len(originalphotFileHolder) <5:
             logger.error("Failed to find any comparison candidates with the maximum restrictions. There is something terribly wrong!")
-            raise AstrosourceException("Unable to find sufficient comparison stars with the most stringent conditions in this dataset. Try reducing the --mincompstars value")
+            raise AstrosourceException("Unable to find sufficient comparison stars with the most stringent conditions in this dataset.")
+
+        if starreject == 0.15 and imageFracReject == 0.8 and mincompstars ==1 and rejectStart==1:
+            logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
+            
+            logger.error("Kicking out the reference image and trying a random reference image.")
+            #originalphotFileHolder=delete(originalphotFileHolder, 0, axis=0)
+            #originalphotSkyCoord=delete(originalphotSkyCoord, 0, axis=0)
+            #fileList=delete(fileList, 0, axis=0)
+            starreject=0.3
+            imageFracReject=0.05
+            mincompstars=initialMincompstars
+            
+            logger.debug("Setting up reference Frame")
+            
+            referenceFrame=originalphotFileHolder[rfCounter]
+            originalReferenceFrame=referenceFrame
+            rfCounter=rfCounter+1
+            
+            #print (referenceFrame)
+           
+            ##### Iterate hicounts and locounts until a reasonable sample < 250 stars are found in the middle range.
+            
+
+            logger.debug("Removing stars with low or high counts")
+            rejectStars=[]
+            # Check star has adequate counts
+            logger.debug("Number of stars prior")
+            logger.debug(referenceFrame.shape[0])
+            logger.debug("Initial count range, Low: " +str(lowcounts)+ " High: "+ str(hicounts))
+            
+            rejectStars=where((referenceFrame[:,4] < lowcounts) | (referenceFrame[:,4] > hicounts))[0]
+            referenceFrame=delete(referenceFrame, rejectStars, axis=0)
+            logger.debug("Number of stars after first cut")
+            logger.debug(referenceFrame.shape[0])
+            settled=0
+            while settled==0:
+                rejectStars=[]
+                if referenceFrame.shape[0] > maxcandidatestars:
+                    rejectStars=where((referenceFrame[:,4] < lowcounts) | (referenceFrame[:,4] > hicounts))[0]
+                else:
+                    settled=1
+                                   
+                logger.debug("Number of stars after attempting to reduce number of sample comparison stars")
+                logger.debug(delete(referenceFrame, rejectStars, axis=0).shape[0])
+                
+                if delete(referenceFrame, rejectStars, axis=0).shape[0] < maxcandidatestars:
+                    settled=1
+                else:
+                    lowcounts=lowcounts+(0.05*lowcounts)
+                    hicounts=hicounts-(0.05*hicounts)
+                
+            logger.debug("Number of stars post")
+            referenceFrame=delete(referenceFrame, rejectStars, axis=0)
+            logger.debug("Final count range, Low: " +str(int(lowcounts))+ " High: "+ str(int(hicounts)))
+            
+            
+            rejectStart=originalRejectStart
+            fileList=originalfileList
+            photCoords=originalphotSkyCoord
+            photFileHolder=originalphotFileHolder       
+                        
+        elif starreject == 0.15 and imageFracReject == 0.8 and mincompstars ==1 and rejectStart > 1:
+            logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
+            logger.error("Trying again while rejecting less initial images.")
+            rejectStart=rejectStart-1
+            starreject=0.3
+            imageFracReject=0.05
+            mincompstars=initialMincompstars
+            referenceFrame=originalReferenceFrame
+            fileList=originalfileList
+            photCoords=originalphotSkyCoord
+            photFileHolder=originalphotFileHolder
+
 
         if starreject == 0.15 and imageFracReject == 0.8 and mincompstars !=1:
             logger.error("Maximum number of Candidate Comparison Stars found this cycle: " + str(compchecker))

@@ -482,8 +482,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPat
         instrMags=array(instrMags)
         
         
-        #print (len(compDiffMags[0]))
-        
+
         #z=0
         sortStars=[]
         for z in range(len(compDiffMags[0])):
