@@ -29,6 +29,11 @@ class TimeSeries:
         self.periodlower = kwargs.get('periodlower', -99.9)
         self.periodtests = kwargs.get('periodtests', -99)
 
+        self.racut = kwargs.get('racut', -99.9)
+        self.deccut = kwargs.get('deccut', -99.9)
+        self.radiuscut =kwargs.get('radiuscut', -99.9)
+
+
         self.thresholdcounts = kwargs.get('thresholdcounts', 1000000)
         self.hicounts = kwargs.get('hicounts', 3000000)
         self.lowcounts = kwargs.get('lowcounts', 5000)
@@ -82,7 +87,7 @@ class TimeSeries:
         #sys.exit()
         
         if self.usescreenedcomps == False:
-            self.files, self.filtercode, self.photFileHolder, self.photCoords = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd,ignoreedgefraction=self.ignoreedgefraction, lowest=self.lowestcounts)
+            self.files, self.filtercode, self.photFileHolder, self.photCoords = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd,ignoreedgefraction=self.ignoreedgefraction, lowest=self.lowestcounts, racut=self.racut, deccut=self.deccut, radiuscut=self.radiuscut)
 
     def analyse(self, calib=True, usescreenedcomps=False, usecompsused=False, usecompletedcalib=False):
 

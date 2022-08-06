@@ -83,7 +83,7 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False, ignoreed
 
     return phot_dict, photFileHolder, photSkyCoord
 
-def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefraction=0.05, lowestcounts=1800):
+def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefraction=0.05, lowestcounts=1800,  racut=-99.9, deccut=-99.9, radiuscut=-99.9):
 
     #new_files = []
     #photFileHolder=[]
@@ -112,19 +112,34 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
             if max(photFile[:,0]) < 360 and max(photFile[:,1]) < 90:
                 photFile=photFile[~isnan(photFile).any(axis=1)]
                 
-                # Remove edge detections
-                raRange=(max(photFile[:,0])-min(photFile[:,0]))
-                decRange=(max(photFile[:,1])-min(photFile[:,1]))
-                raMin=min(photFile[:,0])
-                raMax=max(photFile[:,0])
-                decMin=min(photFile[:,1])
-                decMax=max(photFile[:,1])                
-                raClip=raRange*ignoreedgefraction
-                decClip=decRange*ignoreedgefraction
-                photFile[:,0][photFile[:,0] < raMin + raClip ] = nan
-                photFile[:,0][photFile[:,0] > raMax - raClip ] = nan
-                photFile[:,1][photFile[:,1] > decMax - decClip ] = nan
-                photFile[:,1][photFile[:,1] < decMin + decClip ] = nan     
+                
+                # if radial cut do that otherwise chop off image edges
+                if racut != -99.9 and deccut !=-99.9 and radiuscut !=-99.9:
+                    #tempCoord = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
+                    logger.info("doing a radial cut")
+                    #matchCoord = SkyCoord(ra=float(racut)*u.degree, dec=float(deccut)*u.degree)
+                    #idx, d2d, _ = matchCoord.match_to_catalog_sky(tempCoord)
+                    #print (idx)
+                    distanceArray=pow((pow(photFile[:,0]-float(racut),2)+pow(photFile[:,1]-float(deccut),2)),0.5)
+                    print (distanceArray)
+                    print (distanceArray[distanceArray > float(radiuscut)/60])
+                    print (where(distanceArray > float(radiuscut)/60))
+                    photFile=delete(photFile, where(distanceArray > float(radiuscut)/60), axis=0)
+                else:   
+                
+                    # Remove edge detections
+                    raRange=(max(photFile[:,0])-min(photFile[:,0]))
+                    decRange=(max(photFile[:,1])-min(photFile[:,1]))
+                    raMin=min(photFile[:,0])
+                    raMax=max(photFile[:,0])
+                    decMin=min(photFile[:,1])
+                    decMax=max(photFile[:,1])                
+                    raClip=raRange*ignoreedgefraction
+                    decClip=decRange*ignoreedgefraction
+                    photFile[:,0][photFile[:,0] < raMin + raClip ] = nan
+                    photFile[:,0][photFile[:,0] > raMax - raClip ] = nan
+                    photFile[:,1][photFile[:,1] > decMax - decClip ] = nan
+                    photFile[:,1][photFile[:,1] < decMin + decClip ] = nan     
                 #remove odd zero entries
                 photFile[:,0][photFile[:,0] == 0.0 ] = nan
                 photFile[:,0][photFile[:,0] == 0.0 ] = nan
@@ -151,7 +166,10 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
 
     return outfile, photFile
 
-def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=1800):
+def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=1800,  racut=-99.9, deccut=-99.9, radiuscut=-99.9):
+    
+    
+    
     new_files = []
     photFileHolder=[]
     photSkyCoord=[]
@@ -166,19 +184,35 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
                 
                             photFile=photFile[~isnan(photFile).any(axis=1)]
                             
-                            # Remove edge detections
-                            raRange=(max(photFile[:,0])-min(photFile[:,0]))
-                            decRange=(max(photFile[:,1])-min(photFile[:,1]))
-                            raMin=min(photFile[:,0])
-                            raMax=max(photFile[:,0])
-                            decMin=min(photFile[:,1])
-                            decMax=max(photFile[:,1])                
-                            raClip=raRange*ignoreedgefraction
-                            decClip=decRange*ignoreedgefraction
-                            photFile[:,0][photFile[:,0] < raMin + raClip ] = nan
-                            photFile[:,0][photFile[:,0] > raMax - raClip ] = nan
-                            photFile[:,1][photFile[:,1] > decMax - decClip ] = nan
-                            photFile[:,1][photFile[:,1] < decMin + decClip ] = nan   
+
+                            
+                            # if radial cut do that otherwise chop off image edges
+                            if racut != -99.9 and deccut !=-99.9 and radiuscut !=-99.9:
+                                #tempCoord = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
+                                logger.info("doing a radial cut")
+                                #matchCoord = SkyCoord(ra=float(racut)*u.degree, dec=float(deccut)*u.degree)
+                                #idx, d2d, _ = matchCoord.match_to_catalog_sky(tempCoord)
+                                #print (idx)
+                                distanceArray=pow((pow(photFile[:,0]-float(racut),2)+pow(photFile[:,1]-float(deccut),2)),0.5)
+                                print (distanceArray)
+                                print (distanceArray[distanceArray > float(radiuscut)/60])
+                                print (where(distanceArray > float(radiuscut)/60))
+                                photFile=delete(photFile, where(distanceArray > float(radiuscut)/60), axis=0)
+                            else:                            
+                            
+                                # Remove edge detections
+                                raRange=(max(photFile[:,0])-min(photFile[:,0]))
+                                decRange=(max(photFile[:,1])-min(photFile[:,1]))
+                                raMin=min(photFile[:,0])
+                                raMax=max(photFile[:,0])
+                                decMin=min(photFile[:,1])
+                                decMax=max(photFile[:,1])                
+                                raClip=raRange*ignoreedgefraction
+                                decClip=decRange*ignoreedgefraction
+                                photFile[:,0][photFile[:,0] < raMin + raClip ] = nan
+                                photFile[:,0][photFile[:,0] > raMax - raClip ] = nan
+                                photFile[:,1][photFile[:,1] > decMax - decClip ] = nan
+                                photFile[:,1][photFile[:,1] < decMin + decClip ] = nan   
                             #remove odd zero entries
                             photFile[:,0][photFile[:,0] == 0.0 ] = nan
                             photFile[:,0][photFile[:,0] == 0.0 ] = nan
@@ -229,7 +263,7 @@ def convert_mjd_bjd(hdr):
     return tdbholder[0][0]
 
 
-def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefraction=0.05, lowest=1800):
+def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefraction=0.05, lowest=1800,  racut=-99.9, deccut=-99.9, radiuscut=-99.9):
     # Get list of files
     sys.stdout.write('💾 Inspecting input files\n')
 
@@ -249,10 +283,10 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
             filelist = paths['parent'].glob("*e91*.{}".format(filetype)) # Make sure only fully reduced LCO files are used.
     if filetype not in ['fits', 'fit', 'fz']:
         # Assume we are not dealing with image files but photometry files
-        phot_list, photFileHolder, photSkyCoord = convert_photometry_files(filelist, ignoreedgefraction, lowestcounts=lowest)
+        phot_list, photFileHolder, photSkyCoord = convert_photometry_files(filelist, ignoreedgefraction, lowestcounts=lowest, racut=racut, deccut=deccut, radiuscut=radiuscut)
     else:
 
-        phot_list, photFileHolder, photSkyCoord = export_photometry_files(filelist, paths['parent'], bjd=bjd, ignoreedgefraction=ignoreedgefraction, lowestcounts=lowest)
+        phot_list, photFileHolder, photSkyCoord = export_photometry_files(filelist, paths['parent'], bjd=bjd, ignoreedgefraction=ignoreedgefraction, lowestcounts=lowest, racut=racut, deccut=deccut, radiuscut=radiuscut)
         #Convert phot_list from dict to list
         #phot_list_temp = phot_list_temp.keys()
         #phot_list = []
