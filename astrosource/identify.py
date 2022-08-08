@@ -116,14 +116,14 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
                 # if radial cut do that otherwise chop off image edges
                 if racut != -99.9 and deccut !=-99.9 and radiuscut !=-99.9:
                     #tempCoord = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
-                    logger.info("doing a radial cut")
+                    #logger.info("doing a radial cut")
                     #matchCoord = SkyCoord(ra=float(racut)*u.degree, dec=float(deccut)*u.degree)
                     #idx, d2d, _ = matchCoord.match_to_catalog_sky(tempCoord)
                     #print (idx)
                     distanceArray=pow((pow(photFile[:,0]-float(racut),2)+pow(photFile[:,1]-float(deccut),2)),0.5)
-                    print (distanceArray)
-                    print (distanceArray[distanceArray > float(radiuscut)/60])
-                    print (where(distanceArray > float(radiuscut)/60))
+                    #print (distanceArray)
+                    #print (distanceArray[distanceArray > float(radiuscut)/60])
+                    #print (where(distanceArray > float(radiuscut)/60))
                     photFile=delete(photFile, where(distanceArray > float(radiuscut)/60), axis=0)
                 else:   
                 
@@ -189,14 +189,14 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
                             # if radial cut do that otherwise chop off image edges
                             if racut != -99.9 and deccut !=-99.9 and radiuscut !=-99.9:
                                 #tempCoord = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
-                                logger.info("doing a radial cut")
+                                #logger.info("doing a radial cut")
                                 #matchCoord = SkyCoord(ra=float(racut)*u.degree, dec=float(deccut)*u.degree)
                                 #idx, d2d, _ = matchCoord.match_to_catalog_sky(tempCoord)
                                 #print (idx)
                                 distanceArray=pow((pow(photFile[:,0]-float(racut),2)+pow(photFile[:,1]-float(deccut),2)),0.5)
-                                print (distanceArray)
-                                print (distanceArray[distanceArray > float(radiuscut)/60])
-                                print (where(distanceArray > float(radiuscut)/60))
+                                #print (distanceArray)
+                                #print (distanceArray[distanceArray > float(radiuscut)/60])
+                                #print (where(distanceArray > float(radiuscut)/60))
                                 photFile=delete(photFile, where(distanceArray > float(radiuscut)/60), axis=0)
                             else:                            
                             
@@ -230,10 +230,11 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
                             
                             filepath = Path(fn).with_suffix('.npy')
                             #save(filepath, photFile)
-                            new_files.append(filepath.name)
-                            photFileHolder.append(photFile)
-                            photSkyCoord.append(SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree))
-                            
+                            if photFile.size > 16:
+                                new_files.append(filepath.name)
+                                photFileHolder.append(photFile)
+                                photSkyCoord.append(SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree))
+                                
                         else:
                             logger.debug("REJECT")
                             logger.debug(fn)
@@ -251,6 +252,11 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
             logger.debug(fn)
             
     #sys.exit()
+    if new_files ==[] or photFileHolder==[] :
+        raise AstrosourceException("Either there are no files of this photometry type or radial Cut seems to be outside of the range of your images... check your racut, deccut and radiuscut")
+    #print (new_files)
+    #print (photFileHolder)
+    
     return new_files, photFileHolder, photSkyCoord
 
 def convert_mjd_bjd(hdr):
