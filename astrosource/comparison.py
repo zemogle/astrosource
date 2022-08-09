@@ -14,7 +14,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from numpy import min, max, median, std, isnan, delete, genfromtxt, savetxt, load, \
-    asarray, add, append, log10, average, array, where
+    asarray, add, append, log10, average, array, where, cos
 from astropy.units import degree, arcsecond
 from astropy.coordinates import SkyCoord
 from astroquery.vo_conesearch.exceptions import VOSError
@@ -718,7 +718,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     return compFile
 
 
-def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
+def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     data = namedtuple(typename='data',field_names=['ra','dec','mag','emag','cat_name', 'colmatch', 'colerr'])
 
     TABLES = {'APASS':'II/336/apass9',
@@ -833,7 +833,7 @@ def catalogue_call(avgCoord, opt, cat_name, targets, closerejectd):
 
     return data
 
-def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, colourdetect=False, linearise=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, colourTerm=0.0, colourError=0.0, restrictmagbrightest=-99.9, restrictmagdimmest=99.9, photCoordsFile=None, photFileHolder=None, calibSave=False):
+def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, colourdetect=False, linearise=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, colourTerm=0.0, colourError=0.0, restrictmagbrightest=-99.9, restrictmagdimmest=99.9, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, photCoordsFile=None, photFileHolder=None, calibSave=False):
     
 
     sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
@@ -918,7 +918,11 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
         logger.debug(f"Average: RA {avgCoord.ra}, Dec {avgCoord.dec}")
 
-        #avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
+    # Get search Radius
+    
+    radius= 0.5 * pow(  pow(max(compFile[:,0])-min(compFile[:,0]),2) + pow(max((compFile[:,1])-min(compFile[:,1]))*cos((min(compFile[:,1])+max(compFile[:,1]))/2),2) , 0.5)
+    
+    #avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
 
     try:
         catalogues = FILTERS[filterCode]
@@ -938,7 +942,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                     logger.info("Skipping SDSS")
                 else:
 
-                    coords = catalogue_call(avgCoord, opt, cat_name, targets=targets, closerejectd=closerejectd)
+                    coords = catalogue_call(avgCoord, 1.5*radius, opt, cat_name, targets=targets, closerejectd=closerejectd)
                     # If no results try next catalogue
                     #print (len(coords.ra))
                     if len(coords.ra) == 0:
@@ -1092,12 +1096,26 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                             if (calibStands[q][3] > restrictmagdimmest) or (calibStands[q][3] < restrictmagbrightest):
                                 calibStandsReject.append(q)
                                 #logger.info(calibStands[q][3])
+                            
+                            if opt['colrev'] ==0:   
+                                
+                                if (calibStands[q][3]-calibStands[q][6] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][3]-calibStands[q][6] < (restrictcompcolourcentre - restrictcompcolourrange)) :
+                                    calibStandsReject.append(q)
+                            else:
+                                #print(calibStands[q][6]-calibStands[q][3])
+                                #print (calibStands[q][6]-calibStands[q][3])
+                                if (calibStands[q][6]-calibStands[q][3] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][6]-calibStands[q][3] < (restrictcompcolourcentre - restrictcompcolourrange)) :
+                                    calibStandsReject.append(q)
 
                         if len(calibStandsReject) != len(asarray(calibStands)[:,0]):
                             calibStands=delete(calibStands, calibStandsReject, axis=0)
 
-                    logger.info('Removed ' + str(len(calibStandsReject)) + ' Calibration Stars for being too bright or too dim')
+                    logger.info('Removed ' + str(len(calibStandsReject)) + ' Calibration Stars for being too bright or too dim or the wrong colour')
 
+                    #print (restrictcompcolourcentre)
+                    #print (restrictcompcolourrange)
+
+                    #sys.exit()
                     ### If looking for colour, remove those without matching colour information
 
                     calibStandsReject=[]

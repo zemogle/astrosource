@@ -618,12 +618,7 @@ def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colour
                     outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
                 else:
                     outputPhot[i][calibIndex-1]=np.nan
-                    outputPhot[i][calibIndex]=np.nan
-                    
-            logger.info("No provided target colour was provided. Target magnitude does not incorporate a colour correction.")
-            logger.info("This is likely ok if your colour term is low (<<0.05). If your colour term is high (>0.05), ")
-            logger.info("then consider providing an appropriate colour for this filter using the --targetcolour option")
-            logger.info("as well as an appropriate colour term for this filter (using --colourdetect or --colourterm).")
+                    outputPhot[i][calibIndex]=np.nan            
         else:
             for i in range(outputPhot.shape[0]):
                 if (ensembleMag+outputPhot[i][10]-(colourterm * targetcolour)) > rejectmagbrightest and (ensembleMag+outputPhot[i][10]-(colourterm * targetcolour)) < rejectmagdimmest:
@@ -641,5 +636,11 @@ def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colour
 
         #update doerphot on disk
         savetxt(paths['outcatPath'] / f"doerPhot_V{str(j+1)}.csv", outputPhot, delimiter=",", fmt='%0.8f')
-
+    
+    if (targetcolour == -99.0):
+        logger.info("No provided target colour was provided. Target magnitude does not incorporate a colour correction.")
+        logger.info("This is likely ok if your colour term is low (<<0.05). If your colour term is high (>0.05), ")
+        logger.info("then consider providing an appropriate colour for this filter using the --targetcolour option")
+        logger.info("as well as an appropriate colour term for this filter (using --colourdetect or --colourterm).")
+    
     return pdata

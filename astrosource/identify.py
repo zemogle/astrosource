@@ -5,7 +5,7 @@ import os
 import logging
 import pickle
 
-from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan, zeros, max, min, nan, where
+from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan, zeros, max, min, nan, where, average, cos, hstack, array, column_stack
 from astropy import units as u
 from astropy.units import degree, arcsecond
 from astropy import wcs
@@ -15,6 +15,7 @@ from astropy.time import Time
 from barycorrpy import utc_tdb
 
 from astrosource.utils import AstrosourceException
+from astrosource.comparison import catalogue_call
 
 logger = logging.getLogger('astrosource')
 
@@ -324,7 +325,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
         
     return phot_list, filterCode, photFileHolder, photSkyCoord
 
-def find_stars(targets, paths, fileList, photCoords=None, photFileHolder=None, mincompstars=0.1, mincompstarstotal=-99, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=3, maxcandidatestars=10000):
+def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closerejectd=5.0, photCoords=None, photFileHolder=None, mincompstars=0.1, mincompstarstotal=-99, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=3, maxcandidatestars=10000, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, filterCode=None, restrictmagbrightest=-99.0, restrictmagdimmest=99.0):
     """
     Finds stars useful for photometry in each photometry/data file
 
@@ -775,12 +776,7 @@ def find_stars(targets, paths, fileList, photCoords=None, photFileHolder=None, m
                 sys.exit()
             fileRaDec = SkyCoord(ra=outputComps[:,0]*u.degree, dec=outputComps[:,1]*u.degree)
 
-    savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
-    used_file = paths['parent'] / "usedImages.txt"
-    with open(used_file, "w") as f:
-        for s in fileList:
-            filename = Path(s).name
-            f.write(str(filename) +"\n")
+    
     # If a new usedimages.txt has been made, make sure that there is no photcoords in directory
     #if os.path.exists(paths['parent'] / "photSkyCoord"):
     #    os.remove(paths['parent'] / "photSkyCoord")
@@ -800,5 +796,232 @@ def find_stars(targets, paths, fileList, photCoords=None, photFileHolder=None, m
     file1=open(paths['parent'] / "photFileHolder","wb")
     pickle.dump(photFileHolder, file1)
     file1.close
+    
+    # Remove candidate comparisons that are out of the restricted range of colours or magnitudes
+    
+    #print (restrictcompcolourcentre)
+    #print (restrictcompcolourrange)
+    
+    
+    # Get Average RA and Dec from file
+    #print (outputComps)
+    #print (outputComps.shape[0])
+    #print (outputComps.size)
+    #print (restrictmagbrightest)
+    #print (restrictmagdimmest)
+    if restrictmagbrightest != -99.0 or restrictmagdimmest !=99.0 or restrictcompcolourcentre != -99.0 or restrictcompcolourrange != -99.0:
+    
+        if outputComps.shape[0] == 1 and outputComps.size == 2:
+            #logger.debug(compFile[0])
+            #logger.debug(compFile[1])
+            avgCoord=SkyCoord(ra=(outputComps[0])*degree, dec=(outputComps[1]*degree))
+    
+        else:
+            #logger.debug(average(compFile[:,0]))
+            #logger.debug(average(compFile[:,1]))
+    
+    
+            #remarkably dumb way of averaging around zero RA and just normal if not
+            resbelow= any(ele >350.0 and ele<360.0 for ele in outputComps[:,0].tolist())
+            resabove= any(ele >0.0 and ele<10.0 for ele in outputComps[:,0].tolist())
+            if resbelow and resabove:
+                avgRAFile=[]
+                for q in range(len(outputComps[:,0])):
+                    if outputComps[q,0] > 350:
+                        avgRAFile.append(outputComps[q,0]-360)
+                    else:
+                        avgRAFile.append(outputComps[q,0])
+                avgRA=average(avgRAFile)
+                if avgRA <0:
+                    avgRA=avgRA+360
+                avgCoord=SkyCoord(ra=(avgRA*degree), dec=((average(outputComps[:,1])*degree)))
+            else:
+                avgCoord=SkyCoord(ra=(average(outputComps[:,0])*degree), dec=((average(outputComps[:,1])*degree)))
+    
+            logger.debug(f"Average: RA {avgCoord.ra}, Dec {avgCoord.dec}")
+        
+        #print (avgCoord)
+        
+        #print (max(outputComps[:,0]))
+        #print (min(outputComps[:,0]))
+        #print (max(outputComps[:,1]))
+        #print (min(outputComps[:,1]))
+        
+        radius= 0.5 * pow(  pow(max(outputComps[:,0])-min(outputComps[:,0]),2) + pow(max((outputComps[:,1])-min(outputComps[:,1]))*cos((min(outputComps[:,1])+max(outputComps[:,1]))/2),2) , 0.5)
+        #print (1.5*radius)
+        
+    
+        
+        FILTERS = {
+                    'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag', 'colmatch' : 'Vmag', 'colerr' : 'e_Vmag', 'colname' : 'B-V', 'colrev' : '0'}},
+                    'V' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag', 'colmatch' : 'Bmag', 'colerr' : 'e_Bmag', 'colname' : 'B-V', 'colrev' : '1'}},
+                    'CV' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag', 'colmatch' : 'Bmag', 'colerr' : 'e_Bmag', 'colname' : 'B-V', 'colrev' : '1'}},
+                    'up' : {'SDSS' : {'filter' : 'umag', 'error' : 'e_umag', 'colmatch' : 'gmag', 'colerr' : 'e_gmag', 'colname' : 'u-g', 'colrev' : '0'},
+                            'SkyMapper' : {'filter' : 'uPSF', 'error' : 'e_uPSF', 'colmatch' : 'gPSF', 'colerr' : 'e_gPSF', 'colname' : 'u-g', 'colrev' : '0'}},
+                    'gp' : {'SDSS' : {'filter' : 'gmag', 'error' : 'e_gmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'g-r', 'colrev' : '0'},
+                            'SkyMapper' : {'filter' : 'gPSF', 'error' : 'e_gPSF', 'colmatch' : 'rPSF', 'colerr' : 'e_rPSF', 'colname' : 'g-r', 'colrev' : '0'},
+                            'PanSTARRS': {'filter' : 'gmag', 'error' : 'e_gmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'g-r', 'colrev' : '0'},
+                            'APASS' : {'filter' : 'g_mag', 'error' : 'e_g_mag', 'colmatch' : 'r_mag', 'colerr' : 'e_r_mag', 'colname' : 'g-r', 'colrev' : '0'}},
+                    'rp' : {'SDSS' : {'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},
+                            'SkyMapper' : {'filter' : 'rPSF', 'error' : 'e_rPSF', 'colmatch' : 'iPSF', 'colerr' : 'e_iPSF', 'colname' : 'r-i', 'colrev' : '0'},
+                            'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},
+                            'APASS' : {'filter' : 'r_mag', 'error' : 'e_r_mag', 'colmatch' : 'i_mag', 'colerr' : 'e_i_mag', 'colname' : 'r-i', 'colrev' : '0'}},
+                    'ip' : {'SDSS' : {'filter' : 'imag', 'error' : 'e_imag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-i', 'colrev' : '1'},
+                            'SkyMapper' : {'filter' : 'iPSF', 'error' : 'e_iPSF', 'colmatch' : 'rPSF', 'colerr' : 'e_rPSF', 'colname' : 'r-i', 'colrev' : '1'},
+                            'PanSTARRS': {'filter' : 'imag', 'error' : 'e_imag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-i', 'colrev' : '1'},
+                            'APASS' : {'filter' : 'i_mag', 'error' : 'e_i_mag', 'colmatch' : 'r_mag', 'colerr' : 'e_r_mag', 'colname' : 'r-i', 'colrev' : '1'}},
+                    'zs' : {'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-zs', 'colrev' : '1'},
+                            'SkyMapper' : {'filter' : 'zPSF', 'error' : 'e_zPSF', 'colmatch' : 'rPSF', 'colerr' : 'e_rPSF', 'colname' : 'r-zs', 'colrev' : '1'},
+                            'SDSS' : {'filter' : 'zmag', 'error' : 'e_zmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-zs', 'colrev' : '1'}},
+                    }
+        
+        try:
+            catalogues = FILTERS[filterCode]
+        except IndexError:
+            raise AstrosourceException(f"{filterCode} is not accepted at present")
+        
+        coords=[]
+        for cat_name, opt in catalogues.items():
+            try:
+                if coords ==[]: #SALERT - Do not search if a suitable catalogue has already been found
+                    logger.info("Searching " + str(cat_name))
+                    if cat_name == 'PanSTARRS' and nopanstarrs==True:
+                        logger.info("Skipping PanSTARRS")
+                    elif cat_name == 'SDSS' and nosdss==True:
+                        logger.info("Skipping SDSS")
+                    else:
+    
+                        coords = catalogue_call(avgCoord, 1.5*radius, opt, cat_name, targets=targets, closerejectd=closerejectd)
+                        # If no results try next catalogue
+                        #print (len(coords.ra))
+                        if len(coords.ra) == 0:
+                            coords=[]
+                            raise AstrosourceException("Empty catalogue produced from catalogue call")
+            except AstrosourceException as e:
+                logger.debug(e)
+        
+        if coords.cat_name == 'PanSTARRS' or coords.cat_name == 'APASS':
+            max_sep=2.5 * arcsecond
+        else:
+            max_sep=1.5 * arcsecond
+        
+        #print (outputComps)
+        #print (coords.ra)
+        #print (coords.dec)
+        
+        catCoords=SkyCoord(ra=coords.ra*degree, dec=coords.dec*degree)
+        
+        #Get calib mags for least variable IDENTIFIED stars.... not the actual stars in compUsed!! Brighter, less variable stars may be too bright for calibration!
+        #So the stars that will be used to calibrate the frames to get the OTHER stars.
+        calibStands=[]
+    
+        if outputComps.shape[0] ==1 and outputComps.size ==2:
+            lenloop=1
+        else:
+            lenloop=len(outputComps[:,0])
+    
+        for q in range(lenloop):
+            if outputComps.shape[0] ==1 and outputComps.size ==2:
+                compCoord=SkyCoord(ra=outputComps[0]*degree, dec=outputComps[1]*degree)
+            else:
+                compCoord=SkyCoord(ra=outputComps[q][0]*degree, dec=outputComps[q][1]*degree)
+            idxcomp,d2dcomp,_=compCoord.match_to_catalog_sky(catCoords)
+            if d2dcomp < max_sep:
+                if not isnan(coords.mag[idxcomp]) and not isnan(coords.emag[idxcomp]):
+                    if outputComps.shape[0] ==13 and outputComps.size ==13:
+                        calibStands.append([outputComps[0],outputComps[1],0,coords.mag[idxcomp],coords.emag[idxcomp],0,coords.colmatch[idxcomp],coords.colerr[idxcomp],0])
+                    else:
+                        calibStands.append([outputComps[q][0],outputComps[q][1],0,coords.mag[idxcomp],coords.emag[idxcomp],0,coords.colmatch[idxcomp],coords.colerr[idxcomp],0])
+    
+    
+    
+        #print (len(asarray(calibStands)[:,0]))
+        
+    
+        ### remove stars that that brighter (--restrictmagbrighter) or dimmer (--restrictmagdimmer) than requested or colour from calib standards.
+        calibStandsReject=[]
+        if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and calibStands != []:
+            for q in range(len(asarray(calibStands)[:,0])):
+    
+                if (calibStands[q][3] > restrictmagdimmest) or (calibStands[q][3] < restrictmagbrightest):
+                    calibStandsReject.append(q)
+                    #logger.info(calibStands[q][3])
+                    
+                if opt['colrev'] ==0:
+                    
+                    if (calibStands[q][3]-calibStands[q][6] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][3]-calibStands[q][6] < (restrictcompcolourcentre - restrictcompcolourrange)) :
+                        calibStandsReject.append(q)
+                else:
+                    #print (calibStands[q][6]-calibStands[q][3])
+                    if (calibStands[q][6]-calibStands[q][3] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][6]-calibStands[q][3] < (restrictcompcolourcentre - restrictcompcolourrange)) :
+                        calibStandsReject.append(q)
+       
+            if len(calibStandsReject) != len(asarray(calibStands)[:,0]):
+                calibStands=delete(calibStands, calibStandsReject, axis=0)
+    
+        #print (restrictcompcolourcentre)
+        #print (restrictcompcolourrange)
+        
+        
+        # NOW only keep those stars in outputComps that match calibStands
+        
+        
+        #outputComps=hstack(array(([[calibStands[:,0]],[calibStands[:,1]]])))
+        
+        #racol=array([calibStands[:,0]])
+        #deccol=array([calibStands[:,1]])
+        outputComps=column_stack((calibStands[:,0],calibStands[:,1]))
+        print (asarray(outputComps))        
+        
+        #np.hstack(np.array([[coords.ra],[coords.dec],[coords.mag],[coords.emag],[coords.colmatch],[coords.colerr]]))
+        
+        
+        logger.info('Removed ' + str(len(calibStandsReject)) + ' Candidate Comparison Stars for being too bright or too dim or the wrong colour')
+    
+        #sys.exit()
+    
+        ### If looking for colour, remove those without matching colour information
+    
+        #calibStandsReject=[]
+    
+        # if (asarray(calibStands).shape[0] != 1 and asarray(calibStands).size !=2) and calibStands != []:
+        #     for q in range(len(asarray(calibStands)[:,0])):
+        #         reject=0
+        #         if colourdetect == True:
+        #             if np.isnan(calibStands[q][6]): # if no matching colour
+        #                 reject=1
+        #             elif calibStands[q][6] == 0:
+        #                 reject=1
+        #             elif np.isnan(calibStands[q][7]):
+        #                 reject=1
+        #             elif calibStands[q][7] == 0:
+        #                 reject=1
+        #         if np.isnan(calibStands[q][3]): # If no magnitude info
+        #             reject=1
+        #         elif calibStands[q][3] == 0:
+        #             reject=1
+        #         elif np.isnan(calibStands[q][4]):
+        #             reject=1
+        #         elif calibStands[q][4] == 0:
+        #             reject=1
+    
+        #         if reject==1:
+        #             calibStandsReject.append(q)
+    
+        #     if len(calibStandsReject) != len(asarray(calibStands)[:,0]):
+        #         calibStands=delete(calibStands, calibStandsReject, axis=0)
+        
+        #coords = catalogue_call(avgCoord, 1.5*radius, opt, cat_name, targets=targets, closerejectd=closerejectd)
+        
+        
+        #sys.exit()
+    
+    savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
+    used_file = paths['parent'] / "usedImages.txt"
+    with open(used_file, "w") as f:
+        for s in fileList:
+            filename = Path(s).name
+            f.write(str(filename) +"\n")
+
 
     return fileList, outputComps, photFileHolder, photCoords

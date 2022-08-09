@@ -67,6 +67,12 @@ class TimeSeries:
         self.colourterm = kwargs.get('colourterm', 0.0)
         self.colourerror = kwargs.get('colourerror', 0.0)
         self.targetcolour = kwargs.get('targetcolour', -99.0)
+        
+        self.restrictcompcolourcentre = kwargs.get('restrictcompcolourcentre', -99.0)
+        self.restrictcompcolourrange = kwargs.get('restrictcompcolourrange', -99.0)
+        
+        
+        
         self.restrictmagbrightest = kwargs.get('restrictmagbrightest', -99.0)
         self.restrictmagdimmest = kwargs.get('restrictmagdimmest', 99.0)
         self.rejectmagbrightest = kwargs.get('rejectmagbrightest', -99.0)
@@ -98,6 +104,9 @@ class TimeSeries:
             self.usedimages, self.stars, self.photFileHolder, self.photCoords = find_stars(targets=self.targets,
                                                                                  paths=self.paths,
                                                                                  fileList=self.files,
+                                                                                 nopanstarrs=self.nopanstarrs,
+                                                                                 nosdss=self.nosdss,
+                                                                                 closerejectd=self.closerejectd,
                                                                                  photCoords=self.photCoords, 
                                                                                  photFileHolder=self.photFileHolder,
                                                                                  mincompstars=self.mincompstars,
@@ -106,7 +115,12 @@ class TimeSeries:
                                                                                  starreject=self.starreject,
                                                                                  hicounts=self.hicounts,
                                                                                  lowcounts=self.lowcounts,
-                                                                                 maxcandidatestars=self.maxcandidatestars)
+                                                                                 maxcandidatestars=self.maxcandidatestars,
+                                                                                 restrictcompcolourcentre=self.restrictcompcolourcentre,
+                                                                                 restrictcompcolourrange=self.restrictcompcolourrange,
+                                                                                 restrictmagbrightest=self.restrictmagbrightest, 
+                                                                                 restrictmagdimmest=self.restrictmagdimmest,
+                                                                                 filterCode=self.filtercode)
             #print (len(self.usedimages))
             #print (len(self.photFileHolder))
             #print (len(self.photCoords))
@@ -161,7 +175,9 @@ class TimeSeries:
                                                                                     restrictmagdimmest=self.restrictmagdimmest,
                                                                                     photCoordsFile=self.photCoords,
                                                                                     photFileHolder=self.photFileHolder,
-                                                                                    calibSave=self.calibsave)
+                                                                                    calibSave=self.calibsave,
+                                                                                    restrictcompcolourcentre=self.restrictcompcolourcentre,
+                                                                                    restrictcompcolourrange=self.restrictcompcolourrange)
     
                     self.calibrated = True
                 except AstrosourceException as e:
