@@ -1741,6 +1741,9 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         if periodsteps > 1000000:
             periodsteps = 1000000
 
+    if maxperiod < minperiod:
+        maxperiod = minperiod + 0.01
+
     logger.info("Minimum Period Tested  : " +str(minperiod))
     logger.info("Maximum Period Tested  : " +str(maxperiod))
     logger.info("Number of Period Trials: " +str(periodsteps))

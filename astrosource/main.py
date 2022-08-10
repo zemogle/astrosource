@@ -38,6 +38,8 @@ logger = logging.getLogger('astrosource')
 @click.option('--calibsave', is_flag=True, help='Save Calibration Files for each image')
 
 @click.option('--detrend', is_flag=True, help='Detrend exoplanet data')
+@click.option('--detrendfraction', type=float, default=0.1, help='Fraction of data range from the edges to use to detrend data')
+
 @click.option('--eebls', is_flag=True, help='Box fitting to search for periodic transits')
 
 @click.option('--racut', type=float, default=-99.9, help='Right Ascension of the centre of the aperture cutout (in decimal or H:M:S)')
@@ -99,7 +101,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--rejectmagbrightest', type=float, default=-99.0, help='Remove calibrated measurements brighter than this from target results')
 @click.option('--rejectmagdimmest', type=float, default=99.0, help='Remove calibrated measurements dimmer than this from target results')
 
-def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescreenedcomps, usepreviousvarsearch, calibsave, outliererror, outlierstdev, varsearchstdev, varsearchmagwidth, varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests,  thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius, racut, deccut, radiuscut, restrictcompcolourcentre, restrictcompcolourrange):
+def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescreenedcomps, usepreviousvarsearch, calibsave, outliererror, outlierstdev, varsearchstdev, varsearchmagwidth, varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests,  thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius, racut, deccut, radiuscut, restrictcompcolourcentre, restrictcompcolourrange, detrendfraction):
 
     try:
         parentPath = Path(indir)
@@ -181,7 +183,8 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
                         deccut=deccut,
                         radiuscut=radiuscut,
                         restrictcompcolourcentre=restrictcompcolourcentre,
-                        restrictcompcolourrange=restrictcompcolourrange
+                        restrictcompcolourrange=restrictcompcolourrange,
+                        detrendfraction=detrendfraction
                         )
 
         if full or comparison:

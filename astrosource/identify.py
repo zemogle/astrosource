@@ -56,7 +56,7 @@ def rename_data_file(prihdr, bjd=False):
 
     return newName
 
-def export_photometry_files(filelist, indir, filetype='csv', bjd=False, ignoreedgefraction=0.05, lowestcounts=1800):
+def export_photometry_files(filelist, indir, filetype='csv', bjd=False, ignoreedgefraction=0.05, lowestcounts=1800,  racut=-99.9, deccut=-99.9, radiuscut=-99.9):
     phot_dict = []
     new_files = []
     photFileHolder=[]
@@ -69,7 +69,7 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False, ignoreed
             fitsobj = f.open()
             s3 = True
 
-        filepath, photFile = extract_photometry(fitsobj, indir, bjd=bjd, ignoreedgefraction=0.05, lowestcounts=1800)
+        filepath, photFile = extract_photometry(fitsobj, indir, bjd=bjd, ignoreedgefraction=ignoreedgefraction, lowestcounts=lowestcounts, racut=racut, deccut=deccut, radiuscut=radiuscut)
         if s3:
             f.close()
             filename = f.name
@@ -309,7 +309,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
 
     filterCode = list(filters)[0]
 
-    if filterCode  == 'clear' or filterCode  == 'air':
+    if filterCode  == 'clear' or filterCode  == 'air' or filterCode=='w' or filterCode=='G':
         filterCode  = 'CV'
 
     logger.debug("Filter Set: {}".format(filterCode))

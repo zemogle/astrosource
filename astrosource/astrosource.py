@@ -34,6 +34,9 @@ class TimeSeries:
         self.radiuscut =kwargs.get('radiuscut', -99.9)
 
 
+
+        self.detrendfraction =kwargs.get('detrendfraction', 0.1)
+        
         self.thresholdcounts = kwargs.get('thresholdcounts', 1000000)
         self.hicounts = kwargs.get('hicounts', 3000000)
         self.lowcounts = kwargs.get('lowcounts', 5000)
@@ -158,7 +161,7 @@ class TimeSeries:
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         if usecompletedcalib == False:
             self.calibrated = False
-            if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs', 'CV']:
+            if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs', 'CV', 'w']:
                 try:
                     
                     self.colourterm, self.colourerror, self.calibcompsused = find_comparisons_calibrated(targets=self.targets,
@@ -211,7 +214,7 @@ class TimeSeries:
         if self.calibrated:
             make_calibrated_plots(filterCode=self.filtercode, paths=self.paths, photometrydata=self.data)
         if detrend:
-            detrend_data(filterCode=self.filtercode, paths=self.paths)
+            detrend_data(filterCode=self.filtercode, paths=self.paths, detrendfraction=self.detrendfraction)
         if period:
             self.period = plot_with_period(filterCode=self.filtercode, paths=self.paths, minperiod=self.periodlower, maxperiod=self.periodupper, periodsteps=self.periodtests)
             if self.calibrated:
