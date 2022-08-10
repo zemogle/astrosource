@@ -49,6 +49,9 @@ logger = logging.getLogger('astrosource')
 @click.option('--imgreject', '-ir', type=float, default=0.05, help=' Image fraction rejection allowance based on image size starting value.')
 @click.option('--bjd', is_flag=True, help='Convert the MJD time into BJD time for LCO fz images')
 
+@click.option('--minfractionimages', type=float, default=0.5, help='Minimum fraction of images needed to be kept for processing')
+
+
 
 @click.option('--period', is_flag=True, type=float, help='Search for periodicity in the data, currently with PDM and String methods. This will autoselect a reasonable search range if not provided a range.')
 @click.option('--periodlower', '-pl', type=float, default=-99.9, help='Shortest period to trial in days. Default is 0.05 days')
@@ -101,7 +104,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--rejectmagbrightest', type=float, default=-99.0, help='Remove calibrated measurements brighter than this from target results')
 @click.option('--rejectmagdimmest', type=float, default=99.0, help='Remove calibrated measurements dimmer than this from target results')
 
-def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescreenedcomps, usepreviousvarsearch, calibsave, outliererror, outlierstdev, varsearchstdev, varsearchmagwidth, varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests,  thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius, racut, deccut, radiuscut, restrictcompcolourcentre, restrictcompcolourrange, detrendfraction):
+def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescreenedcomps, usepreviousvarsearch, calibsave, outliererror, outlierstdev, varsearchstdev, varsearchmagwidth, varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests,  thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius, racut, deccut, radiuscut, restrictcompcolourcentre, restrictcompcolourrange, detrendfraction,minfractionimages):
 
     try:
         parentPath = Path(indir)
@@ -184,7 +187,8 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
                         radiuscut=radiuscut,
                         restrictcompcolourcentre=restrictcompcolourcentre,
                         restrictcompcolourrange=restrictcompcolourrange,
-                        detrendfraction=detrendfraction
+                        detrendfraction=detrendfraction,
+                        minfractionimages=minfractionimages
                         )
 
         if full or comparison:

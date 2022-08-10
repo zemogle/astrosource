@@ -47,9 +47,14 @@ def bls(t, x, qmi, qma, fmin, df, nf, nb, startPeriod, dp):
     nbmax = 2000
     if nb > nbmax:
         raise AstrosourceException("Error: NB > NBMAX!")
-    tot = t[-1] - t[0] # total time span
-    if fmin < 1.0/tot:
-        raise AstrosourceException("Error: fmin < 1/T")
+    #tot = t[-1] - t[0] # total time span
+    tot = max(t) - min(t) # total time span
+    print (fmin)
+    print (1.0/tot)
+    ### FIGURE OUT WHAT IS GOING ON HERE.
+    if fmin > 1.0/tot:
+        raise AstrosourceException("Error: fmin > 1/T")
+        #fmin = 1.0/tot
     # parameters in binning (after folding)
     kmi = int(qmi*nb) # nb is number of bin -> a single period
     if kmi < 1:
@@ -142,7 +147,7 @@ def bls(t, x, qmi, qma, fmin, df, nf, nb, startPeriod, dp):
     sde = (bpow - mean(p))/std(p) # signal detection efficiency
     return bpow, in1, in2, qtran, depth, bper, sde, p, high, low, powerPeriod
 
-def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, qma=0.1):
+def plot_bls(paths, startPeriod=-99.9, endPeriod=-99.9, nf=1000, nb=200, qmi=0.01, qma=0.1):
     '''
      Input parameters:
      ~~~~~~~~~~~~~~~~~
@@ -170,13 +175,25 @@ def plot_bls(paths, startPeriod=0.1, endPeriod=3.0, nf=1000, nb=200, qmi=0.01, q
         os.makedirs(eelbsPath)
     fileList = paths['outcatPath'].glob('*diffExcel*csv')
     r=0
-    # calculate period range
-    fmin = 1/endPeriod
-    fmax = 1/startPeriod
-    df = (fmax-fmin)/nf
-    dp = (endPeriod-startPeriod)/nf
+    
     for filename in fileList:
         photFile = loadtxt(paths['outcatPath'] / Path(filename).name, delimiter=',')
+        
+        print (startPeriod)
+        print (endPeriod)
+        # estimate a search bracket if none provided
+        if startPeriod==-99.9 or endPeriod==-99.9:
+            endPeriod=max(photFile[:,0])-min(photFile[:,0])/2
+            startPeriod=0.05
+        print (startPeriod)
+        print (endPeriod)
+        # calculate period range
+        fmin = 1/endPeriod
+        fmax = 1/startPeriod
+        df = (fmax-fmin)/nf
+        dp = (endPeriod-startPeriod)/nf
+        
+        
         logger.debug('**********************')
         logger.debug(f'Testing: {filename}')
         t = photFile[:,0]

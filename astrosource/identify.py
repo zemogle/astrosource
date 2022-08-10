@@ -325,7 +325,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
         
     return phot_list, filterCode, photFileHolder, photSkyCoord
 
-def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closerejectd=5.0, photCoords=None, photFileHolder=None, mincompstars=0.1, mincompstarstotal=-99, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=3, maxcandidatestars=10000, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, filterCode=None, restrictmagbrightest=-99.0, restrictmagdimmest=99.0):
+def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closerejectd=5.0, photCoords=None, photFileHolder=None, mincompstars=0.1, mincompstarstotal=-99, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=3, maxcandidatestars=10000, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, filterCode=None, restrictmagbrightest=-99.0, restrictmagdimmest=99.0, minfractionimages=0.5):
     """
     Finds stars useful for photometry in each photometry/data file
 
@@ -351,6 +351,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             This many initial images (lots of stars are expected to be rejected in the early images)
     minCompStars : int
             This is the minimum number of comp stars required
+        
 
     Returns
     -------
@@ -367,7 +368,6 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         os.remove(paths['parent'] / "photSkyCoord")
     if os.path.exists(paths['parent'] / "photFileHolder"):
         os.remove(paths['parent'] / "photFileHolder")
-
 
 
     fileSizer=0
@@ -483,8 +483,11 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     if mincompstarstotal != -99:
         mincompstars=mincompstarstotal
     initialMincompstars=mincompstars
+    initialNImages=len(fileList)
     
+    fracImgReject=1
     rfCounter=0
+    imgOverride=0
     ##### Looper function to automatically cycle through more restrictive values for imageFracReject and starreject
     while (compchecker < mincompstars): # Keep going until you get the minimum number of Comp Stars
         imgsize=imageFracReject * fileSizer # set threshold size
@@ -493,6 +496,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         imgReject = 0 # Number of images rejected due to high rejection rate
         loFileReject = 0 # Number of images rejected due to too few stars in the photometry file
         wcsFileReject=0
+        imgOverride=0
         
         
             
@@ -611,6 +615,18 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         photFileHolder=delete(photFileHolder, photReject, axis=0)
         fileList=delete(fileList, photReject, axis=0)
         
+        # Calculate fraction of total images rejected.
+        TimgReject=loFileReject + wcsFileReject + imgReject
+        if TimgReject ==0 :
+            fracImgReject=0
+        else:
+            fracImgReject=  TimgReject / initialNImages
+        print (initialNImages)
+        print (TimgReject)
+        print ("FracImgRejct")
+        print (fracImgReject)
+        
+        
         # Raise values of imgreject and starreject for next attempt
         starreject=starreject-0.025
         imageFracReject=imageFracReject+0.05
@@ -619,12 +635,16 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             starreject=0.15
         if imageFracReject > 0.8:
             imageFracReject = 0.8
+            
+        
+            
+        
 
         if starreject == 0.15 and imageFracReject == 0.8 and mincompstars ==1 and rejectStart==1 and len(originalphotFileHolder) <5:
             logger.error("Failed to find any comparison candidates with the maximum restrictions. There is something terribly wrong!")
             raise AstrosourceException("Unable to find sufficient comparison stars with the most stringent conditions in this dataset.")
 
-        if starreject == 0.15 and imageFracReject == 0.8 and mincompstars ==1 and rejectStart==1:
+        elif (starreject == 0.15 and imageFracReject == 0.8 and mincompstars ==1 and rejectStart==1)  :
             logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
             
             logger.error("Kicking out the reference image and trying a random reference image.")
@@ -697,7 +717,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             photFileHolder=originalphotFileHolder
 
 
-        if starreject == 0.15 and imageFracReject == 0.8 and mincompstars !=1:
+        elif starreject == 0.15 and imageFracReject == 0.8 and mincompstars !=1:
             logger.error("Maximum number of Candidate Comparison Stars found this cycle: " + str(compchecker))
             logger.error("Failed to find sufficient comparison candidates with the maximum restrictions, trying with a lower value for mincompstars")
             compchecker=0
@@ -716,6 +736,24 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             logger.error("Failed to find sufficient comparison candidates, adjusting starreject and imgreject and trying again.")
             logger.error("Now trying starreject " +str(starreject) + " and imgreject " +str(imageFracReject))
             referenceFrame=originalReferenceFrame
+        
+        elif (fracImgReject > minfractionimages):
+            #compchecker=mincompstars-1
+            referenceFrame=originalReferenceFrame
+            imgOverride=1
+            compchecker=0
+            logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
+            logger.error("Too many images were rejected, adjusting starreject and imgreject and trying again.")
+            logger.error("Now trying starreject " +str(starreject) + " and imgreject " +str(imageFracReject))
+            fileList=originalfileList
+            photCoords=originalphotSkyCoord
+            photFileHolder=originalphotFileHolder
+            
+        print (imgOverride)
+        
+        print (compchecker)
+        print (mincompstars)
+        
 
     #print (len(photCoords))
     #print (len(photFileHolder))
@@ -724,9 +762,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     # Remove files and Hold the photSkyCoords in memory
     #photCoords=delete(photCoords, photReject, axis=0)
     #photFileHolder=delete(photFileHolder, photReject, axis=0)
-    
 
-    
     # Construct the output file containing candidate comparison stars
     outputComps=[]
     for j in range (referenceFrame.shape[0]):

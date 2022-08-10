@@ -69,6 +69,10 @@ def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, 
     #     photFileHolder.append(photFile)
     #     photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
     
+    if fileList==None:
+        fileList= genfromtxt(parentPath / 'usedImages.txt', dtype=str)
+    
+    #print (fileList)
     usedImages=[]
     q=0
     imageRemove=[]
@@ -214,6 +218,7 @@ def find_comparisons(targets,  parentPath=None, fileList=None, photFileArray=Non
         else:
             logger.info("Minimum variability is too low for comparison star rejection by variability.")
 
+        #sys.exit()
 
         compFile = delete(compFile, starRejecter, axis=0)
         sortStars = delete(sortStars, starRejecter, axis=0)

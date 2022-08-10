@@ -33,7 +33,7 @@ class TimeSeries:
         self.deccut = kwargs.get('deccut', -99.9)
         self.radiuscut =kwargs.get('radiuscut', -99.9)
 
-
+        self.minfractionimages=kwargs.get('minfractionimages', 0.5)
 
         self.detrendfraction =kwargs.get('detrendfraction', 0.1)
         
@@ -123,7 +123,8 @@ class TimeSeries:
                                                                                  restrictcompcolourrange=self.restrictcompcolourrange,
                                                                                  restrictmagbrightest=self.restrictmagbrightest, 
                                                                                  restrictmagdimmest=self.restrictmagdimmest,
-                                                                                 filterCode=self.filtercode)
+                                                                                 filterCode=self.filtercode,
+                                                                                 minfractionimages=self.minfractionimages)
             #print (len(self.usedimages))
             #print (len(self.photFileHolder))
             #print (len(self.photCoords))
