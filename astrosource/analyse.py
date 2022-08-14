@@ -54,7 +54,7 @@ def get_total_counts(photFileArray, compFile, loopLength, photCoords):
     #logger.debug(allCountsArray)
     return allCountsArray
 
-def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None, varsearchthresh=10000, varsearchstdev=2.0, varsearchmagwidth=0.25, varsearchminimages=0.3, photCoords=None, photFileHolder=None, fileList=None):
+def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None, varsearchglobalstdev=-99.9, varsearchthresh=10000, varsearchstdev=2.0, varsearchmagwidth=0.25, varsearchminimages=0.3, photCoords=None, photFileHolder=None, fileList=None):
     '''
     Find stable comparison stars for the target photometry and remove variables
 
@@ -71,6 +71,8 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     -------
     outfile : str
     '''
+
+
 
 
     # # Load in list of used files
@@ -266,7 +268,10 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
         # At this point extract RA and Dec of stars that may be variable
         for q in range(len(starVar[:,2])):
             if starVar[q,2] >= xbins[xbinner] and starVar[q,2] < xbins[xbinner]+xStepSize:
-                if starVar[q,3] > (meanStarsWithin + varsearchstdev*stdStarsWithin):
+                if varsearchglobalstdev != -99.9:
+                    if starVar[q,3] > varsearchglobalstdev :
+                        potentialVariables.append([starVar[q,0],starVar[q,1],starVar[q,2],starVar[q,3]])
+                elif starVar[q,3] > (meanStarsWithin + varsearchstdev*stdStarsWithin):
                     #print (starVar[q,3])
                     potentialVariables.append([starVar[q,0],starVar[q,1],starVar[q,2],starVar[q,3]])
                     

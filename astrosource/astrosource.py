@@ -47,6 +47,8 @@ class TimeSeries:
         self.targetradius = kwargs.get('targetradius', 1.5)
         self.matchradius = kwargs.get('matchradius', 1.0) 
         self.varsearch = kwargs.get('varsearch', False)
+
+        self.varsearchglobalstdev = kwargs.get('varsearchglobalstdev', -99.9)
         self.varsearchthresh = kwargs.get('varsearchthresh', 10000)
         self.varsearchstdev = kwargs.get('varsearchstdev', 1.5) 
         self.varsearchmagwidth = kwargs.get('varsearchmagwidth', 0.5) 
@@ -195,7 +197,7 @@ class TimeSeries:
         
 
     def find_variables(self):
-        find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius, varsearchthresh=self.varsearchthresh, varsearchstdev=self.varsearchstdev, varsearchmagwidth=self.varsearchmagwidth, varsearchminimages=self.varsearchminimages, photCoords=self.photCoords, photFileHolder=self.photFileHolder, fileList=self.usedimages)
+        find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius, varsearchglobalstdev=self.varsearchglobalstdev, varsearchthresh=self.varsearchthresh, varsearchstdev=self.varsearchstdev, varsearchmagwidth=self.varsearchmagwidth, varsearchminimages=self.varsearchminimages, photCoords=self.photCoords, photFileHolder=self.photFileHolder, fileList=self.usedimages)
 
     def photometry(self, filesave=False, targets=None):
         self.targets=targets

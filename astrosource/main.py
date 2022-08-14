@@ -75,6 +75,8 @@ logger = logging.getLogger('astrosource')
 @click.option('--nopanstarrs',  is_flag=True, help='Do not use the PanSTARRS catalogue for calibration')
 @click.option('--nosdss',  is_flag=True, help='Do not use the SDSS catalogue for calibration')
 @click.option('--varsearch',  is_flag=True, help='Undertake variability calculations for identified stars')
+
+@click.option('--varsearchglobalstdev',  type=float, default=-99.9, help='Do not bin varsearch by magnitude and just detect variables above a certain variability')
 @click.option('--varsearchthresh',  type=float, default=10000, help='Threshold counts above which to detect variability')
 @click.option('--varsearchstdev',  type=float, default=1.5, help='How many stdev above mean of each bin to detect variables')
 @click.option('--varsearchmagwidth',  type=float, default=0.5, help='Size of magnitude bin to detect variables')
@@ -104,7 +106,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--rejectmagbrightest', type=float, default=-99.0, help='Remove calibrated measurements brighter than this from target results')
 @click.option('--rejectmagdimmest', type=float, default=99.0, help='Remove calibrated measurements dimmer than this from target results')
 
-def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescreenedcomps, usepreviousvarsearch, calibsave, outliererror, outlierstdev, varsearchstdev, varsearchmagwidth, varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests,  thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius, racut, deccut, radiuscut, restrictcompcolourcentre, restrictcompcolourrange, detrendfraction,minfractionimages):
+def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescreenedcomps, usepreviousvarsearch, calibsave, outliererror, outlierstdev, varsearchglobalstdev, varsearchstdev, varsearchmagwidth, varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests,  thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius, racut, deccut, radiuscut, restrictcompcolourcentre, restrictcompcolourrange, detrendfraction,minfractionimages):
 
     try:
         parentPath = Path(indir)
@@ -132,6 +134,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
         if variablehunt == True:
             varsearch=True
             full=True
+
 
         if usecompletedcalib == True:
             usecompsused = True
@@ -174,6 +177,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
                         rejectmagdimmest=rejectmagdimmest,
                         targetradius=targetradius,
                         matchradius=matchradius,
+                        varsearchglobalstdev=varsearchglobalstdev,
                         varsearchthresh=varsearchthresh,
                         varsearchstdev=varsearchstdev, 
                         varsearchmagwidth=varsearchmagwidth,
@@ -193,7 +197,9 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
 
         if full or comparison:
             ts.analyse(usescreenedcomps=usescreenedcomps, usecompsused=usecompsused, usecompletedcalib=usecompletedcalib)
-        if (full or calc) and varsearch and not usepreviousvarsearch:
+        
+        
+        if (full or calc) and varsearch and not usepreviousvarsearch :
             ts.find_variables()
 
         if variablehunt == True:
