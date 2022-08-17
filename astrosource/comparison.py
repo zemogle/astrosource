@@ -778,6 +778,9 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         resp = resp[where((resp['Qual'] == 52) | (resp['Qual'] == 60) | (resp['Qual'] == 61))]
     elif cat_name == 'SDSS':
         resp = resp[resp['Q'] == 3]
+        resp = resp[resp['clean'] == 1]
+        resp = resp[resp['class'] == 6]
+        resp = resp[resp['mode'] == 1]
     elif cat_name == 'SkyMapper':
         resp = resp[resp['flags'] == 0]
 
