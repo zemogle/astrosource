@@ -729,7 +729,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     data = namedtuple(typename='data',field_names=['ra','dec','mag','emag','cat_name', 'colmatch', 'colerr'])
 
     TABLES = {'APASS':'II/336/apass9',
-              'SDSS' :'V/147/sdss12',
+              'SDSS' :'V/154/sdss16',
               'PanSTARRS' : 'II/349/ps1',
               'SkyMapper' : 'II/358/smss'
               }
