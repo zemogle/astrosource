@@ -647,6 +647,8 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
 
         #logger.info(avgCoord)
 
+    # Get search Radius    
+    radius= 0.5 * pow(  pow(max(compFile[:,0])-min(compFile[:,0]),2) + pow(max((compFile[:,1])-min(compFile[:,1]))*cos((min(compFile[:,1])+max(compFile[:,1]))/2),2) , 0.5)
 
     # Check VSX for any known variable stars and remove them from the list
     logger.info("Searching for known variable stars in VSX......")
@@ -654,7 +656,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         v=Vizier(columns=['all']) # Skymapper by default does not report the error columns
         v.ROW_LIMIT=-1
         #logger.info(avgCoord)
-        variableResult=v.query_region(avgCoord, '0.33 deg', catalog='VSX')
+        variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')
         #logger.info(variableResult)
         if str(variableResult)=="Empty TableList":
             logger.info("VSX Returned an Empty Table.")
@@ -669,7 +671,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
             try:
                 v=Vizier(columns=['all']) # Skymapper by default does not report the error columns
                 v.ROW_LIMIT=-1
-                variableResult=v.query_region(avgCoord, '0.33 deg', catalog='VSX')['B/vsx/vsx']
+                variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')['B/vsx/vsx']
                 connected=True
             except ConnectionError:
                 time.sleep(10)
@@ -733,7 +735,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
               }
 
     tbname = TABLES.get(cat_name, None)
-    kwargs = {'radius':'0.33 deg'}
+    kwargs = {'radius': str(1.5*radius)+' deg'}
     kwargs['catalog'] = cat_name
 
     try:
@@ -923,8 +925,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
         logger.debug(f"Average: RA {avgCoord.ra}, Dec {avgCoord.dec}")
 
-    # Get search Radius
-    
+    # Get search Radius    
     radius= 0.5 * pow(  pow(max(compFile[:,0])-min(compFile[:,0]),2) + pow(max((compFile[:,1])-min(compFile[:,1]))*cos((min(compFile[:,1])+max(compFile[:,1]))/2),2) , 0.5)
     
     #avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)

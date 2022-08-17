@@ -76,7 +76,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--nosdss',  is_flag=True, help='Do not use the SDSS catalogue for calibration')
 @click.option('--varsearch',  is_flag=True, help='Undertake variability calculations for identified stars')
 
-@click.option('--varsearchglobalstdev',  type=float, default=-99.9, help='Do not bin varsearch by magnitude and just detect variables above a certain variability')
+@click.option('--varsearchglobalstdev',  type=float, default=-99.9, help='Just detect variables above a certain variability not variability by magnitude')
 @click.option('--varsearchthresh',  type=float, default=10000, help='Threshold counts above which to detect variability')
 @click.option('--varsearchstdev',  type=float, default=1.5, help='How many stdev above mean of each bin to detect variables')
 @click.option('--varsearchmagwidth',  type=float, default=0.5, help='Size of magnitude bin to detect variables')

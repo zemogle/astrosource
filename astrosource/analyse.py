@@ -282,34 +282,38 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     potentialVariables=np.array(potentialVariables)
     logger.debug("Potential Variables Identified: " + str(potentialVariables.shape[0]))
-    savetxt(parentPath / "potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f')
-   
     
+    if potentialVariables.shape[0] == 0:
+        logger.info("No Potential Variables identified in this set of data using the parameters requested.")
+    else:
+        savetxt(parentPath / "potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f')
+       
+        
+        
+        
+        plot_variability(outputVariableHolder, potentialVariables, parentPath)
     
+        plt.cla()
+        fig, ax = plt.subplots(figsize =(10, 7))
+        #plt.hist2d(meanMags, variations, bins =[xbins, ybins], cmap = plt.cm.nipy_spectral)
+        # A low hump with a spike coming out of the top right.  Needs to have
+        #X = meanMags
+        #Y = variations
+        # z/colour axis on a log scale so we see both hump and spike.  linear
+        # scale only shows the spike.
+        #Z1 = np.exp(-X**2 - Y**2)
+        #Z2 = np.exp(-(X * 10)**2 - (Y * 10)**2)
+        #Z = Z1 + 50 * Z2
+        #plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(vmin=variations.min(), vmax=variations.max()), cmap = plt.cm.Purples)
+        plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(), cmap = plt.cm.YlOrRd)
+        plt.colorbar()
+        plt.title("Variation Histogram")
+        ax.set_xlabel('Mean Differential Magnitude') 
+        ax.set_ylabel('Variation (Standard Deviation)') 
+        plt.plot(potentialVariables[:,2],potentialVariables[:,3],'bo')
+        plt.tight_layout()
     
-    plot_variability(outputVariableHolder, potentialVariables, parentPath)
-
-    plt.cla()
-    fig, ax = plt.subplots(figsize =(10, 7))
-    #plt.hist2d(meanMags, variations, bins =[xbins, ybins], cmap = plt.cm.nipy_spectral)
-    # A low hump with a spike coming out of the top right.  Needs to have
-    #X = meanMags
-    #Y = variations
-    # z/colour axis on a log scale so we see both hump and spike.  linear
-    # scale only shows the spike.
-    #Z1 = np.exp(-X**2 - Y**2)
-    #Z2 = np.exp(-(X * 10)**2 - (Y * 10)**2)
-    #Z = Z1 + 50 * Z2
-    #plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(vmin=variations.min(), vmax=variations.max()), cmap = plt.cm.Purples)
-    plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(), cmap = plt.cm.YlOrRd)
-    plt.colorbar()
-    plt.title("Variation Histogram")
-    ax.set_xlabel('Mean Differential Magnitude') 
-    ax.set_ylabel('Variation (Standard Deviation)') 
-    plt.plot(potentialVariables[:,2],potentialVariables[:,3],'bo')
-    plt.tight_layout()
-
-    plt.savefig(parentPath / "Variation2DHistogram.png")
+        plt.savefig(parentPath / "Variation2DHistogram.png")
 
     return outputVariableHolder
 
