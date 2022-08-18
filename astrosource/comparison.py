@@ -653,7 +653,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     # Check VSX for any known variable stars and remove them from the list
     logger.info("Searching for known variable stars in VSX......")
     try:
-        v=Vizier(columns=['all']) # Skymapper by default does not report the error columns
+        v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
         v.ROW_LIMIT=-1
         #logger.info(avgCoord)
         variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')
@@ -669,7 +669,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         logger.info("Connection failed, waiting and trying again")
         while connected==False:
             try:
-                v=Vizier(columns=['all']) # Skymapper by default does not report the error columns
+                v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
                 v.ROW_LIMIT=-1
                 variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')['B/vsx/vsx']
                 connected=True
@@ -737,11 +737,44 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     tbname = TABLES.get(cat_name, None)
     kwargs = {'radius': str(1.5*radius)+' deg'}
     kwargs['catalog'] = cat_name
+    
+    # Only request relevant columns
+    if cat_name in ['APASS','PanSTARRS']:
+        radecname = {'ra' :'RAJ2000', 'dec': 'DEJ2000'}
+    elif cat_name == 'SDSS':
+        radecname = {'ra' :'RA_ICRS', 'dec': 'DE_ICRS'}
+    elif cat_name == 'SkyMapper':
+        radecname = {'ra' :'RAICRS', 'dec': 'DEICRS'}
+    else:
+        radecname = {'ra' :'raj2000', 'dec': 'dej2000'}
+    
+    
+    searchColumns=[radecname['ra'], radecname['dec'], opt['filter'], opt['error'], opt['colmatch'], opt['colerr']]
+    #print (searchColumns)
 
+    v=Vizier(columns=searchColumns) # Skymapper by default does not report the error columns
+    v.ROW_LIMIT=-1
+
+    #queryConstraint=
+    # Filter out bad data from catalogues
+    if cat_name == 'PanSTARRS':
+        #resp = resp[where((resp['Qual'] == 52) | (resp['Qual'] == 60) | (resp['Qual'] == 61))]
+        queryConstraint={'Qual' : '52 || 60 || 61'}
+    elif cat_name == 'SDSS':
+        #resp = resp[resp['Q'] == 3]
+        #resp = resp[resp['clean'] == 1]
+        #resp = resp[resp['class'] == 6]
+        #resp = resp[resp['mode'] == 1]
+        queryConstraint={'Q' : '3', 'clean': '1', 'class': '6', 'mode': '1'}
+    elif cat_name == 'SkyMapper':
+        #resp = resp[resp['flags'] == 0]
+        queryConstraint={'flags' : '0'}
+    elif cat_name == 'APASS':
+        queryConstraint={}
+        
     try:
-        v=Vizier(columns=['all']) # Skymapper by default does not report the error columns
-        v.ROW_LIMIT=-1
-        query = v.query_region(avgCoord, **kwargs)
+        
+        query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
     except VOSError:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
     except ConnectionError:
@@ -749,9 +782,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         logger.info("Connection failed, waiting and trying again")
         while connected==False:
             try:
-                v=Vizier(columns=['all']) # Skymapper by default does not report the error columns
-                v.ROW_LIMIT=-1
-                query = v.query_region(avgCoord, **kwargs)
+                query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
                 connected=True
             except ConnectionError:
                 time.sleep(10)
@@ -764,25 +795,8 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
 
     logger.debug(f'Looking for sources in {cat_name}')
-    if cat_name in ['APASS','PanSTARRS']:
-        radecname = {'ra' :'RAJ2000', 'dec': 'DEJ2000'}
-    elif cat_name == 'SDSS':
-        radecname = {'ra' :'RA_ICRS', 'dec': 'DE_ICRS'}
-    elif cat_name == 'SkyMapper':
-        radecname = {'ra' :'RAICRS', 'dec': 'DEICRS'}
-    else:
-        radecname = {'ra' :'raj2000', 'dec': 'dej2000'}
 
-    # Filter out bad data from catalogues
-    if cat_name == 'PanSTARRS':
-        resp = resp[where((resp['Qual'] == 52) | (resp['Qual'] == 60) | (resp['Qual'] == 61))]
-    elif cat_name == 'SDSS':
-        resp = resp[resp['Q'] == 3]
-        resp = resp[resp['clean'] == 1]
-        resp = resp[resp['class'] == 6]
-        resp = resp[resp['mode'] == 1]
-    elif cat_name == 'SkyMapper':
-        resp = resp[resp['flags'] == 0]
+
 
     logger.info("Original high quality sources in calibration catalogue: "+str(len(resp)))
 
