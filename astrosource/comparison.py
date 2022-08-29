@@ -1678,14 +1678,18 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         #for r in range(len(calibOut[:,0])):
         #    calibOut[r,5]=calibOut[r,4]-tempZP
         #    calibOverlord.append([calibOut[r,0],calibOut[r,1],calibOut[r,2],calibOut[r,3],calibOut[r,4],calibOut[r,5],float(file.split("_")[2].replace("d",".")),tempZP,calibOut[r,6],calibOut[r,7],calibOut[r,8]])
-        print (calibOut.shape)
-        print (calibOut.size)
-        print (calibOut)
+        #print (calibOut.shape)
+        #print (calibOut.size)
+        #print (calibOut)
         
-        calibOut[:,5]=calibOut[:,4]-tempZP # Speedup
-        for r in range(len(calibOut[:,0])):
-            
-            calibOverlord.append([calibOut[r,0],calibOut[r,1],calibOut[r,2],calibOut[r,3],calibOut[r,4],calibOut[r,5],float(file.split("_")[2].replace("d",".")),tempZP,calibOut[r,6],calibOut[r,7],calibOut[r,8]])
+        
+        if calibOut.size == 0:
+            logger.error("\nFailed to find adequate catalogue comparisons in " +str(file)+"\nIf calibration is failing with astrosource consider removing this file.")
+        else:
+            calibOut[:,5]=calibOut[:,4]-tempZP # Speedup
+            for r in range(len(calibOut[:,0])):
+                
+                calibOverlord.append([calibOut[r,0],calibOut[r,1],calibOut[r,2],calibOut[r,3],calibOut[r,4],calibOut[r,5],float(file.split("_")[2].replace("d",".")),tempZP,calibOut[r,6],calibOut[r,7],calibOut[r,8]])
 
         
         #print ("Last For Loop")
