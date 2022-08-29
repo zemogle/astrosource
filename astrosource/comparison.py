@@ -1112,6 +1112,12 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
 
                     ### remove stars that that brighter (--restrictmagbrighter) or dimmer (--restrictmagdimmer) than requested.
+                    
+                    #print (restrictmagbrightest)
+                    #print (restrictmagdimmest)
+                    #print (restrictcompcolourcentre)
+                    #print (restrictcompcolourrange)
+                    #print (len(calibStands))
                     calibStandsReject=[]
                     if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and calibStands != []:
                         for q in range(len(asarray(calibStands)[:,0])):
@@ -1119,16 +1125,16 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                             if (calibStands[q][3] > restrictmagdimmest) or (calibStands[q][3] < restrictmagbrightest):
                                 calibStandsReject.append(q)
                                 #logger.info(calibStands[q][3])
-                            
-                            if opt['colrev'] ==0:   
-                                
-                                if (calibStands[q][3]-calibStands[q][6] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][3]-calibStands[q][6] < (restrictcompcolourcentre - restrictcompcolourrange)) :
-                                    calibStandsReject.append(q)
-                            else:
-                                #print(calibStands[q][6]-calibStands[q][3])
-                                #print (calibStands[q][6]-calibStands[q][3])
-                                if (calibStands[q][6]-calibStands[q][3] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][6]-calibStands[q][3] < (restrictcompcolourcentre - restrictcompcolourrange)) :
-                                    calibStandsReject.append(q)
+                            if restrictcompcolourrange != -99.0:
+                                if int(opt['colrev']) ==0:   
+                                    
+                                    if (calibStands[q][3]-calibStands[q][6] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][3]-calibStands[q][6] < (restrictcompcolourcentre - restrictcompcolourrange)) :
+                                        calibStandsReject.append(q)
+                                else:
+                                    #print(calibStands[q][6]-calibStands[q][3])
+                                    #print (calibStands[q][6]-calibStands[q][3])
+                                    if (calibStands[q][6]-calibStands[q][3] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][6]-calibStands[q][3] < (restrictcompcolourcentre - restrictcompcolourrange)) :
+                                        calibStandsReject.append(q)
 
                         if len(calibStandsReject) != len(asarray(calibStands)[:,0]):
                             calibStands=delete(calibStands, calibStandsReject, axis=0)
@@ -1672,6 +1678,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         #for r in range(len(calibOut[:,0])):
         #    calibOut[r,5]=calibOut[r,4]-tempZP
         #    calibOverlord.append([calibOut[r,0],calibOut[r,1],calibOut[r,2],calibOut[r,3],calibOut[r,4],calibOut[r,5],float(file.split("_")[2].replace("d",".")),tempZP,calibOut[r,6],calibOut[r,7],calibOut[r,8]])
+        print (calibOut.shape)
+        print (calibOut.size)
+        print (calibOut)
+        
         calibOut[:,5]=calibOut[:,4]-tempZP # Speedup
         for r in range(len(calibOut[:,0])):
             

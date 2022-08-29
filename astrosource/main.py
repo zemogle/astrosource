@@ -98,7 +98,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--targetcolour',  type=float, default=-99.0, help='Provide a known colour for the target')
 
 
-@click.option('--restrictcompcolourcentre', type=float, default=-99.0, help='The middle of the range of comparison colours to restrict')
+@click.option('--restrictcompcolourcentre', type=float, default=-999.0, help='The middle of the range of comparison colours to restrict')
 @click.option('--restrictcompcolourrange', type=float, default=-99.0, help='The range of the comparison colours to restrict')
 
 @click.option('--restrictmagbrightest', type=float, default=-99.0, help='Do not use catalogue magnitudes brighter than this for calibration')

@@ -973,32 +973,45 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     
         #print (len(asarray(calibStands)[:,0]))
         
-    
+
+        #print (calibStands)
+        #print (len(calibStands))
+        #print (restrictmagbrightest)
+        #print (restrictmagdimmest)
+        #print (restrictcompcolourcentre)
+        #print (restrictcompcolourrange)
+        #print (int(opt['colrev']))
         ### remove stars that that brighter (--restrictmagbrighter) or dimmer (--restrictmagdimmer) than requested or colour from calib standards.
         calibStandsReject=[]
+        calibStands=asarray(calibStands)
         if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and calibStands != []:
             for q in range(len(asarray(calibStands)[:,0])):
     
                 if (calibStands[q][3] > restrictmagdimmest) or (calibStands[q][3] < restrictmagbrightest):
                     calibStandsReject.append(q)
                     #logger.info(calibStands[q][3])
-                    
-                if opt['colrev'] ==0:
-                    
-                    if (calibStands[q][3]-calibStands[q][6] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][3]-calibStands[q][6] < (restrictcompcolourcentre - restrictcompcolourrange)) :
-                        calibStandsReject.append(q)
-                else:
-                    #print (calibStands[q][6]-calibStands[q][3])
-                    if (calibStands[q][6]-calibStands[q][3] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][6]-calibStands[q][3] < (restrictcompcolourcentre - restrictcompcolourrange)) :
-                        calibStandsReject.append(q)
+                
+                if restrictcompcolourrange != -99.0:
+                    if int(opt['colrev']) ==0:
+                        logger.info("WHAAAAAA?")
+                        if (calibStands[q][3]-calibStands[q][6] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][3]-calibStands[q][6] < (restrictcompcolourcentre - restrictcompcolourrange)) :
+                            calibStandsReject.append(q)
+                            #logger.info(calibStands[q][3]-calibStands[q][6])
+                            logger.info(calibStands[q][3]-calibStands[q][6])
+                            logger.info((restrictcompcolourcentre + restrictcompcolourrange))
+                            logger.info((restrictcompcolourcentre - restrictcompcolourrange))
+                    else:
+                        #print (calibStands[q][6]-calibStands[q][3])
+                        if (calibStands[q][6]-calibStands[q][3] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][6]-calibStands[q][3] < (restrictcompcolourcentre - restrictcompcolourrange)) :
+                            calibStandsReject.append(q)
+
        
             if len(calibStandsReject) != len(asarray(calibStands)[:,0]):
                 calibStands=delete(calibStands, calibStandsReject, axis=0)
     
         #print (restrictcompcolourcentre)
         #print (restrictcompcolourrange)
-        
-        
+
         # NOW only keep those stars in outputComps that match calibStands
         
         
@@ -1006,14 +1019,18 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         
         #racol=array([calibStands[:,0]])
         #deccol=array([calibStands[:,1]])
+
+        #print (calibStands.shape())
+        calibStands=asarray(calibStands)
         outputComps=column_stack((calibStands[:,0],calibStands[:,1]))
-        print (asarray(outputComps))        
+        #print (asarray(outputComps))        
         
         #np.hstack(np.array([[coords.ra],[coords.dec],[coords.mag],[coords.emag],[coords.colmatch],[coords.colerr]]))
         
         
         logger.info('Removed ' + str(len(calibStandsReject)) + ' Candidate Comparison Stars for being too bright or too dim or the wrong colour')
-    
+        #sys.exit()
+        
         #sys.exit()
     
         ### If looking for colour, remove those without matching colour information
