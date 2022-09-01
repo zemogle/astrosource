@@ -5,7 +5,7 @@ import os
 import logging
 import pickle
 
-from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan, zeros, max, min, nan, where, average, cos, hstack, array, column_stack
+from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan, zeros, max, min, nan, where, average, cos, hstack, array, column_stack, copy
 from astropy import units as u
 from astropy.units import degree, arcsecond
 from astropy import wcs
@@ -127,7 +127,20 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
                     #print (where(distanceArray > float(radiuscut)/60))
                     photFile=delete(photFile, where(distanceArray > float(radiuscut)/60), axis=0)
                 else:   
-                
+                    #Routine to deal with RA 0 crossovers
+                    crossover=0
+                    if (max(photFile[:,0])-min(photFile[:,0])) > 180:
+                        for entry in range(len(photFile[:,0])):
+                            if photFile[entry,0] > 180:
+                                photFile[entry,0] = photFile[entry,0] - 180
+                            else:
+                                photFile[entry,0] = photFile[entry,0] + 180
+                        #photFile[:,0][photFile[:,0]> 180] = photFile[:,0][photFile[:,0]> 180].__iadd__(180)
+                        #photFile[:,0][photFile[:,0]< 180] = photFile[:,0][photFile[:,0]> 180].__iadd__(-180)
+                        #logger.info(lowerhalf)
+                        #logger.info(upperhalf)
+                        
+                        crossover=1
                     # Remove edge detections
                     raRange=(max(photFile[:,0])-min(photFile[:,0]))
                     decRange=(max(photFile[:,1])-min(photFile[:,1]))
@@ -141,6 +154,11 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
                     photFile[:,0][photFile[:,0] > raMax - raClip ] = nan
                     photFile[:,1][photFile[:,1] > decMax - decClip ] = nan
                     photFile[:,1][photFile[:,1] < decMin + decClip ] = nan     
+                    if crossover == 1:
+                        photFile[:,0] = photFile[:,0] - 180.0
+                        for entry in range(len(photFile[:,0])):
+                            if photFile[entry,0] < 0:
+                                photFile[entry,0] = photFile[entry,0] + 360
                 #remove odd zero entries
                 photFile[:,0][photFile[:,0] == 0.0 ] = nan
                 photFile[:,0][photFile[:,0] == 0.0 ] = nan
@@ -176,13 +194,15 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
     photSkyCoord=[]
     for fn in filelist:
         photFile = genfromtxt(fn, dtype=float, delimiter=',')
+        logger.info(fn)
         # reject nan entries in file
         if photFile.size > 16: #ignore zero sized files and files with only one or two entries
             if max(photFile[:,0]) < 360 and max(photFile[:,1]) < 90:
+
                 if (photFile.size > 50):
                     if not (( asarray(photFile[:,0]) > 360).sum() > 0) :
                         if not(( asarray(photFile[:,1]) > 90).sum() > 0) :               
-                
+
                             photFile=photFile[~isnan(photFile).any(axis=1)]
                             
 
@@ -200,7 +220,21 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
                                 #print (where(distanceArray > float(radiuscut)/60))
                                 photFile=delete(photFile, where(distanceArray > float(radiuscut)/60), axis=0)
                             else:                            
-                            
+                                #Routine to deal with RA 0 crossovers
+                                crossover=0
+                                if (max(photFile[:,0])-min(photFile[:,0])) > 180:
+                                    for entry in range(len(photFile[:,0])):
+                                        if photFile[entry,0] > 180:
+                                            photFile[entry,0] = photFile[entry,0] - 180
+                                        else:
+                                            photFile[entry,0] = photFile[entry,0] + 180
+                                    #photFile[:,0][photFile[:,0]> 180] = photFile[:,0][photFile[:,0]> 180].__iadd__(180)
+                                    #photFile[:,0][photFile[:,0]< 180] = photFile[:,0][photFile[:,0]> 180].__iadd__(-180)
+                                    #logger.info(lowerhalf)
+                                    #logger.info(upperhalf)
+                                    
+                                    crossover=1
+                                #logger.info(photFile[:,0])
                                 # Remove edge detections
                                 raRange=(max(photFile[:,0])-min(photFile[:,0]))
                                 decRange=(max(photFile[:,1])-min(photFile[:,1]))
@@ -213,7 +247,12 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
                                 photFile[:,0][photFile[:,0] < raMin + raClip ] = nan
                                 photFile[:,0][photFile[:,0] > raMax - raClip ] = nan
                                 photFile[:,1][photFile[:,1] > decMax - decClip ] = nan
-                                photFile[:,1][photFile[:,1] < decMin + decClip ] = nan   
+                                photFile[:,1][photFile[:,1] < decMin + decClip ] = nan
+                                if crossover == 1:
+                                    photFile[:,0] = photFile[:,0] - 180.0
+                                    for entry in range(len(photFile[:,0])):
+                                        if photFile[entry,0] < 0:
+                                            photFile[entry,0] = photFile[entry,0] + 360
                             #remove odd zero entries
                             photFile[:,0][photFile[:,0] == 0.0 ] = nan
                             photFile[:,0][photFile[:,0] == 0.0 ] = nan
@@ -845,7 +884,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     #print (outputComps.size)
     #print (restrictmagbrightest)
     #print (restrictmagdimmest)
-    if restrictmagbrightest != -99.0 or restrictmagdimmest !=99.0 or restrictcompcolourcentre != -99.0 or restrictcompcolourrange != -99.0:
+    if restrictmagbrightest != -99.0 or restrictmagdimmest !=99.0 or restrictcompcolourcentre != -999.0 or restrictcompcolourrange != -99.0:
     
         if outputComps.shape[0] == 1 and outputComps.size == 2:
             #logger.debug(compFile[0])
@@ -884,8 +923,17 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         #print (min(outputComps[:,1]))
         
         radius= 0.5 * pow(  pow(max(outputComps[:,0])-min(outputComps[:,0]),2) + pow(max((outputComps[:,1])-min(outputComps[:,1]))*cos((min(outputComps[:,1])+max(outputComps[:,1]))/2),2) , 0.5)
+        if radius > 120:
+            tempCompsRadius=copy(outputComps)
+            if (max(outputComps[:,0])-min(outputComps[:,0])) > 180:
+                for entry in range(len(outputComps[:,0])):
+                    if outputComps[entry,0] > 180:
+                        tempCompsRadius[entry,0] = outputComps[entry,0] - 180
+                    else:
+                        tempCompsRadius[entry,0] = outputComps[entry,0] + 180
+            radius= 0.5 * pow(  pow(max(tempCompsRadius[:,0])-min(tempCompsRadius[:,0]),2) + pow(max((tempCompsRadius[:,1])-min(tempCompsRadius[:,1]))*cos((min(tempCompsRadius[:,1])+max(tempCompsRadius[:,1]))/2),2) , 0.5)
+            
         #print (1.5*radius)
-        
     
         
         FILTERS = {
@@ -984,6 +1032,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         ### remove stars that that brighter (--restrictmagbrighter) or dimmer (--restrictmagdimmer) than requested or colour from calib standards.
         calibStandsReject=[]
         calibStands=asarray(calibStands)
+
         if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and calibStands != []:
             for q in range(len(asarray(calibStands)[:,0])):
     
@@ -1019,6 +1068,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         
         #racol=array([calibStands[:,0]])
         #deccol=array([calibStands[:,1]])
+
 
         #print (calibStands.shape())
         calibStands=asarray(calibStands)

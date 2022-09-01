@@ -249,6 +249,7 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
 
     savetxt(parentPath / "stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
 
+
     # The following process selects the subset of the candidates that we will use (the least variable comparisons that hopefully get the request countrate)
 
     # Sort through and find the largest file and use that as the reference file
@@ -647,8 +648,21 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
 
         #logger.info(avgCoord)
 
+    
+
     # Get search Radius    
     radius= 0.5 * pow(  pow(max(compFile[:,0])-min(compFile[:,0]),2) + pow(max((compFile[:,1])-min(compFile[:,1]))*cos((min(compFile[:,1])+max(compFile[:,1]))/2),2) , 0.5)
+    if radius > 120:
+        tempCompsRadius=np.copy(compFile)
+        if (max(compFile[:,0])-min(compFile[:,0])) > 180:
+            for entry in range(len(compFile[:,0])):
+                if compFile[entry,0] > 180:
+                    tempCompsRadius[entry,0] = compFile[entry,0] - 180
+                else:
+                    tempCompsRadius[entry,0] = compFile[entry,0] + 180
+        radius= 0.5 * pow(  pow(max(tempCompsRadius[:,0])-min(tempCompsRadius[:,0]),2) + pow(max((tempCompsRadius[:,1])-min(tempCompsRadius[:,1]))*cos((min(tempCompsRadius[:,1])+max(tempCompsRadius[:,1]))/2),2) , 0.5)
+        
+
 
     # Check VSX for any known variable stars and remove them from the list
     logger.info("Searching for known variable stars in VSX......")
@@ -713,6 +727,8 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         logger.debug("Number of stars post VSX reject")
         logger.debug(compFile.shape[0])
 
+    #logger.info(compFile)
+    #sys.exit()
 
     if (compFile.shape[0] ==1):
         compFile=[[compFile[0][0],compFile[0][1],0.01]]
@@ -944,6 +960,18 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     # Get search Radius    
     radius= 0.5 * pow(  pow(max(compFile[:,0])-min(compFile[:,0]),2) + pow(max((compFile[:,1])-min(compFile[:,1]))*cos((min(compFile[:,1])+max(compFile[:,1]))/2),2) , 0.5)
+    if radius > 120:
+        tempCompsRadius=np.copy(compFile)
+        if (max(compFile[:,0])-min(compFile[:,0])) > 180:
+            for entry in range(len(compFile[:,0])):
+                if compFile[entry,0] > 180:
+                    tempCompsRadius[entry,0] = compFile[entry,0] - 180
+                else:
+                    tempCompsRadius[entry,0] = compFile[entry,0] + 180
+        radius= 0.5 * pow(  pow(max(tempCompsRadius[:,0])-min(tempCompsRadius[:,0]),2) + pow(max((tempCompsRadius[:,1])-min(tempCompsRadius[:,1]))*cos((min(tempCompsRadius[:,1])+max(tempCompsRadius[:,1]))/2),2) , 0.5)
+     
+    
+
     
     #avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
 
