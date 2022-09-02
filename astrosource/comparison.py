@@ -691,10 +691,16 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     except ConnectionError:
         connected=False
         logger.info("Connection failed, waiting and trying again")
+        cycler=0
         while connected==False:
             try:
                 v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
                 v.ROW_LIMIT=-1
+                
+                if cycler == 7:
+                    time.sleep(10)
+                    cycler=0
+                cycler=cycler+1
                 if vS != 7:
                     vS=vS+1
                 else:
@@ -703,7 +709,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                 variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')['B/vsx/vsx']
                 connected=True
             except ConnectionError:
-                time.sleep(10)
+                #time.sleep(10)
                 logger.info("Failed again.")
                 connected=False
 
@@ -812,7 +818,8 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         queryConstraint={'flags' : '0'}
     elif cat_name == 'APASS':
         queryConstraint={}
-        
+    
+    cycler=0
     try:
         v.VIZIER_SERVER=vServers[vS]
         query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
@@ -822,16 +829,20 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         connected=False
         logger.info("Connection failed, waiting and trying again")
         while connected==False:
-            try:
+            try:                
+                if cycler == 7:
+                    time.sleep(10)
+                    cycler=0
+                cycler=cycler+1
                 if vS != 7:
                     vS=vS+1
-                else:
+                else:                    
                     vS=0
                 v.VIZIER_SERVER=vServers[vS]
                 query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
                 connected=True
             except ConnectionError:
-                time.sleep(10)
+                
                 logger.info("Failed again.")
                 connected=False
 
