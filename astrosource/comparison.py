@@ -7,7 +7,7 @@ import numpy as np
 import time
 from datetime import datetime
 import shutil
-
+import random
 import pickle
 import matplotlib
 matplotlib.use('Agg')
@@ -669,6 +669,16 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     try:
         v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
         v.ROW_LIMIT=-1
+        vServers = ['vizier.u-strasbg.fr',
+             'vizier.nao.ac.jp',
+             'vizier.hia.nrc.ca',
+             'vizier.ast.cam.ac.uk',
+             'vizier.cfa.harvard.edu',
+             'www.ukirt.jach.hawaii.edu',
+             'vizier.iucaa.ernet.in',
+             'vizier.china-vo.org']
+        vS=random.randint(0,7)
+        v.VIZIER_SERVER=vServers[vS]
         #logger.info(avgCoord)
         variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')
         #logger.info(variableResult)
@@ -685,6 +695,11 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
             try:
                 v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
                 v.ROW_LIMIT=-1
+                if vS != 7:
+                    vS=vS+1
+                else:
+                    vS=0
+                v.VIZIER_SERVER=vServers[vS]
                 variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')['B/vsx/vsx']
                 connected=True
             except ConnectionError:
@@ -754,6 +769,16 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     kwargs = {'radius': str(1.5*radius)+' deg'}
     kwargs['catalog'] = cat_name
     
+    vServers = ['vizier.u-strasbg.fr',
+         'vizier.nao.ac.jp',
+         'vizier.hia.nrc.ca',
+         'vizier.ast.cam.ac.uk',
+         'vizier.cfa.harvard.edu',
+         'www.ukirt.jach.hawaii.edu',
+         'vizier.iucaa.ernet.in',
+         'vizier.china-vo.org']
+    vS=random.randint(0,7)
+    
     # Only request relevant columns
     if cat_name in ['APASS','PanSTARRS']:
         radecname = {'ra' :'RAJ2000', 'dec': 'DEJ2000'}
@@ -789,7 +814,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         queryConstraint={}
         
     try:
-        
+        v.VIZIER_SERVER=vServers[vS]
         query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
     except VOSError:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
@@ -798,6 +823,11 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         logger.info("Connection failed, waiting and trying again")
         while connected==False:
             try:
+                if vS != 7:
+                    vS=vS+1
+                else:
+                    vS=0
+                v.VIZIER_SERVER=vServers[vS]
                 query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
                 connected=True
             except ConnectionError:
