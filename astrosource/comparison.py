@@ -670,14 +670,13 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
         v.ROW_LIMIT=-1
         vServers = ['vizier.u-strasbg.fr',
-             'vizier.nao.ac.jp',
-             'vizier.hia.nrc.ca',
-             'vizier.ast.cam.ac.uk',
+             'vizier.nao.ac.jp',         
              'vizier.cfa.harvard.edu',
-             'www.ukirt.jach.hawaii.edu',
-             'vizier.iucaa.ernet.in',
-             'vizier.china-vo.org']
-        vS=random.randint(0,7)
+             'vizier.iucaa.in',
+             'vizier.china-vo.org',
+             'vizier.inasan.ru',
+             'vizier.idia.ac.za']
+        vS=random.randint(0,6)
         v.VIZIER_SERVER=vServers[vS]
         #logger.info(avgCoord)
         variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')
@@ -697,11 +696,11 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                 v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
                 v.ROW_LIMIT=-1
                 
-                if cycler == 7:
+                if cycler == 6:
                     time.sleep(10)
                     cycler=0
                 cycler=cycler+1
-                if vS != 7:
+                if vS != 6:
                     vS=vS+1
                 else:
                     vS=0
@@ -776,14 +775,13 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     kwargs['catalog'] = cat_name
     
     vServers = ['vizier.u-strasbg.fr',
-         'vizier.nao.ac.jp',
-         'vizier.hia.nrc.ca',
-         'vizier.ast.cam.ac.uk',
+         'vizier.nao.ac.jp',         
          'vizier.cfa.harvard.edu',
-         'www.ukirt.jach.hawaii.edu',
-         'vizier.iucaa.ernet.in',
-         'vizier.china-vo.org']
-    vS=random.randint(0,7)
+         'vizier.iucaa.in',
+         'vizier.china-vo.org',
+         'vizier.inasan.ru',
+         'vizier.idia.ac.za']
+    vS=random.randint(0,6)
     
     # Only request relevant columns
     if cat_name in ['APASS','PanSTARRS']:
@@ -830,11 +828,11 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         logger.info("Connection failed, waiting and trying again")
         while connected==False:
             try:                
-                if cycler == 7:
+                if cycler == 6:
                     time.sleep(10)
                     cycler=0
                 cycler=cycler+1
-                if vS != 7:
+                if vS != 6:
                     vS=vS+1
                 else:                    
                     vS=0
@@ -843,7 +841,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
                 connected=True
             except ConnectionError:
                 
-                logger.info("Failed again.")
+                logger.info("Failed again. Connection Error.")
                 connected=False
 
     if query.keys():
