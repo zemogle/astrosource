@@ -1723,7 +1723,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
     if maxperiod==-99.9 or maxperiod==None:
         # Load in list of used files
         fileList = []
-        with open(paths['parent'] / "usedImages.txt", "r") as f:
+        with open(paths['parent'] / "results/usedImages.txt", "r") as f:
             for line in f:
                 fileList.append(line.strip())
 
@@ -1758,8 +1758,8 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
     logger.debug("Filter Set: " + filterCode)
 
     fileList = paths['outcatPath'].glob('*_diffExcel.csv')
-    with open(paths['parent'] / "periodEstimates.txt", "w") as f:
-        f.write("Period Estimates \n\n")
+    with open(paths['parent'] / "results/periodEstimates.txt", "w") as f:
+        f.write("results/Period Estimates \n\n")
 
     # Load in the files
     for file in fileList:
@@ -1788,7 +1788,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         logger.debug("Distance Method Estimate (days): " + str(pdm["distance_minperiod"]))
         logger.debug("Distance method error: " + str(pdm["distance_error"]))
         
-        with open(paths['parent'] / "periodEstimates.txt", "a+") as f:
+        with open(paths['parent'] / "results/periodEstimates.txt", "a+") as f:
             f.write("Variable : "+str(variableName) +"\n")
             f.write("Distance Method Estimate (days): " + str(pdm["distance_minperiod"])+"\n")
             f.write("Distance method error: " + str(pdm["distance_error"])+"\n")
@@ -1856,7 +1856,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
             phaseTest=(varData[:,0] / (pdm["stdev_minperiod"])) % 1
             logger.debug("PDM method error: " + str(pdm["stdev_error"]))
 
-            with open(paths['parent'] / "periodEstimates.txt", "a+") as f:
+            with open(paths['parent'] / "results/periodEstimates.txt", "a+") as f:
                 f.write("PDM Method Estimate (days): "+ str(pdm["stdev_minperiod"])+"\n")
                 f.write("PDM method error: " + str(pdm["stdev_error"])+"\n\n")
 
@@ -1999,7 +1999,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
                 aovhmoutput=aovhm_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
             
         logger.debug("Harmonic Anova Method Estimate (days): " + str(aovhmoutput["bestperiod"]))
-        with open(paths['parent'] / "periodEstimates.txt", "a+") as f:            
+        with open(paths['parent'] / "results/periodEstimates.txt", "a+") as f:            
             f.write("Harmonic Anova Method Estimate (days): " + str(aovhmoutput["bestperiod"])+"\n")
 
         # LOMB SCARGLE
@@ -2012,7 +2012,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
                                                         disablelightcurve=False, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
         
                     logger.debug('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput))
-                    with open(paths['parent'] / "periodEstimates.txt", "a+") as f:            
+                    with open(paths['parent'] / "results/periodEstimates.txt", "a+") as f:            
                         f.write('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput)+"\n")
             else:
                 if (varData.size > 3):
@@ -2022,7 +2022,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
                                                         disablelightcurve=False, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
         
                     logger.debug('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput))
-                    with open(paths['parent'] / "periodEstimates.txt", "a+") as f:            
+                    with open(paths['parent'] / "results/periodEstimates.txt", "a+") as f:            
                         f.write('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput)+"\n")
 
     if 'pdm' in locals():

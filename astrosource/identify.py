@@ -817,7 +817,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     logger.info("Number of candidate Comparison Stars Detected: " + str(len(outputComps)))
     logger.info('Output sent to screenedComps.csv ready for use in Comparison')
 
-    screened_file = paths['parent'] / "screenedComps.csv"
+    screened_file = paths['parent'] / "results/screenedComps.csv"
     outputComps = asarray(outputComps)
 
     # Reject targetstars immediately
@@ -1120,7 +1120,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         #sys.exit()
     
     savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
-    used_file = paths['parent'] / "usedImages.txt"
+    used_file = paths['parent'] / "results/usedImages.txt"
     with open(used_file, "w") as f:
         for s in fileList:
             filename = Path(s).name

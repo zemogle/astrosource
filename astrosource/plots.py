@@ -16,7 +16,7 @@ logger = logging.getLogger('astrosource')
 
 
 def output_files(paths, photometrydata, mode='diff'):
-    if mode == 'calib' and not (paths['parent'] / 'calibCompsUsed.csv').exists():
+    if mode == 'calib' and not (paths['parent'] / 'results/calibCompsUsed.csv').exists():
         raise AstrosourceException("No calibrated photometry available")
 
     for j, outputPhot in enumerate(photometrydata):
@@ -91,8 +91,8 @@ def plot_variability(output, variableID, parentPath):
         plt.ylim(min(outploty)-0.04, max(outploty)+0.04, 'k-')
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
-        plt.savefig(parentPath / 'starVariability.png')
-        plt.savefig(parentPath / 'starVariability.eps')
+        plt.savefig(parentPath / 'results/starVariability.png')
+        plt.savefig(parentPath / 'results/starVariability.eps')
         
 
         plt.cla()
@@ -107,8 +107,8 @@ def plot_variability(output, variableID, parentPath):
         plt.ylim(min(outploty)-0.04, max(outploty)+0.04, 'k-')
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
-        plt.savefig(parentPath / 'starVariability_Large.png')
-        plt.savefig(parentPath / 'starVariability_Large.eps')
+        plt.savefig(parentPath / 'results/starVariability_Large.png')
+        plt.savefig(parentPath / 'results/starVariability_Large.eps')
         
         plt.cla()
         outplotx = asarray(output)[:, 2]
@@ -121,8 +121,8 @@ def plot_variability(output, variableID, parentPath):
         plt.ylim(min(outploty)-0.04, max(outploty)+0.04, 'k-')
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
-        plt.savefig(parentPath / 'starVariability_withID.png')
-        plt.savefig(parentPath / 'starVariability_withID.eps')
+        plt.savefig(parentPath / 'results/starVariability_withID.png')
+        plt.savefig(parentPath / 'results/starVariability_withID.eps')
         
 
         plt.cla()
@@ -138,8 +138,8 @@ def plot_variability(output, variableID, parentPath):
         plt.ylim(min(outploty)-0.04, max(outploty)+0.04, 'k-')
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
-        plt.savefig(parentPath / 'starVariability_Large_withID.png')
-        plt.savefig(parentPath / 'starVariability_Large_withID.eps')
+        plt.savefig(parentPath / 'results/starVariability_Large_withID.png')
+        plt.savefig(parentPath / 'results/starVariability_Large_withID.eps')
         
         
     return
@@ -225,7 +225,7 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
 
     # Load in list of used files
     fileList = []
-    for line in (paths['parent'] / "usedImages.txt").read_text():
+    for line in (paths['parent'] / "results/usedImages.txt").read_text():
         fileList.append(line.strip())
 
     fileList = paths['parent'].glob("*.p*")
@@ -281,7 +281,7 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
                 logger.info("Amplitude    : "+ str(max(calibFile[:,1])-min(calibFile[:,1])))
                 logger.info("Mid Magnitude: "+ str((max(calibFile[:,1])+min(calibFile[:,1]))/2))
         
-                with open(paths['parent'] / "LightcurveStats.txt", "a+") as f:
+                with open(paths['parent'] / "results/LightcurveStats.txt", "a+") as f:
                     f.write("Lightcurve Statistics \n\n")
                     f.write("Variable V{}_{}\n".format(str(q+1),filterCode))
                     f.write("Max Magnitude: "+ str(max(calibFile[:,1]))+"\n")

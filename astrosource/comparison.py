@@ -20,7 +20,7 @@ from astropy.coordinates import SkyCoord
 from astroquery.vo_conesearch.exceptions import VOSError
 from astroquery.vizier import Vizier
 
-
+import requests
 from astrosource.utils import AstrosourceException
 
 import logging
@@ -50,7 +50,7 @@ def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, 
     #     photFileArray.append(load(parentPath / file))
     # photFileArray = asarray(photFileArray)
     
-    compFile = genfromtxt(parentPath / 'compsUsed.csv', dtype=float, delimiter=',')
+    compFile = genfromtxt(parentPath / 'results/compsUsed.csv', dtype=float, delimiter=',')
     
     # #print ("Constructing Sky Coords for photometry files....")
     # photSkyCoord=[]
@@ -70,7 +70,7 @@ def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, 
     #     photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
     
     if fileList==None:
-        fileList= genfromtxt(parentPath / 'usedImages.txt', dtype=str)
+        fileList= genfromtxt(parentPath / 'results/usedImages.txt', dtype=str)
     
     #print (fileList)
     usedImages=[]
@@ -106,7 +106,7 @@ def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, 
     photSkyCoord=delete(photSkyCoord, imageRemove, axis=0)
     photFileArray=delete(photFileArray, imageRemove, axis=0)
     
-    used_file =parentPath / "usedImages.txt"
+    used_file =parentPath / "results/usedImages.txt"
     with open(used_file, "w") as f:
         for s in usedImages:
             filename = Path(s).name
@@ -152,7 +152,7 @@ def find_comparisons(targets,  parentPath=None, fileList=None, photFileArray=Non
 
     #compFile, photFileArray = read_data_files(parentPath, fileList)
 
-    screened_file = parentPath / "screenedComps.csv"
+    screened_file = parentPath / "results/screenedComps.csv"
     compFile = genfromtxt(screened_file, dtype=float, delimiter=',')
 
     compFile = remove_stars_targets(parentPath, compFile, matchRadius, targets, removeTargets)
@@ -247,7 +247,7 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
 
     logger.info('List of stable comparison candidates output to stdComps.csv')
 
-    savetxt(parentPath / "stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
 
 
     # The following process selects the subset of the candidates that we will use (the least variable comparisons that hopefully get the request countrate)
@@ -255,7 +255,7 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
     # Sort through and find the largest file and use that as the reference file
     referenceFrame, fileRaDec = find_reference_frame(photFileArray)
 
-    savetxt(parentPath / "referenceFrame.csv", referenceFrame, delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/referenceFrame.csv", referenceFrame, delimiter=",", fmt='%0.8f')
 
     # SORT THE COMP CANDIDATE FILE such that least variable comparison is first
 
@@ -278,7 +278,7 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
                 compFile.append([sortStars[0][0],sortStars[0][1],sortStars[0][2]])
                 logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[0][2]))
                 logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
-                with open(parentPath / "EnsembleStats.txt", "w") as f:
+                with open(parentPath / "results/EnsembleStats.txt", "w") as f:
                     f.write("Comp " + str(j+1) + " std: " + str(sortStars[0][2]))
                     f.write("Cumulative Counts thus far: " + str(tempCountCounter))
                 finalCountCounter=add(finalCountCounter,referenceFrame[idx][4])
@@ -287,7 +287,7 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
                 compFile.append([sortStars[j][0],sortStars[j][1],sortStars[j][2]])
                 logger.debug("Comp " + str(j+1) + " std: " + str(sortStars[j][2]))
                 logger.debug("Cumulative Counts thus far: " + str(tempCountCounter))
-                with open(parentPath / "EnsembleStats.txt", "w") as f:
+                with open(parentPath / "results/EnsembleStats.txt", "w") as f:
                     f.write("Comp " + str(j+1) + " std: " + str(sortStars[j][2]))
                     f.write("Cumulative Counts thus far: " + str(tempCountCounter))
                 finalCountCounter=add(finalCountCounter,referenceFrame[idx][4])
@@ -305,11 +305,11 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
 
     logger.info(str(compFile.shape[0]) + " Stable Comparison Candidates below variability threshold output to compsUsed.csv")
 
-    with open(parentPath / "EnsembleStats.txt", "w") as f:
+    with open(parentPath / "results/EnsembleStats.txt", "w") as f:
         f.write('Number of counts at mag zero: ' + str(finalCountCounter) +"\n")
         f.write('Number of stars used: ' + str(j) +"\n")
 
-    outfile = parentPath / "compsUsed.csv"
+    outfile = parentPath / "results/compsUsed.csv"
     savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
 
     return outfile, compFile.shape[0]
@@ -334,7 +334,7 @@ def read_data_files(parentPath, fileList):
     photFileArray = asarray(photFileArray)
 
     #Grab the candidate comparison stars
-    screened_file = parentPath / "screenedComps.csv"
+    screened_file = parentPath / "results/screenedComps.csv"
     compFile = genfromtxt(screened_file, dtype=float, delimiter=',')
     return compFile, photFileArray
 
@@ -674,9 +674,9 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
              'vizier.cfa.harvard.edu',
              'vizier.iucaa.in',
              'vizier.china-vo.org',
-             'vizier.inasan.ru',
+             #'vizier.inasan.ru',
              'vizier.idia.ac.za']
-        vS=random.randint(0,6)
+        vS=random.randint(0,5)
         v.VIZIER_SERVER=vServers[vS]
         #logger.info(avgCoord)
         variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')
@@ -687,7 +687,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         else:
             variableResult=variableResult['B/vsx/vsx']
             varTable=1
-    except ConnectionError:
+    except ConnectionError or requests.excpetions.ConnectionError:
         connected=False
         logger.info("Connection failed, waiting and trying again")
         cycler=0
@@ -696,18 +696,18 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                 v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
                 v.ROW_LIMIT=-1
                 
-                if cycler == 6:
+                if cycler == 5:
                     time.sleep(10)
                     cycler=0
                 cycler=cycler+1
-                if vS != 6:
+                if vS != 5:
                     vS=vS+1
                 else:
                     vS=0
                 v.VIZIER_SERVER=vServers[vS]
                 variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')['B/vsx/vsx']
                 connected=True
-            except ConnectionError:
+            except ConnectionError or requests.excpetions.ConnectionError:
                 #time.sleep(10)
                 logger.info("Failed again.")
                 connected=False
@@ -753,7 +753,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     if (compFile.shape[0] ==1):
         compFile=[[compFile[0][0],compFile[0][1],0.01]]
         compFile=asarray(compFile)
-        savetxt(parentPath / "compsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
+        savetxt(parentPath / "results/compsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
         sortStars=[[compFile[0][0],compFile[0][1],0.01,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]]
         sortStars=asarray(sortStars)
         savetxt("stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
@@ -779,9 +779,9 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
          'vizier.cfa.harvard.edu',
          'vizier.iucaa.in',
          'vizier.china-vo.org',
-         'vizier.inasan.ru',
+         #'vizier.inasan.ru',
          'vizier.idia.ac.za']
-    vS=random.randint(0,6)
+    vS=random.randint(0,5)
     
     # Only request relevant columns
     if cat_name in ['APASS','PanSTARRS']:
@@ -823,23 +823,23 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
     except VOSError:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
-    except ConnectionError:
+    except ConnectionError or requests.excpetions.ConnectionError:
         connected=False
         logger.info("Connection failed, waiting and trying again")
         while connected==False:
             try:                
-                if cycler == 6:
+                if cycler == 5:
                     time.sleep(10)
                     cycler=0
                 cycler=cycler+1
-                if vS != 6:
+                if vS != 5:
                     vS=vS+1
                 else:                    
                     vS=0
                 v.VIZIER_SERVER=vServers[vS]
                 query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
                 connected=True
-            except ConnectionError:
+            except ConnectionError or requests.excpetions.ConnectionError:
                 
                 logger.info("Failed again. Connection Error.")
                 connected=False
@@ -950,7 +950,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     # Get List of Files Used
     fileList=[]
-    for line in (parentPath / "usedImages.txt").read_text().strip().split('\n'):
+    for line in (parentPath / "results/usedImages.txt").read_text().strip().split('\n'):
         fileList.append(line.strip())
 
     if filterCode == 'clear':
@@ -959,7 +959,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     logger.debug("Filter Set: " + filterCode)
 
     # Load compsused
-    compFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
+    compFile = genfromtxt(parentPath / 'results/stdComps.csv', dtype=float, delimiter=',')
     #logger.debug(compFile.shape[0])
 
     if compFile.shape[0] == 13 and compFile.size == 13:
@@ -1149,7 +1149,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
                     # Save catalogue search
                     catalogueOut=np.hstack(np.array([[coords.ra],[coords.dec],[coords.mag],[coords.emag],[coords.colmatch],[coords.colerr]]))
-                    savetxt(parentPath / "catalogueSearch.csv", np.asarray(catalogueOut) , delimiter=",", fmt='%0.8f')
+                    savetxt(parentPath / "results/catalogueSearch.csv", np.asarray(catalogueOut) , delimiter=",", fmt='%0.8f')
                     del catalogueOut
 
                     #Setup standard catalogue coordinates
@@ -1263,7 +1263,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     if not coords or len(coords.ra)==0:
         raise AstrosourceException(f"Could not find coordinate match in any catalogues for {filterCode}")
 
-    savetxt(parentPath / "calibStandsAll.csv", calibStands , delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/calibStandsAll.csv", calibStands , delimiter=",", fmt='%0.8f')
 
     # Colour Term Calculations
     colname=(opt['colname'])
@@ -1279,7 +1279,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         arrayCalibStands=np.asarray(calibStands)
 
         # MAKE REFERENCE PRE-COLOUR PLOT AND COLOUR TERM ESTIMATE
-        referenceFrame = genfromtxt(parentPath / 'referenceFrame.csv', dtype=float, delimiter=',')
+        referenceFrame = genfromtxt(parentPath / 'results/referenceFrame.csv', dtype=float, delimiter=',')
         referenceFrame[:,5] = 1.0857 * (referenceFrame[:,5]/referenceFrame[:,4])
         referenceFrame[:,4]=-2.5 * np.log10(referenceFrame[:,4])
 
@@ -1339,8 +1339,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.grid(True)
         plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
         fig.set_size_inches(6,3)
-        plt.savefig(parentPath / str("CalibrationSanityPlot_PreColour_Reference.png"))
-        plt.savefig(parentPath / str("CalibrationSanityPlot_PreColour_Reference.eps"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_PreColour_Reference.png"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_PreColour_Reference.eps"))
 
         logger.info('Estimated Colour Slope in Reference Frame: ' + str(m))
 
@@ -1350,7 +1350,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
 
         fileList=[]
-        for line in (parentPath / "usedImages.txt").read_text().strip().split('\n'):
+        for line in (parentPath / "results/usedImages.txt").read_text().strip().split('\n'):
             fileList.append(line.strip())
 
         z=0
@@ -1425,8 +1425,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             plt.grid(True)
             plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
             fig.set_size_inches(6,3)
-            plt.savefig(colourPath / str("CalibrationSanityPlot_Colour_" + str(z) + "_Pre.png"))
-            plt.savefig(colourPath  / str("CalibrationSanityPlot_Colour_" + str(z) + "_Pre.eps"))
+            plt.savefig(colourPath / str("results/CalibrationSanityPlot_Colour_" + str(z) + "_Pre.png"))
+            plt.savefig(colourPath  / str("results/CalibrationSanityPlot_Colour_" + str(z) + "_Pre.eps"))
 
             slopeHolder.append(m)
             zeroHolder.append(c)
@@ -1454,7 +1454,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         logger.info('Number of frames used : ' + str(len(slopeHolder)))
         logger.info('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)))
 
-        with open(parentPath / "ColourCoefficientsESTIMATED.txt", "w") as f:
+        with open(parentPath / "results/ColourCoefficientsESTIMATED.txt", "w") as f:
             f.write('Median Estimated Colour Slope from all frames: ' + str(outMed) +"\n")
             f.write('Estimated Colour Slope Standard Deviation from all frames: ' + str(outStd) +"\n")
             f.write('Number of frames used : ' + str(len(slopeHolder)) +"\n")
@@ -1467,8 +1467,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         fig.set_size_inches(6,3)
         plt.xlabel(str(filterCode) + ' Colour Term')
         plt.ylabel('Number of images')
-        plt.savefig(parentPath / str("CalibrationSanityPlot_ColourTermHistogram.png"))
-        plt.savefig(parentPath / str("CalibrationSanityPlot_ColourTermHistogram.eps"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_ColourTermHistogram.png"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_ColourTermHistogram.eps"))
 
         colourTerm=outMed
         colourError=outStd / pow (len(slopeHolder),0.5)
@@ -1499,10 +1499,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         else:
             calibStands=delete(calibStands, calibStandsReject, axis=0)
 
-    savetxt(parentPath / "calibStands.csv", calibStands , delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/calibStands.csv", calibStands , delimiter=",", fmt='%0.8f')
 
     # Lets use this set to calibrate each datafile and pull out the calibrated compsused magnitudes
-    compUsedFile = genfromtxt(parentPath / 'compsUsed.csv', dtype=float, delimiter=',')
+    compUsedFile = genfromtxt(parentPath / 'results/compsUsed.csv', dtype=float, delimiter=',')
 
     calibCompUsed=[]
 
@@ -1854,7 +1854,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         logger.info('Number of frames used : ' + str(len(slopeHolder)))
         logger.info('Standard Error : ' + str(outStd / pow (len(slopeHolder),0.5)))
 
-        with open(parentPath / "ColourCoefficientsFINAL.txt", "w") as f:
+        with open(parentPath / "results/ColourCoefficientsFINAL.txt", "w") as f:
             f.write('Median Estimated Colour CORRECTED Slope from all frames: ' + str(outMed) +"\n")
             f.write('Estimated Colour CORRECTED Slope Standard Deviation from all frames: ' + str(outStd) +"\n")
             f.write('Number of frames used : ' + str(len(slopeHolder)) +"\n")
@@ -1870,11 +1870,11 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         fig.set_size_inches(6,3)
         plt.xlabel(str(filterCode) + ' Colour Term')
         plt.ylabel('Number of images')
-        plt.savefig(parentPath / str("CalibrationSanityPlot_CORRECTEDColourTermHistogram.png"))
-        plt.savefig(parentPath / str("CalibrationSanityPlot_CORRECTEDColourTermHistogram.eps"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_CORRECTEDColourTermHistogram.png"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_CORRECTEDColourTermHistogram.eps"))
 
     calibOverlord=asarray(calibOverlord)
-    savetxt(parentPath / "CalibAll.csv", calibOverlord, delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/CalibAll.csv", calibOverlord, delimiter=",", fmt='%0.8f')
 
 
     logger.info("*********************")
@@ -1900,10 +1900,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.grid(True)
         plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
         fig.set_size_inches(6,3)
-        plt.savefig(parentPath / str("CalibrationSanityPlot_Magnitude.png"))
-        plt.savefig(parentPath / str("CalibrationSanityPlot_Magnitude.eps"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_Magnitude.png"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_Magnitude.eps"))
 
-        with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "w+") as f:
+        with open(parentPath / "results/CalibrationSanityPlotCoefficients.txt", "w+") as f:
             f.write("Magnitude slope     : " + str(m)+"\n")
             f.write("Magnitude zeropoint : " + str(c) +"\n")
             if not residuals.size == 0:
@@ -1946,7 +1946,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         nonlinearError=residuals[0] / pow(len(fileList), 0.5)
 
 
-        with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "a+") as f:
+        with open(parentPath / "results/CalibrationSanityPlotCoefficients.txt", "a+") as f:
             f.write("Corrected Magnitude slope     : " + str(m)+"\n")
             f.write("Corrected Magnitude zeropoint : " + str(c) +"\n")
             if not residuals.size == 0:
@@ -1989,8 +1989,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.grid(True)
         plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
         fig.set_size_inches(6,3)
-        plt.savefig(parentPath / str("CalibrationSanityPlotLinearityCorrected_Magnitude.png"))
-        plt.savefig(parentPath / str("CalibrationSanityPlotLinearityCorrected_Magnitude.eps"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlotLinearityCorrected_Magnitude.png"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlotLinearityCorrected_Magnitude.eps"))
 
         # Add correction into calibrated files
         z=0
@@ -2027,10 +2027,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.grid(True)
         plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
         fig.set_size_inches(6,3)
-        plt.savefig(parentPath / str("CalibrationSanityPlot_Time.png"))
-        plt.savefig(parentPath / str("CalibrationSanityPlot_Time.eps"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_Time.png"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_Time.eps"))
 
-        with open(parentPath / "CalibrationSanityPlotCoefficients.txt", "a+") as f:
+        with open(parentPath / "results/CalibrationSanityPlotCoefficients.txt", "a+") as f:
             f.write("Time slope     : " + str(m)+"\n")
             f.write("Time zeropoint : " + str(c) +"\n")
             if not residuals.size == 0:
@@ -2068,13 +2068,13 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         logger.debug("Median Standard Deviation of any one star: " + str(median(sumStd)))
         logger.debug("Standard Error/Uncertainty in Calibration: " +str(errCalib))
 
-    with open(parentPath / "calibrationErrors.txt", "w") as f:
+    with open(parentPath / "results/calibrationErrors.txt", "w") as f:
         f.write("Comparison Catalogue: " + str(cat_used)+"\n")
         f.write("Median Standard Deviation of any one star: " + str(median(sumStd)) +"\n")
         f.write("Standard Error/Uncertainty in Calibration: " +str(errCalib))
 
     compFile = asarray(finalCompUsedFile)
-    savetxt(parentPath / "calibCompsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/calibCompsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
     sys.stdout.write('\n')
 
     return colourTerm, colourError, compFile

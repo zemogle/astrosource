@@ -97,7 +97,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     #    raise AstrosourceException("No input files")
 
     # LOAD IN COMPARISON FILE
-    preFile = genfromtxt(parentPath / 'stdComps.csv', dtype=float, delimiter=',')
+    preFile = genfromtxt(parentPath / 'results/stdComps.csv', dtype=float, delimiter=',')
 
     if preFile.shape[0] != 13:
         preFile=(preFile[preFile[:, 2].argsort()])
@@ -111,7 +111,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
             referenceFrame = photFile
             fileSizer = photFile.size
 
-    compFile = genfromtxt(parentPath / "compsUsed.csv", dtype=float, delimiter=',')
+    compFile = genfromtxt(parentPath / "results/compsUsed.csv", dtype=float, delimiter=',')
     logger.debug("Stable Comparison Candidates below variability threshold")
     outputPhot = []
 
@@ -213,7 +213,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     
 
-    savetxt(parentPath / "starVariability.csv", outputVariableHolder, delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/starVariability.csv", outputVariableHolder, delimiter=",", fmt='%0.8f')
     
     
     
@@ -286,7 +286,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     if potentialVariables.shape[0] == 0:
         logger.info("No Potential Variables identified in this set of data using the parameters requested.")
     else:
-        savetxt(parentPath / "potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f')
+        savetxt(parentPath / "results/potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f')
        
         
         
@@ -313,7 +313,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
         plt.plot(potentialVariables[:,2],potentialVariables[:,3],'bo')
         plt.tight_layout()
     
-        plt.savefig(parentPath / "Variation2DHistogram.png")
+        plt.savefig(parentPath / "results/Variation2DHistogram.png")
 
     return outputVariableHolder
 
@@ -331,13 +331,13 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
     # sys.exit()
     #photFileArray,fileList = photometry_files_to_array(paths['parent'])
 
-    if (paths['parent'] / 'calibCompsUsed.csv').exists():
+    if (paths['parent'] / 'results/calibCompsUsed.csv').exists():
         logger.debug("Calibrated")
-        compFile=genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
+        compFile=genfromtxt(paths['parent'] / 'results/calibCompsUsed.csv', dtype=float, delimiter=',')
         calibFlag=1
     else:
         logger.debug("Differential")
-        compFile=genfromtxt(paths['parent'] / 'compsUsed.csv', dtype=float, delimiter=',')
+        compFile=genfromtxt(paths['parent'] / 'results/compsUsed.csv', dtype=float, delimiter=',')
         calibFlag=0
 
     # clear output plots, cats and period fodlers and regenerate

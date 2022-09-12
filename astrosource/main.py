@@ -203,7 +203,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
             ts.find_variables()
 
         if variablehunt == True:
-            targets = get_targets(parentPath / 'potentialVariables.csv')
+            targets = get_targets(parentPath / 'results/potentialVariables.csv')
         
 
         
