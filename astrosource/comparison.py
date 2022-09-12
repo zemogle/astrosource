@@ -21,6 +21,9 @@ from astroquery.vo_conesearch.exceptions import VOSError
 from astroquery.vizier import Vizier
 
 import requests
+import http
+import urllib3
+
 from astrosource.utils import AstrosourceException
 
 import logging
@@ -687,7 +690,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         else:
             variableResult=variableResult['B/vsx/vsx']
             varTable=1
-    except ConnectionError or requests.excpetions.ConnectionError:
+    except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError) :
         connected=False
         logger.info("Connection failed, waiting and trying again")
         cycler=0
@@ -707,7 +710,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                 v.VIZIER_SERVER=vServers[vS]
                 variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')['B/vsx/vsx']
                 connected=True
-            except ConnectionError or requests.excpetions.ConnectionError:
+            except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError):
                 #time.sleep(10)
                 logger.info("Failed again.")
                 connected=False
@@ -793,8 +796,11 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     else:
         radecname = {'ra' :'raj2000', 'dec': 'dej2000'}
     
-    
-    searchColumns=[radecname['ra'], radecname['dec'], opt['filter'], opt['error'], opt['colmatch'], opt['colerr']]
+    if cat_name in ['APASS']:
+        searchColumns=[radecname['ra'], radecname['dec'], opt['filter'], opt['error'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag'), opt['colmatch'], opt['colerr'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag')]
+        #print (searchColumns)
+    else:
+        searchColumns=[radecname['ra'], radecname['dec'], opt['filter'], opt['error'], opt['colmatch'], opt['colerr']]
     #print (searchColumns)
 
     v=Vizier(columns=searchColumns) # Skymapper by default does not report the error columns
@@ -823,7 +829,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
     except VOSError:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
-    except ConnectionError or requests.excpetions.ConnectionError:
+    except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError):
         connected=False
         logger.info("Connection failed, waiting and trying again")
         while connected==False:
@@ -839,7 +845,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
                 v.VIZIER_SERVER=vServers[vS]
                 query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
                 connected=True
-            except ConnectionError or requests.excpetions.ConnectionError:
+            except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError):
                 
                 logger.info("Failed again. Connection Error.")
                 connected=False
@@ -872,7 +878,8 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         catReject=[]
         
         #print (resp[opt['filter']])
-        
+        #print (opt['error'])
+        #print (resp)
         for q in range(len(resp)):
             if np.asarray(resp[opt['filter']][q]) == 0.0 or np.asarray(resp[opt['error']][q]) == 0.0 or np.isnan(resp[opt['filter']][q]) or np.isnan(resp[opt['error']][q]):
                 catReject.append(q)
