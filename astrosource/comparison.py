@@ -290,6 +290,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount):
 def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, removeTargets):
     max_sep=acceptDistance * arcsecond
     logger.info("Removing Target Stars from potential Comparisons")
+    tableFound=False
 
     if not (compFile.shape[0] == 2 and compFile.size ==2):
         fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
@@ -343,10 +344,9 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         logger.info(variableResult)
         if str(variableResult)=="Empty TableList":
             logger.info("VSX Returned an Empty Table.")
-            varTable=0
         else:
             variableResult=variableResult['B/vsx/vsx']
-            varTable=1
+            tableFound=True
     except ConnectionError:
         connected=False
         logger.info("Connection failed, waiting and trying again")
@@ -361,7 +361,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                 logger.info("Failed again.")
                 connected=False
 
-    if varTable==1:
+    if tableFound:
         logger.debug(variableResult)
 
         logger.debug(variableResult.keys())
