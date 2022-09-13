@@ -666,7 +666,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         radius= 0.5 * pow(  pow(max(tempCompsRadius[:,0])-min(tempCompsRadius[:,0]),2) + pow(max((tempCompsRadius[:,1])-min(tempCompsRadius[:,1]))*cos((min(tempCompsRadius[:,1])+max(tempCompsRadius[:,1]))/2),2) , 0.5)
         
 
-
+    tableFound=False
     # Check VSX for any known variable stars and remove them from the list
     logger.info("Searching for known variable stars in VSX......")
     try:
@@ -686,10 +686,9 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         #logger.info(variableResult)
         if str(variableResult)=="Empty TableList":
             logger.info("VSX Returned an Empty Table.")
-            varTable=0
         else:
             variableResult=variableResult['B/vsx/vsx']
-            varTable=1
+            tableFound=True
     except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError) :
         connected=False
         logger.info("Connection failed, waiting and trying again")
@@ -715,7 +714,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                 logger.info("Failed again.")
                 connected=False
 
-    if varTable==1:
+    if tableFound:
         #logger.debug(variableResult)
 
         #logger.debug(variableResult.keys())
