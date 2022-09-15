@@ -674,13 +674,13 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
         v.ROW_LIMIT=-1
         vServers = ['vizier.u-strasbg.fr',
-             'vizier.nao.ac.jp',         
-             'vizier.cfa.harvard.edu',
-             'vizier.iucaa.in',
-             'vizier.china-vo.org',
+             #'vizier.nao.ac.jp',         
+             'vizier.cfa.harvard.edu'
+             #'vizier.iucaa.in',
+             #'vizier.china-vo.org',
              #'vizier.inasan.ru',
-             'vizier.idia.ac.za']
-        vS=random.randint(0,5)
+             #'vizier.idia.ac.za']
+        vS=0
         v.VIZIER_SERVER=vServers[vS]
         #logger.info(avgCoord)
         variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')
@@ -702,11 +702,11 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                 v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
                 v.ROW_LIMIT=-1
                 
-                if cycler == 5:
+                if cycler == 1:
                     time.sleep(10)
                     cycler=0
-                cycler=cycler+1
-                if vS != 5:
+                
+                if vS != 1:
                     vS=vS+1
                 else:
                     vS=0
@@ -715,7 +715,8 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                 variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')['B/vsx/vsx']
                 connected=True
                 tableFound=True
-                
+                cycler=cycler+1
+                    
             except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError):
                 #time.sleep(10)
                 logger.info("Failed again.")
