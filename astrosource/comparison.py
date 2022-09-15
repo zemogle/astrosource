@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import glob
 import sys
 import os
@@ -237,7 +238,7 @@ def find_comparisons(targets,  parentPath=None, fileList=None, photFileArray=Non
             break
         else:
             logger.warning("Trying again")
-            sys.stdout.write('💫')
+            sys.stdout.write('ðﾟﾒﾫ')
             sys.stdout.flush()
 
     sys.stdout.write('\n')
@@ -689,10 +690,13 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         else:
             variableResult=variableResult['B/vsx/vsx']
             tableFound=True
+            
     except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError) :
+        
         connected=False
         logger.info("Connection failed, waiting and trying again")
         cycler=0
+        
         while connected==False:
             try:
                 v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
@@ -706,13 +710,17 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                     vS=vS+1
                 else:
                     vS=0
+                    
                 v.VIZIER_SERVER=vServers[vS]
                 variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')['B/vsx/vsx']
                 connected=True
+                tableFound=True
+                
             except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError):
                 #time.sleep(10)
                 logger.info("Failed again.")
                 connected=False
+                tableFound=False
 
     if tableFound:
         #logger.debug(variableResult)
