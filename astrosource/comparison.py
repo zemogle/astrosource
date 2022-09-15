@@ -675,7 +675,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         v.ROW_LIMIT=-1
         vServers = ['vizier.u-strasbg.fr',
              #'vizier.nao.ac.jp',         
-             'vizier.cfa.harvard.edu'
+             'vizier.cfa.harvard.edu']
              #'vizier.iucaa.in',
              #'vizier.china-vo.org',
              #'vizier.inasan.ru',
@@ -786,13 +786,15 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     kwargs['catalog'] = cat_name
     
     vServers = ['vizier.u-strasbg.fr',
-         'vizier.nao.ac.jp',         
-         'vizier.cfa.harvard.edu',
-         'vizier.iucaa.in',
-         'vizier.china-vo.org',
+         #'vizier.nao.ac.jp',         
+         'vizier.cfa.harvard.edu']
+         #'vizier.iucaa.in',
+         #'vizier.china-vo.org',
          #'vizier.inasan.ru',
-         'vizier.idia.ac.za']
-    vS=random.randint(0,5)
+         #'vizier.idia.ac.za']
+    vS=0
+    #v.VIZIER_SERVER=vServers[vS]
+    #vS=random.randint(0,5)
     
     # Only request relevant columns
     if cat_name in ['APASS','PanSTARRS']:
@@ -846,7 +848,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
                     time.sleep(10)
                     cycler=0
                 cycler=cycler+1
-                if vS != 5:
+                if vS != 1:
                     vS=vS+1
                 else:                    
                     vS=0
