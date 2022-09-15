@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import glob
 import sys
 import os
@@ -237,7 +238,7 @@ def find_comparisons(targets,  parentPath=None, fileList=None, photFileArray=Non
             break
         else:
             logger.warning("Trying again")
-            sys.stdout.write('💫')
+            sys.stdout.write('ðﾟﾒﾫ')
             sys.stdout.flush()
 
     sys.stdout.write('\n')
@@ -666,56 +667,63 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         radius= 0.5 * pow(  pow(max(tempCompsRadius[:,0])-min(tempCompsRadius[:,0]),2) + pow(max((tempCompsRadius[:,1])-min(tempCompsRadius[:,1]))*cos((min(tempCompsRadius[:,1])+max(tempCompsRadius[:,1]))/2),2) , 0.5)
         
 
-
+    tableFound=False
     # Check VSX for any known variable stars and remove them from the list
     logger.info("Searching for known variable stars in VSX......")
     try:
         v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
         v.ROW_LIMIT=-1
         vServers = ['vizier.u-strasbg.fr',
-             'vizier.nao.ac.jp',         
-             'vizier.cfa.harvard.edu',
-             'vizier.iucaa.in',
-             'vizier.china-vo.org',
+             #'vizier.nao.ac.jp',         
+             'vizier.cfa.harvard.edu'
+             #'vizier.iucaa.in',
+             #'vizier.china-vo.org',
              #'vizier.inasan.ru',
-             'vizier.idia.ac.za']
-        vS=random.randint(0,5)
+             #'vizier.idia.ac.za']
+        vS=0
         v.VIZIER_SERVER=vServers[vS]
         #logger.info(avgCoord)
         variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')
         #logger.info(variableResult)
         if str(variableResult)=="Empty TableList":
             logger.info("VSX Returned an Empty Table.")
-            varTable=0
         else:
             variableResult=variableResult['B/vsx/vsx']
-            varTable=1
+            tableFound=True
+            
     except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError) :
+        
         connected=False
         logger.info("Connection failed, waiting and trying again")
         cycler=0
+        
         while connected==False:
             try:
                 v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
                 v.ROW_LIMIT=-1
                 
-                if cycler == 5:
+                if cycler == 1:
                     time.sleep(10)
                     cycler=0
-                cycler=cycler+1
-                if vS != 5:
+                
+                if vS != 1:
                     vS=vS+1
                 else:
                     vS=0
+                    
                 v.VIZIER_SERVER=vServers[vS]
                 variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')['B/vsx/vsx']
                 connected=True
+                tableFound=True
+                cycler=cycler+1
+                    
             except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError):
                 #time.sleep(10)
                 logger.info("Failed again.")
                 connected=False
+                tableFound=False
 
-    if varTable==1:
+    if tableFound:
         #logger.debug(variableResult)
 
         #logger.debug(variableResult.keys())
