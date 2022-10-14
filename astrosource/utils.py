@@ -1,6 +1,8 @@
 from os import getcwd, makedirs, remove
 import shutil
 import logging
+import sys
+import time
 
 from numpy import asarray, genfromtxt, load, isnan, delete
 from astropy.coordinates import SkyCoord
@@ -109,11 +111,18 @@ def get_targets(targetfile):
     targets = genfromtxt(targetfile, dtype=float, delimiter=',')
     # Remove any nan rows from targets
     targetRejecter=[]
+
     if not (targets.shape[0] == 4 and targets.size == 4):
         for z in range(targets.shape[0]):
           if isnan(targets[z][0]):
             targetRejecter.append(z)
+            print('FOUND A NAN ENTRY IN YOUR CSV AT LINE: ' + str(z+1))
+            print ('Please check this. This can sometimes happen')
+            print ('when using Excel or sophisticated software')
+            print ('It is best to construct the csv using a simple text editor')
+            time.sleep(5)
         targets=delete(targets, targetRejecter, axis=0)
+        
     return targets
 
 def convert_coords(ra, dec):

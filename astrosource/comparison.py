@@ -697,7 +697,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         logger.info("Connection failed, waiting and trying again")
         cycler=0
         
-        while connected==False:
+        while connected==False and tableFound==False:
             try:
                 v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
                 v.ROW_LIMIT=-1
@@ -841,8 +841,9 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
     except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError):
         connected=False
+        tableFound=False
         logger.info("Connection failed, waiting and trying again")
-        while connected==False:
+        while connected==False and tableFound==False:
             try:                
                 if cycler == 5:
                     time.sleep(10)
@@ -855,6 +856,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
                 v.VIZIER_SERVER=vServers[vS]
                 query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
                 connected=True
+                tableFound=True
             except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError):
                 
                 logger.info("Failed again. Connection Error.")

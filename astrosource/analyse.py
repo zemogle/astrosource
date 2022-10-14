@@ -324,6 +324,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
     sys.stdout.write('🖥 Starting photometric calculations\n')
 
 
+
     #print (photFileArray)
     #print (fileList)
     # print (len(photFileArray))

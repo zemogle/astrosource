@@ -4,6 +4,7 @@ import sys
 import os
 import ssl
 import pickle
+import sys
 
 if (not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unverified_context', None)):
     ssl._create_default_https_context = ssl._create_unverified_context
@@ -21,6 +22,7 @@ from numpy import genfromtxt
 class TimeSeries:
     def __init__(self, targets, indir, **kwargs):
         self.targets = targets
+        
         self.indir = Path(indir)
         filelist = kwargs.get('filelist', None)
         self.format = kwargs.get('format', 'fz')
