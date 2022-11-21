@@ -1,23 +1,29 @@
-from pathlib import Path
 import logging
-import sys
 import os
-import ssl
 import pickle
+import ssl
 import sys
+from pathlib import Path
 
 if (not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unverified_context', None)):
     ssl._create_default_https_context = ssl._create_unverified_context
 
-from astrosource.analyse import find_variable_stars, photometric_calculations, calibrated_photometry
-from astrosource.comparison import find_comparisons, find_comparisons_calibrated, check_comparisons_files
+from numpy import genfromtxt
+
+from astrosource.analyse import (calibrated_photometry, find_variable_stars,
+                                 photometric_calculations)
+from astrosource.comparison import (check_comparisons_files, find_comparisons,
+                                    find_comparisons_calibrated)
 from astrosource.detrend import detrend_data
 from astrosource.eebls import plot_bls
 from astrosource.identify import find_stars, gather_files
 from astrosource.periodic import plot_with_period
-from astrosource.plots import make_plots, make_calibrated_plots, open_photometry_files, output_files, phased_plots
-from astrosource.utils import AstrosourceException, folder_setup, cleanup, setup_logger
-from numpy import genfromtxt
+from astrosource.plots import (make_calibrated_plots, make_plots,
+                               open_photometry_files, output_files,
+                               phased_plots)
+from astrosource.utils import (AstrosourceException, cleanup, folder_setup,
+                               setup_logger)
+
 
 class TimeSeries:
     def __init__(self, targets, indir, **kwargs):

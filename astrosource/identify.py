@@ -69,19 +69,23 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False, ignoreed
             fitsobj = f.open()
             s3 = True
 
+
         filepath, photFile = extract_photometry(fitsobj, indir, bjd=bjd, ignoreedgefraction=ignoreedgefraction, lowestcounts=lowestcounts, racut=racut, deccut=deccut, radiuscut=radiuscut)
+        if not filepath and not photFile :
+            continue
         if s3:
             f.close()
             filename = f.name
         else:
             filename = fitsobj.name
-        #print (photFile.size)
+
         if photFile.size > 100:
             phot_dict.append(filepath)
-            
+
             photFileHolder.append(photFile)
             photSkyCoord.append(SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree))
 
+        print(phot_dict)
     return phot_dict, photFileHolder, photSkyCoord
 
 def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefraction=0.05, lowestcounts=1800,  racut=-99.9, deccut=-99.9, radiuscut=-99.9):
@@ -89,16 +93,22 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
     #new_files = []
     #photFileHolder=[]
     #photSkyCoord=[]
+    logger.debug(infile)
     with fits.open(infile) as hdulist:
 
         if not outfile:
             outfile = rename_data_file(hdulist[1].header, bjd=bjd)
-            
+
         #outname = outfile
         #outfile = parentPath / outfile
         w = wcs.WCS(hdulist[1].header)
         data = hdulist[2].data
-        xpixel = data['x']
+        try:
+            xpixel = data['x']
+        except IndexError:
+        # We have a bad header, ignore this file
+            logger.warning(f'Skipping file {infile}; bad header')
+            return None, None
         ypixel = data['y']
         ra, dec = w.wcs_pix2world(xpixel, ypixel, 1)
         counts = data['flux']
@@ -108,12 +118,12 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
 
         photFile = transpose([ra, dec, xpixel, ypixel, counts, countserr, zerosphot, zerosphot])
         photFile = asarray(photFile)
-        
+
         if photFile.size > 16: #ignore zero sized files and files with only one or two entries
             if max(photFile[:,0]) < 360 and max(photFile[:,1]) < 90:
                 photFile=photFile[~isnan(photFile).any(axis=1)]
-                
-                
+
+
                 # if radial cut do that otherwise chop off image edges
                 if racut != -99.9 and deccut !=-99.9 and radiuscut !=-99.9:
                     #tempCoord = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
@@ -126,7 +136,7 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
                     #print (distanceArray[distanceArray > float(radiuscut)/60])
                     #print (where(distanceArray > float(radiuscut)/60))
                     photFile=delete(photFile, where(distanceArray > float(radiuscut)/60), axis=0)
-                else:   
+                else:
                     #Routine to deal with RA 0 crossovers
                     crossover=0
                     if (max(photFile[:,0])-min(photFile[:,0])) > 180:
@@ -139,7 +149,7 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
                         #photFile[:,0][photFile[:,0]< 180] = photFile[:,0][photFile[:,0]> 180].__iadd__(-180)
                         #logger.info(lowerhalf)
                         #logger.info(upperhalf)
-                        
+
                         crossover=1
                     # Remove edge detections
                     raRange=(max(photFile[:,0])-min(photFile[:,0]))
@@ -147,13 +157,13 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
                     raMin=min(photFile[:,0])
                     raMax=max(photFile[:,0])
                     decMin=min(photFile[:,1])
-                    decMax=max(photFile[:,1])                
+                    decMax=max(photFile[:,1])
                     raClip=raRange*ignoreedgefraction
                     decClip=decRange*ignoreedgefraction
                     photFile[:,0][photFile[:,0] < raMin + raClip ] = nan
                     photFile[:,0][photFile[:,0] > raMax - raClip ] = nan
                     photFile[:,1][photFile[:,1] > decMax - decClip ] = nan
-                    photFile[:,1][photFile[:,1] < decMin + decClip ] = nan     
+                    photFile[:,1][photFile[:,1] < decMin + decClip ] = nan
                     if crossover == 1:
                         photFile[:,0] = photFile[:,0] - 180.0
                         for entry in range(len(photFile[:,0])):
@@ -163,32 +173,32 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
                 photFile[:,0][photFile[:,0] == 0.0 ] = nan
                 photFile[:,0][photFile[:,0] == 0.0 ] = nan
                 photFile[:,1][photFile[:,1] == 0.0 ] = nan
-                photFile[:,1][photFile[:,1] == 0.0 ] = nan  
-                
+                photFile[:,1][photFile[:,1] == 0.0 ] = nan
+
                 photFile=photFile[~isnan(photFile).any(axis=1)]
-                
+
                 #remove lowcounts
                 rejectStars=where(photFile[:,4] < lowestcounts)[0]
                 #print (d2d)
                 #print (max_sep)
                 photFile=delete(photFile, rejectStars, axis=0)
 
-                
+
 
                 #new_files.append(outname)
                # photFileHolder.append(photFile)
                 #photSkyCoord.append(SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree))
 
         #save(outfile, photFile)
-        
+
         #print (len(photFileHolder))
 
     return outfile, photFile
 
 def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=1800,  racut=-99.9, deccut=-99.9, radiuscut=-99.9):
-    
-    
-    
+
+
+
     new_files = []
     photFileHolder=[]
     photSkyCoord=[]
@@ -201,12 +211,12 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
 
                 if (photFile.size > 50):
                     if not (( asarray(photFile[:,0]) > 360).sum() > 0) :
-                        if not(( asarray(photFile[:,1]) > 90).sum() > 0) :               
+                        if not(( asarray(photFile[:,1]) > 90).sum() > 0) :
 
                             photFile=photFile[~isnan(photFile).any(axis=1)]
-                            
 
-                            
+
+
                             # if radial cut do that otherwise chop off image edges
                             if racut != -99.9 and deccut !=-99.9 and radiuscut !=-99.9:
                                 #tempCoord = SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree)
@@ -219,7 +229,7 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
                                 #print (distanceArray[distanceArray > float(radiuscut)/60])
                                 #print (where(distanceArray > float(radiuscut)/60))
                                 photFile=delete(photFile, where(distanceArray > float(radiuscut)/60), axis=0)
-                            else:                            
+                            else:
                                 #Routine to deal with RA 0 crossovers
                                 crossover=0
                                 if (max(photFile[:,0])-min(photFile[:,0])) > 180:
@@ -232,7 +242,7 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
                                     #photFile[:,0][photFile[:,0]< 180] = photFile[:,0][photFile[:,0]> 180].__iadd__(-180)
                                     #logger.info(lowerhalf)
                                     #logger.info(upperhalf)
-                                    
+
                                     crossover=1
                                 #logger.info(photFile[:,0])
                                 # Remove edge detections
@@ -241,7 +251,7 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
                                 raMin=min(photFile[:,0])
                                 raMax=max(photFile[:,0])
                                 decMin=min(photFile[:,1])
-                                decMax=max(photFile[:,1])                
+                                decMax=max(photFile[:,1])
                                 raClip=raRange*ignoreedgefraction
                                 decClip=decRange*ignoreedgefraction
                                 photFile[:,0][photFile[:,0] < raMin + raClip ] = nan
@@ -257,24 +267,24 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
                             photFile[:,0][photFile[:,0] == 0.0 ] = nan
                             photFile[:,0][photFile[:,0] == 0.0 ] = nan
                             photFile[:,1][photFile[:,1] == 0.0 ] = nan
-                            photFile[:,1][photFile[:,1] == 0.0 ] = nan  
+                            photFile[:,1][photFile[:,1] == 0.0 ] = nan
                             photFile=photFile[~isnan(photFile).any(axis=1)]
-                            
+
                             #remove lowcounts
                             rejectStars=where(photFile[:,4] < lowestcounts)[0]
                             #print (d2d)
                             #print (max_sep)
                             photFile=delete(photFile, rejectStars, axis=0)
-                            #print (len(rejectStars))                                           
-                            
-                            
+                            #print (len(rejectStars))
+
+
                             filepath = Path(fn).with_suffix('.npy')
                             #save(filepath, photFile)
                             if photFile.size > 16:
                                 new_files.append(filepath.name)
                                 photFileHolder.append(photFile)
                                 photSkyCoord.append(SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree))
-                                
+
                         else:
                             logger.debug("REJECT")
                             logger.debug(fn)
@@ -290,13 +300,13 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
         else:
             logger.debug("REJECT")
             logger.debug(fn)
-            
+
     #sys.exit()
     if new_files ==[] or photFileHolder==[] :
         raise AstrosourceException("Either there are no files of this photometry type or radial Cut seems to be outside of the range of your images... check your racut, deccut and radiuscut")
     #print (new_files)
     #print (photFileHolder)
-    
+
     return new_files, photFileHolder, photSkyCoord
 
 def convert_mjd_bjd(hdr):
@@ -338,11 +348,11 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
         #phot_list = []
         #for key in phot_list_temp:
         #    phot_list.append(key) #SLAERT: convert dict to just the list of npy files.
-        
+
 
     if not phot_list:
         raise AstrosourceException("No files of type '.{}' found in {}".format(filetype, paths['parent']))
-    
+
     #print (phot_list)
     filters = set([f.split('_')[1] for f in phot_list])
 
@@ -352,16 +362,16 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
         filterCode  = 'CV'
 
     logger.debug("Filter Set: {}".format(filterCode))
-    
-    
-    
+
+
+
     if len(filters) > 1:
         raise AstrosourceException("Check your images, the script detected multiple filters in your file list. Astrosource currently only does one filter at a time.")
-    
+
     file1=open(paths['parent'] / "filterCode","wb")
     pickle.dump(filterCode, file1)
     file1.close
-        
+
     return phot_list, filterCode, photFileHolder, photSkyCoord
 
 def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closerejectd=5.0, photCoords=None, photFileHolder=None, mincompstars=0.1, mincompstarstotal=-99, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=3, maxcandidatestars=10000, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, filterCode=None, restrictmagbrightest=-99.0, restrictmagdimmest=99.0, minfractionimages=0.5):
@@ -390,7 +400,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             This many initial images (lots of stars are expected to be rejected in the early images)
     minCompStars : int
             This is the minimum number of comp stars required
-        
+
 
     Returns
     -------
@@ -401,7 +411,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
 
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
-    
+
     #If a new usedimages.txt has been made, make sure that there is no photcoords in directory
     if os.path.exists(paths['parent'] / "photSkyCoord"):
         os.remove(paths['parent'] / "photSkyCoord")
@@ -417,7 +427,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     #print (photFileHolder)
     for file in fileList:
         photFile = photFileHolder[counter]
-        
+
         # if (photFile.size < 50):
         #     logger.debug("REJECT")
         #     logger.debug(file)
@@ -448,7 +458,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
 
 
     ##### Iterate hicounts and locounts until a reasonable sample < 250 stars are found in the middle range.
-    
+
 
     logger.debug("Removing stars with low or high counts")
     rejectStars=[]
@@ -456,11 +466,11 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     logger.debug("Number of stars prior")
     logger.debug(referenceFrame.shape[0])
     logger.debug("Initial count range, Low: " +str(lowcounts)+ " High: "+ str(hicounts))
-    
+
     #for j in range(referenceFrame.shape[0]):
     #    if ( referenceFrame[j][4] < lowcounts or referenceFrame[j][4] > hicounts ):
     #        rejectStars.append(int(j))
-            
+
     #print (rejectStars)
     #print (referenceFrame[:,4])
     #print (where((referenceFrame[:,4] < lowcounts) | (referenceFrame[:,4] > hicounts))[0])
@@ -470,30 +480,30 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     referenceFrame=delete(referenceFrame, rejectStars, axis=0)
     logger.debug("Number of stars after first cut")
     logger.debug(referenceFrame.shape[0])
-        
-    
+
+
     settled=0
     while settled==0:
         rejectStars=[]
         if referenceFrame.shape[0] > maxcandidatestars:
-            
+
             #for j in range(referenceFrame.shape[0]):
             #    if ( referenceFrame[j][4] < lowcounts or referenceFrame[j][4] > hicounts ):
             #        rejectStars.append(int(j))
             rejectStars=where((referenceFrame[:,4] < lowcounts) | (referenceFrame[:,4] > hicounts))[0]
         else:
             settled=1
-                 
-    
+
+
         logger.debug("Number of stars after attempting to reduce number of sample comparison stars")
         logger.debug(delete(referenceFrame, rejectStars, axis=0).shape[0])
-        
+
         if delete(referenceFrame, rejectStars, axis=0).shape[0] < maxcandidatestars:
             settled=1
         else:
             lowcounts=lowcounts+(0.05*lowcounts)
             hicounts=hicounts-(0.05*hicounts)
-        
+
 
     logger.debug("Number of stars post")
     referenceFrame=delete(referenceFrame, rejectStars, axis=0)
@@ -502,7 +512,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     #Prepping files.
     #photSkyCoord=[]
     #photFileHolder=[]
-    # for file in fileList: 
+    # for file in fileList:
     #     photFile = load(paths['parent'] / file)
     #     photFileHolder.append(photFile)
     #     photSkyCoord.append(SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree))
@@ -523,7 +533,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         mincompstars=mincompstarstotal
     initialMincompstars=mincompstars
     initialNImages=len(fileList)
-    
+
     fracImgReject=1
     rfCounter=0
     imgOverride=0
@@ -536,18 +546,18 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         loFileReject = 0 # Number of images rejected due to too few stars in the photometry file
         wcsFileReject=0
         imgOverride=0
-        
-        
-            
-            
+
+
+
+
         q=0
         photReject=[]
 
         for Nholder in range(len(photFileHolder)):
             #print (q)
             #print (photSkyCoord[q])
-            
-            
+
+
             if ( not referenceFrame.shape[0] < mincompstars):
                 rejStartCounter = rejStartCounter +1
                 #photFile = load(paths['parent'] / file)
@@ -560,17 +570,17 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                 if photFile.size > imgsize and photFile.size > 7 :
                     phottmparr = asarray(photFile)
                     photRAandDec = photCoords[q]
-                    
+
                     # Checking existance of stars in all photometry files
                     rejectStars=[] # A list to hold what stars are to be rejected
-                    
+
                     if (( phottmparr[:,0] > 360).sum() == 0) and ( phottmparr[0][0] != 'null') and ( phottmparr[0][0] != 0.0) :
 
-                        
+
 
                         # # Find whether star in reference list is in this phot file, if not, reject star.
                         # for j in range(referenceFrame.shape[0]):
-                            
+
                         #     testStar = SkyCoord(ra = referenceFrame[j][0]*u.degree, dec = referenceFrame[j][1]*u.degree)
                         #     # This is the function in the whole package which requires scipy
                         #     idx, d2d, d3d = testStar.match_to_catalog_sky(photRAandDec)
@@ -579,7 +589,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                         #         rejectStars.append(int(j))
                         #         #print (j)
                         #         #print (idx)
-                                
+
                         # Faster way than loop
                         testStars=SkyCoord(ra = referenceFrame[:,0]*u.degree, dec = referenceFrame[:,1]*u.degree)
                         idx, d2d, _ = testStars.match_to_catalog_sky(photRAandDec)
@@ -588,7 +598,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                         #print (d2d)
                         #print (rejectStars)
 
-                    
+
                     else:
                         logger.debug('**********************')
                         logger.debug('Image Rejected due to problematic entries in Photometry File')
@@ -603,7 +613,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
 
                         if not (((len(rejectStars) / referenceFrame.shape[0]) > starreject) and rejStartCounter > rejectStart):
                             #print (len(rejectStars))
-                            
+
                             #print (rejectStars)
                             #print (referenceFrame.shape())
                             referenceFrame = delete(referenceFrame, rejectStars, axis=0)
@@ -648,12 +658,12 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                 sys.stdout.write('.')
                 sys.stdout.flush()
             q=q+1
-        
+
         # Remove files and Hold the photSkyCoords in memory
         photCoords=delete(photCoords, photReject, axis=0)
         photFileHolder=delete(photFileHolder, photReject, axis=0)
         fileList=delete(fileList, photReject, axis=0)
-        
+
         # Calculate fraction of total images rejected.
         TimgReject=loFileReject + wcsFileReject + imgReject
         if TimgReject ==0 :
@@ -664,8 +674,8 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         print (TimgReject)
         print ("FracImgRejct")
         print (fracImgReject)
-        
-        
+
+
         # Raise values of imgreject and starreject for next attempt
         starreject=starreject-0.025
         imageFracReject=imageFracReject+0.05
@@ -674,10 +684,10 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             starreject=0.15
         if imageFracReject > 0.8:
             imageFracReject = 0.8
-            
-        
-            
-        
+
+
+
+
 
         if starreject == 0.15 and imageFracReject == 0.8 and mincompstars ==1 and rejectStart==1 and len(originalphotFileHolder) <5:
             logger.error("Failed to find any comparison candidates with the maximum restrictions. There is something terribly wrong!")
@@ -685,7 +695,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
 
         elif (starreject == 0.15 and imageFracReject == 0.8 and mincompstars ==1 and rejectStart==1)  :
             logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
-            
+
             logger.error("Kicking out the reference image and trying a random reference image.")
             #originalphotFileHolder=delete(originalphotFileHolder, 0, axis=0)
             #originalphotSkyCoord=delete(originalphotSkyCoord, 0, axis=0)
@@ -693,17 +703,17 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             starreject=0.3
             imageFracReject=0.05
             mincompstars=initialMincompstars
-            
+
             logger.debug("Setting up reference Frame")
-            
+
             referenceFrame=originalphotFileHolder[rfCounter]
             originalReferenceFrame=referenceFrame
             rfCounter=rfCounter+1
-            
+
             #print (referenceFrame)
-           
+
             ##### Iterate hicounts and locounts until a reasonable sample < 250 stars are found in the middle range.
-            
+
 
             logger.debug("Removing stars with low or high counts")
             rejectStars=[]
@@ -711,7 +721,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             logger.debug("Number of stars prior")
             logger.debug(referenceFrame.shape[0])
             logger.debug("Initial count range, Low: " +str(lowcounts)+ " High: "+ str(hicounts))
-            
+
             rejectStars=where((referenceFrame[:,4] < lowcounts) | (referenceFrame[:,4] > hicounts))[0]
             referenceFrame=delete(referenceFrame, rejectStars, axis=0)
             logger.debug("Number of stars after first cut")
@@ -723,26 +733,26 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                     rejectStars=where((referenceFrame[:,4] < lowcounts) | (referenceFrame[:,4] > hicounts))[0]
                 else:
                     settled=1
-                                   
+
                 logger.debug("Number of stars after attempting to reduce number of sample comparison stars")
                 logger.debug(delete(referenceFrame, rejectStars, axis=0).shape[0])
-                
+
                 if delete(referenceFrame, rejectStars, axis=0).shape[0] < maxcandidatestars:
                     settled=1
                 else:
                     lowcounts=lowcounts+(0.05*lowcounts)
                     hicounts=hicounts-(0.05*hicounts)
-                
+
             logger.debug("Number of stars post")
             referenceFrame=delete(referenceFrame, rejectStars, axis=0)
             logger.debug("Final count range, Low: " +str(int(lowcounts))+ " High: "+ str(int(hicounts)))
-            
-            
+
+
             rejectStart=originalRejectStart
             fileList=originalfileList
             photCoords=originalphotSkyCoord
-            photFileHolder=originalphotFileHolder       
-                        
+            photFileHolder=originalphotFileHolder
+
         elif starreject == 0.15 and imageFracReject == 0.8 and mincompstars ==1 and rejectStart > 1:
             logger.error("Number of Candidate Comparison Stars found this cycle: " + str(compchecker))
             logger.error("Trying again while rejecting less initial images.")
@@ -775,7 +785,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             logger.error("Failed to find sufficient comparison candidates, adjusting starreject and imgreject and trying again.")
             logger.error("Now trying starreject " +str(starreject) + " and imgreject " +str(imageFracReject))
             referenceFrame=originalReferenceFrame
-        
+
         elif (fracImgReject > minfractionimages):
             #compchecker=mincompstars-1
             referenceFrame=originalReferenceFrame
@@ -787,12 +797,12 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             fileList=originalfileList
             photCoords=originalphotSkyCoord
             photFileHolder=originalphotFileHolder
-            
+
         print (imgOverride)
-        
+
         print (compchecker)
         print (mincompstars)
-        
+
 
     #print (len(photCoords))
     #print (len(photFileHolder))
@@ -826,21 +836,21 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     if targets is not None:
         if targets.shape == (4,):
             targets = [targets]
-    
+
         while True:
             targetRejects=[]
             if outputComps.shape[0] ==2 and outputComps.size ==2:
                 fileRaDec=SkyCoord(ra=outputComps[0]*u.degree,dec=outputComps[1]*u.degree)
             else:
                 fileRaDec=SkyCoord(ra=outputComps[:,0]*u.degree,dec=outputComps[:,1]*u.degree)
-    
+
             for target in targets:
                 varCoord = SkyCoord(target[0],(target[1]), frame='icrs', unit=u.deg) # Need to remove target stars from consideration
-    
+
                 idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
                 if d2d.arcsecond < 5.0: # anything within 5 arcseconds of the target
                     targetRejects.append(idx)
-    
+
             if targetRejects==[]:
                 break
             #Remove target and restore skycoord list
@@ -851,33 +861,33 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                 sys.exit()
             fileRaDec = SkyCoord(ra=outputComps[:,0]*u.degree, dec=outputComps[:,1]*u.degree)
 
-    
+
     # If a new usedimages.txt has been made, make sure that there is no photcoords in directory
     #if os.path.exists(paths['parent'] / "photSkyCoord"):
     #    os.remove(paths['parent'] / "photSkyCoord")
 
     sys.stdout.write('\n')
-    
+
     # print (len(photFileHolder))
     # print (len(photCoords))
     # print (len(usedImages))
     # sys.exit()
 
-        
+
     file1=open(paths['parent'] / "photSkyCoord","wb")
     pickle.dump(photCoords, file1)
     file1.close
-    
+
     file1=open(paths['parent'] / "photFileHolder","wb")
     pickle.dump(photFileHolder, file1)
     file1.close
-    
+
     # Remove candidate comparisons that are out of the restricted range of colours or magnitudes
-    
+
     #print (restrictcompcolourcentre)
     #print (restrictcompcolourrange)
-    
-    
+
+
     # Get Average RA and Dec from file
     #print (outputComps)
     #print (outputComps.shape[0])
@@ -885,17 +895,17 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     #print (restrictmagbrightest)
     #print (restrictmagdimmest)
     if restrictmagbrightest != -99.0 or restrictmagdimmest !=99.0 or restrictcompcolourcentre != -999.0 or restrictcompcolourrange != -99.0:
-    
+
         if outputComps.shape[0] == 1 and outputComps.size == 2:
             #logger.debug(compFile[0])
             #logger.debug(compFile[1])
             avgCoord=SkyCoord(ra=(outputComps[0])*degree, dec=(outputComps[1]*degree))
-    
+
         else:
             #logger.debug(average(compFile[:,0]))
             #logger.debug(average(compFile[:,1]))
-    
-    
+
+
             #remarkably dumb way of averaging around zero RA and just normal if not
             resbelow= any(ele >350.0 and ele<360.0 for ele in outputComps[:,0].tolist())
             resabove= any(ele >0.0 and ele<10.0 for ele in outputComps[:,0].tolist())
@@ -912,16 +922,16 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                 avgCoord=SkyCoord(ra=(avgRA*degree), dec=((average(outputComps[:,1])*degree)))
             else:
                 avgCoord=SkyCoord(ra=(average(outputComps[:,0])*degree), dec=((average(outputComps[:,1])*degree)))
-    
+
             logger.debug(f"Average: RA {avgCoord.ra}, Dec {avgCoord.dec}")
-        
+
         #print (avgCoord)
-        
+
         #print (max(outputComps[:,0]))
         #print (min(outputComps[:,0]))
         #print (max(outputComps[:,1]))
         #print (min(outputComps[:,1]))
-        
+
         radius= 0.5 * pow(  pow(max(outputComps[:,0])-min(outputComps[:,0]),2) + pow(max((outputComps[:,1])-min(outputComps[:,1]))*cos((min(outputComps[:,1])+max(outputComps[:,1]))/2),2) , 0.5)
         if radius > 120:
             tempCompsRadius=copy(outputComps)
@@ -932,10 +942,10 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                     else:
                         tempCompsRadius[entry,0] = outputComps[entry,0] + 180
             radius= 0.5 * pow(  pow(max(tempCompsRadius[:,0])-min(tempCompsRadius[:,0]),2) + pow(max((tempCompsRadius[:,1])-min(tempCompsRadius[:,1]))*cos((min(tempCompsRadius[:,1])+max(tempCompsRadius[:,1]))/2),2) , 0.5)
-            
+
         #print (1.5*radius)
-    
-        
+
+
         FILTERS = {
                     'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag', 'colmatch' : 'Vmag', 'colerr' : 'e_Vmag', 'colname' : 'B-V', 'colrev' : '0'}},
                     'V' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag', 'colmatch' : 'Bmag', 'colerr' : 'e_Bmag', 'colname' : 'B-V', 'colrev' : '1'}},
@@ -958,12 +968,12 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                             'SkyMapper' : {'filter' : 'zPSF', 'error' : 'e_zPSF', 'colmatch' : 'rPSF', 'colerr' : 'e_rPSF', 'colname' : 'r-zs', 'colrev' : '1'},
                             'SDSS' : {'filter' : 'zmag', 'error' : 'e_zmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-zs', 'colrev' : '1'}},
                     }
-        
+
         try:
             catalogues = FILTERS[filterCode]
         except IndexError:
             raise AstrosourceException(f"{filterCode} is not accepted at present")
-        
+
         coords=[]
         for cat_name, opt in catalogues.items():
             try:
@@ -974,7 +984,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                     elif cat_name == 'SDSS' and nosdss==True:
                         logger.info("Skipping SDSS")
                     else:
-    
+
                         coords = catalogue_call(avgCoord, 1.5*radius, opt, cat_name, targets=targets, closerejectd=closerejectd)
                         # If no results try next catalogue
                         #print (len(coords.ra))
@@ -983,27 +993,27 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                             raise AstrosourceException("Empty catalogue produced from catalogue call")
             except AstrosourceException as e:
                 logger.debug(e)
-        
+
         if coords.cat_name == 'PanSTARRS' or coords.cat_name == 'APASS':
             max_sep=2.5 * arcsecond
         else:
             max_sep=1.5 * arcsecond
-        
+
         #print (outputComps)
         #print (coords.ra)
         #print (coords.dec)
-        
+
         catCoords=SkyCoord(ra=coords.ra*degree, dec=coords.dec*degree)
-        
+
         #Get calib mags for least variable IDENTIFIED stars.... not the actual stars in compUsed!! Brighter, less variable stars may be too bright for calibration!
         #So the stars that will be used to calibrate the frames to get the OTHER stars.
         calibStands=[]
-    
+
         if outputComps.shape[0] ==1 and outputComps.size ==2:
             lenloop=1
         else:
             lenloop=len(outputComps[:,0])
-    
+
         for q in range(lenloop):
             if outputComps.shape[0] ==1 and outputComps.size ==2:
                 compCoord=SkyCoord(ra=outputComps[0]*degree, dec=outputComps[1]*degree)
@@ -1016,11 +1026,11 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                         calibStands.append([outputComps[0],outputComps[1],0,coords.mag[idxcomp],coords.emag[idxcomp],0,coords.colmatch[idxcomp],coords.colerr[idxcomp],0])
                     else:
                         calibStands.append([outputComps[q][0],outputComps[q][1],0,coords.mag[idxcomp],coords.emag[idxcomp],0,coords.colmatch[idxcomp],coords.colerr[idxcomp],0])
-    
-    
-    
+
+
+
         #print (len(asarray(calibStands)[:,0]))
-        
+
 
         #print (calibStands)
         #print (len(calibStands))
@@ -1035,11 +1045,11 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
 
         if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and calibStands != []:
             for q in range(len(asarray(calibStands)[:,0])):
-    
+
                 if (calibStands[q][3] > restrictmagdimmest) or (calibStands[q][3] < restrictmagbrightest):
                     calibStandsReject.append(q)
                     #logger.info(calibStands[q][3])
-                
+
                 if restrictcompcolourrange != -99.0:
                     if int(opt['colrev']) ==0:
                         logger.info("WHAAAAAA?")
@@ -1054,18 +1064,18 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                         if (calibStands[q][6]-calibStands[q][3] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][6]-calibStands[q][3] < (restrictcompcolourcentre - restrictcompcolourrange)) :
                             calibStandsReject.append(q)
 
-       
+
             if len(calibStandsReject) != len(asarray(calibStands)[:,0]):
                 calibStands=delete(calibStands, calibStandsReject, axis=0)
-    
+
         #print (restrictcompcolourcentre)
         #print (restrictcompcolourrange)
 
         # NOW only keep those stars in outputComps that match calibStands
-        
-        
+
+
         #outputComps=hstack(array(([[calibStands[:,0]],[calibStands[:,1]]])))
-        
+
         #racol=array([calibStands[:,0]])
         #deccol=array([calibStands[:,1]])
 
@@ -1073,20 +1083,20 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         #print (calibStands.shape())
         calibStands=asarray(calibStands)
         outputComps=column_stack((calibStands[:,0],calibStands[:,1]))
-        #print (asarray(outputComps))        
-        
+        #print (asarray(outputComps))
+
         #np.hstack(np.array([[coords.ra],[coords.dec],[coords.mag],[coords.emag],[coords.colmatch],[coords.colerr]]))
-        
-        
+
+
         logger.info('Removed ' + str(len(calibStandsReject)) + ' Candidate Comparison Stars for being too bright or too dim or the wrong colour')
         #sys.exit()
-        
+
         #sys.exit()
-    
+
         ### If looking for colour, remove those without matching colour information
-    
+
         #calibStandsReject=[]
-    
+
         # if (asarray(calibStands).shape[0] != 1 and asarray(calibStands).size !=2) and calibStands != []:
         #     for q in range(len(asarray(calibStands)[:,0])):
         #         reject=0
@@ -1107,18 +1117,18 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         #             reject=1
         #         elif calibStands[q][4] == 0:
         #             reject=1
-    
+
         #         if reject==1:
         #             calibStandsReject.append(q)
-    
+
         #     if len(calibStandsReject) != len(asarray(calibStands)[:,0]):
         #         calibStands=delete(calibStands, calibStandsReject, axis=0)
-        
+
         #coords = catalogue_call(avgCoord, 1.5*radius, opt, cat_name, targets=targets, closerejectd=closerejectd)
-        
-        
+
+
         #sys.exit()
-    
+
     savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
     used_file = paths['parent'] / "results/usedImages.txt"
     with open(used_file, "w") as f:

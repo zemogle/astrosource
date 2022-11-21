@@ -1,0 +1,28 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## 1.5.0
+
+### Added
+
+- Massive speedups
+- added in a variable `minfractionimages` that sets a ceiling to the amount of images `astrosource` would reject before trying another approach
+- added  `--varsearchglobalstdev` option
+- warning if a nan entry is in the target list
+- Moved all the things to a results directory and tweaked vizier exception handling
+- Updated vizier servers
+- make vizier cycler faster
+- added a few photometry flags from sdss16 into `comparison.py`
+- Added a restrict comparison stars by colour function to astrosource
+
+### Fixed
+
+- vizier server swapping AND APASS filter calls to vizier
+- table reference error
+- boolean logic during error exception in `remove_target_stars()`
+- temporarily removed bad hosts from VizieR server list
+- issue where it rejected comp stars with negative colours

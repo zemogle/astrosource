@@ -40,7 +40,7 @@ def setup():
     return TestSetup()
 
 def test_read_data_files(setup):
-    files = os.listdir(TEST_PATHS['parent'])
+    files = os.listdir(TEST_PATHS['parent'] / 'results')
     fileslist = TEST_PATHS['parent'].glob('*.npy')
     assert 'screenedComps.csv' in files
     compFile, photFileArray = read_data_files(TEST_PATHS['parent'], fileslist)
@@ -82,12 +82,11 @@ def test_find_comparisons_calibrated_v(setup):
 @patch('astrosource.comparison.Vizier', mock_vizier_ps_r)
 def test_catalogue_call_panstarrs(setup):
     coord=SkyCoord(ra=163.096971*degree, dec=(-49.8792031*degree))
-    resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},cat_name='PanSTARRS', targets=setup.targets, closerejectd=5.0)
-    print(resp.ra.shape)
-    assert resp.ra.shape == (5,)
+    resp = catalogue_call(coord,radius=1, opt={'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},cat_name='PanSTARRS', targets=setup.targets, closerejectd=5.0)
+    assert resp.ra.shape == (7,)
 
 @patch('astrosource.comparison.Vizier',mock_vizier_sdss_r)
 def test_catalogue_call_sdss(setup):
     coord=SkyCoord(ra=163.096971*degree, dec=(-49.8792031*degree))
-    resp = catalogue_call(coord,opt={'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},cat_name='SDSS', targets=setup.targets, closerejectd=5.0)
+    resp = catalogue_call(coord, radius=5, opt={'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},cat_name='SDSS', targets=setup.targets, closerejectd=5.0)
     assert resp.ra.shape == (4,)

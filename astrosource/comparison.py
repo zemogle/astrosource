@@ -40,22 +40,22 @@ def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, 
 
     sys.stdout.write("⭐️ Checking Provided stars are in every image\n")
     sys.stdout.flush()
-    
+
     # Get list of phot files
     if not parentPath:
         parentPath = Path(os.getcwd())
     if type(parentPath) == 'str':
         parentPath = Path(parentPath)
-    
-    
-    
+
+
+
     # photFileArray = []
     # for file in fileList:
     #     photFileArray.append(load(parentPath / file))
     # photFileArray = asarray(photFileArray)
-    
+
     compFile = genfromtxt(parentPath / 'results/compsUsed.csv', dtype=float, delimiter=',')
-    
+
     # #print ("Constructing Sky Coords for photometry files....")
     # photSkyCoord=[]
     # for q, photFile in enumerate(photFileArray):
@@ -65,17 +65,17 @@ def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, 
     # #pickle.dump(photSkyCoord, file1)
     # #file1.close
     # q=0
-    
+
     # photFileHolder=[]
     # photSkyCoord=[]
-    # for file in fileList: 
+    # for file in fileList:
     #     photFile = load(parentPath / file)
     #     photFileHolder.append(photFile)
     #     photSkyCoord.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
-    
+
     if fileList==None:
         fileList= genfromtxt(parentPath / 'results/usedImages.txt', dtype=str)
-    
+
     #print (fileList)
     usedImages=[]
     q=0
@@ -85,14 +85,14 @@ def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, 
         photRAandDec = photSkyCoord[q]
         # Check that each star is in the image
         rejectImage=0
-        for j in range(compFile.shape[0]):            
+        for j in range(compFile.shape[0]):
             testStar = SkyCoord(ra = compFile[j][0]*degree, dec = compFile[j][1]*degree)
             # This is the function in the whole package which requires scipy
             idx, d2d, _ = testStar.match_to_catalog_sky(photRAandDec)
             if (d2d.arcsecond > matchRadius):
                 #"No Match! Nothing within range."
                 rejectImage=1
-            
+
         if rejectImage==1:
             logger.debug('**********************')
             logger.debug('The Following file does not contain one or more of the provided comparison stars. It has been removed')
@@ -100,24 +100,24 @@ def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, 
             logger.debug('**********************')
             #fileList.remove(file)
             imageRemove.append(q)
-        else:   
-            
+        else:
+
             usedImages.append(file)
-            
+
         q=q+1
-    
+
     fileList=delete(fileList, imageRemove, axis=0)
     photSkyCoord=delete(photSkyCoord, imageRemove, axis=0)
     photFileArray=delete(photFileArray, imageRemove, axis=0)
-    
+
     used_file =parentPath / "results/usedImages.txt"
     with open(used_file, "w") as f:
         for s in usedImages:
             filename = Path(s).name
             f.write(str(filename) +"\n")
-    
+
     logger.debug('Checking Completed.')
-    
+
     return usedImages, photSkyCoord, photFileArray
 
 
@@ -145,7 +145,7 @@ def find_comparisons(targets,  parentPath=None, fileList=None, photFileArray=Non
     outfile : str
 
     '''
-    
+
     sys.stdout.write("⭐️ Find stable comparison stars for differential photometry\n")
     sys.stdout.flush()
     # Get list of phot files
@@ -302,9 +302,9 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
     logger.debug(compFile)
 
     logger.info("Finale Ensemble Counts: " + str(finalCountCounter))
-    
-    
-        
+
+
+
     compFile=asarray(compFile)
 
     logger.info(str(compFile.shape[0]) + " Stable Comparison Candidates below variability threshold output to compsUsed.csv")
@@ -343,7 +343,7 @@ def read_data_files(parentPath, fileList):
     return compFile, photFileArray
 
 def ensemble_comparisons(photFileArray, compFile, parentPath, photSkyCoord):
-        
+
     # fileCount = []
     # q=0
     # for photFile in photFileArray:
@@ -361,7 +361,7 @@ def ensemble_comparisons(photFileArray, compFile, parentPath, photSkyCoord):
     #     logger.debug("Total Counts in Image: {:.2f}".format(allCounts))
     #     fileCount.append(allCounts)
     #     q=q+1
-    
+
     # get rid of dumb for loop
     fileCount = []
     q=0
@@ -377,23 +377,23 @@ def ensemble_comparisons(photFileArray, compFile, parentPath, photSkyCoord):
         #         matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
         #         idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
         #         allCounts = add(allCounts,photFile[idx][4])
-                
-        if compFile.size ==2 and compFile.shape[0]==2:                
+
+        if compFile.size ==2 and compFile.shape[0]==2:
             matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-        else:    
+        else:
             matchCoord = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
         #print (compFile[:,0])
         #testStars=SkyCoord(ra = referenceFrame[:,0]*u.degree, dec = referenceFrame[:,1]*u.degree)
 
         idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
-        #rejectStars=where(d2d.arcsecond > acceptDistance)[0] 
+        #rejectStars=where(d2d.arcsecond > acceptDistance)[0]
         #print (photFile[idx,4])
         allCounts = add(allCounts,sum(photFile[idx,4]))
-        
+
         #logger.debug("Total Counts in Image: {:.2f}".format(allCounts))
         fileCount.append(allCounts)
-        q=q+1    
-    
+        q=q+1
+
     # fileCount = []
     # for photFile in photFileArray:
     #     allCounts = 0.0
@@ -416,7 +416,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPat
     stdCompStar=[]
     sortStars=[]
     logger.debug("Calculating Variation in Individual Comparisons")
-        
+
     if compFile.size ==2 and compFile.shape[0]==2:
         compDiffMags = []
         #logger.debug("*************************")
@@ -425,12 +425,12 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPat
         matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
         for q, photFile in enumerate(photFileArray):
             #fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-            
+
             idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
             compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
             instrMags = -2.5 * log10(photFile[idx][4])
 
-        
+
         stdCompDiffMags=std(compDiffMags)
         medCompDiffMags=np.nanmedian(compDiffMags)
         medInstrMags= np.nanmedian(instrMags)
@@ -454,7 +454,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPat
         #     matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
         #     for q, photFile in enumerate(photFileArray):
         #         #fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-                
+
         #         idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
         #         compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
         #         instrMags = -2.5 * log10(photFile[idx][4])
@@ -462,7 +462,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPat
         #     stdCompDiffMags=std(compDiffMags)
         #     medCompDiffMags=np.nanmedian(compDiffMags)
         #     medInstrMags=np.nanmedian(instrMags)
-            
+
         #     #print(stdCompDiffMags)
         #     #print(medCompDiffMags)
         #     #print(medInstrMags)
@@ -487,11 +487,11 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPat
             idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
             compDiffMags.append(2.5 * log10(photFile[idx,4]/fileCount[q]))
             instrMags.append(-2.5 * log10(photFile[idx,4]))
-                
+
         compDiffMags=array(compDiffMags)
         instrMags=array(instrMags)
-        
-        
+
+
 
         #z=0
         sortStars=[]
@@ -501,33 +501,33 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPat
             stdCompDiffMags=std(compDiffMags[:,z])
             medCompDiffMags=np.nanmedian(compDiffMags[:,z])
             medInstrMags=np.nanmedian(instrMags[:,z])
-            
+
             if np.isnan(stdCompDiffMags) :
                 logger.error("Star Variability non rejected")
                 stdCompDiffMags=99
             stdCompStar.append(stdCompDiffMags)
-            
+
             sortStars.append([compFile[z,0],compFile[z,1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-            
+
             #z=z+1
         #print (sortStars)
         # sys.exit()
-        
+
         #     #compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx,4]/fileCount[q]))
         # #compDiffMags = 2.5 * log10(photFile[idx,4]/fileCount[q])
         # #instrMags = -2.5 * log10(photFile[idx,4])
-        
+
         # print (fileCount)
-        
+
         # #print (compDiffMags)
         # #print (instrMags)
-        
-        
+
+
 
         # stdCompDiffMags=std(compDiffMags)
         # medCompDiffMags=np.nanmedian(compDiffMags)
         # medInstrMags=np.nanmedian(instrMags)
-        
+
         # #print(stdCompDiffMags)
         # #print(medCompDiffMags)
         # #print(medInstrMags)
@@ -536,11 +536,11 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPat
         #     logger.error("Star Variability non rejected")
         #     stdCompDiffMags=99
         # stdCompStar.append(stdCompDiffMags)
-        
+
         # sortStars.append([cf[0],cf[1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-        
+
         # print (sortStars)
-        
+
         # sys.exit()
         #testStars=SkyCoord(ra = referenceFrame[:,0]*u.degree, dec = referenceFrame[:,1]*u.degree)
         #idx, d2d, _ = testStars.match_to_catalog_sky(photRAandDec)
@@ -556,7 +556,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPat
     #     matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
     #     for q, photFile in enumerate(photFileArray):
     #         fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-            
+
     #         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
     #         compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
     #         instrMags = -2.5 * log10(photFile[idx][4])
@@ -585,7 +585,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPat
     #         matchCoord = SkyCoord(ra=cf[0]*degree, dec=cf[1]*degree)
     #         for q, photFile in enumerate(photFileArray):
     #             fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
-                
+
     #             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
     #             compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
     #             instrMags = -2.5 * log10(photFile[idx][4])
@@ -652,9 +652,9 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
 
         #logger.info(avgCoord)
 
-    
 
-    # Get search Radius    
+
+    # Get search Radius
     radius= 0.5 * pow(  pow(max(compFile[:,0])-min(compFile[:,0]),2) + pow(max((compFile[:,1])-min(compFile[:,1]))*cos((min(compFile[:,1])+max(compFile[:,1]))/2),2) , 0.5)
     if radius > 120:
         tempCompsRadius=np.copy(compFile)
@@ -665,7 +665,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                 else:
                     tempCompsRadius[entry,0] = compFile[entry,0] + 180
         radius= 0.5 * pow(  pow(max(tempCompsRadius[:,0])-min(tempCompsRadius[:,0]),2) + pow(max((tempCompsRadius[:,1])-min(tempCompsRadius[:,1]))*cos((min(tempCompsRadius[:,1])+max(tempCompsRadius[:,1]))/2),2) , 0.5)
-        
+
 
     tableFound=False
     # Check VSX for any known variable stars and remove them from the list
@@ -674,7 +674,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
         v.ROW_LIMIT=-1
         vServers = ['vizier.u-strasbg.fr',
-             #'vizier.nao.ac.jp',         
+             #'vizier.nao.ac.jp',
              'vizier.cfa.harvard.edu']
              #'vizier.iucaa.in',
              #'vizier.china-vo.org',
@@ -690,33 +690,33 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         else:
             variableResult=variableResult['B/vsx/vsx']
             tableFound=True
-            
+
     except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError) :
-        
+
         connected=False
         logger.info("Connection failed, waiting and trying again")
         cycler=0
-        
+
         while connected==False and tableFound==False:
             try:
                 v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
                 v.ROW_LIMIT=-1
-                
+
                 if cycler == 1:
                     time.sleep(10)
                     cycler=0
-                
+
                 if vS != 1:
                     vS=vS+1
                 else:
                     vS=0
-                    
+
                 v.VIZIER_SERVER=vServers[vS]
                 variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')['B/vsx/vsx']
                 connected=True
                 tableFound=True
                 cycler=cycler+1
-                    
+
             except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError):
                 #time.sleep(10)
                 logger.info("Failed again.")
@@ -784,9 +784,9 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     tbname = TABLES.get(cat_name, None)
     kwargs = {'radius': str(1.5*radius)+' deg'}
     kwargs['catalog'] = cat_name
-    
+
     vServers = ['vizier.u-strasbg.fr',
-         #'vizier.nao.ac.jp',         
+         #'vizier.nao.ac.jp',
          'vizier.cfa.harvard.edu']
          #'vizier.iucaa.in',
          #'vizier.china-vo.org',
@@ -795,7 +795,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     vS=0
     #v.VIZIER_SERVER=vServers[vS]
     #vS=random.randint(0,5)
-    
+
     # Only request relevant columns
     if cat_name in ['APASS','PanSTARRS']:
         radecname = {'ra' :'RAJ2000', 'dec': 'DEJ2000'}
@@ -805,7 +805,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         radecname = {'ra' :'RAICRS', 'dec': 'DEICRS'}
     else:
         radecname = {'ra' :'raj2000', 'dec': 'dej2000'}
-    
+
     if cat_name in ['APASS']:
         searchColumns=[radecname['ra'], radecname['dec'], opt['filter'], opt['error'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag'), opt['colmatch'], opt['colerr'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag')]
         #print (searchColumns)
@@ -832,7 +832,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         queryConstraint={'flags' : '0'}
     elif cat_name == 'APASS':
         queryConstraint={}
-    
+
     cycler=0
     try:
         v.VIZIER_SERVER=vServers[vS]
@@ -844,21 +844,21 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         tableFound=False
         logger.info("Connection failed, waiting and trying again")
         while connected==False and tableFound==False:
-            try:                
+            try:
                 if cycler == 5:
                     time.sleep(10)
                     cycler=0
                 cycler=cycler+1
                 if vS != 1:
                     vS=vS+1
-                else:                    
+                else:
                     vS=0
                 v.VIZIER_SERVER=vServers[vS]
                 query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
                 connected=True
                 tableFound=True
             except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError):
-                
+
                 logger.info("Failed again. Connection Error.")
                 connected=False
 
@@ -879,7 +879,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
             targets = [targets]
         for tg in targets:
             resp = resp[where(np.abs(resp[radecname['ra']]-tg[0]) > 0.0014) and where(np.abs(resp[radecname['dec']]-tg[1]) > 0.0014)]
-    
+
         logger.info("Number of calibration sources after removal of sources near targets: "+str(len(resp)))
 
     if len(resp) == 0:
@@ -888,7 +888,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     # Remove any star that has invalid values for mag or magerror
     if len(resp) != 0:
         catReject=[]
-        
+
         #print (resp[opt['filter']])
         #print (opt['error'])
         #print (resp)
@@ -897,10 +897,10 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
                 catReject.append(q)
         del resp[catReject]
         logger.info(f"Stars rejected that are have invalid mag or magerror entries: {len(catReject)}")
-    
+
         if len(resp) == 0:
             logger.info("Looks like your catalogue doesn't have any suitable comparison magnitudes. ABORTING.")
-            
+
 
     # Remove any star from calibration catalogue that has another star in the catalogue within closerejectd arcseconds of it.
     if len(resp) != 0:
@@ -932,7 +932,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     return data
 
 def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, colourdetect=False, linearise=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, colourTerm=0.0, colourError=0.0, restrictmagbrightest=-99.9, restrictmagdimmest=99.9, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, photCoordsFile=None, photFileHolder=None, calibSave=False):
-    
+
 
     sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
 
@@ -1016,7 +1016,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
         logger.debug(f"Average: RA {avgCoord.ra}, Dec {avgCoord.dec}")
 
-    # Get search Radius    
+    # Get search Radius
     radius= 0.5 * pow(  pow(max(compFile[:,0])-min(compFile[:,0]),2) + pow(max((compFile[:,1])-min(compFile[:,1]))*cos((min(compFile[:,1])+max(compFile[:,1]))/2),2) , 0.5)
     if radius > 120:
         tempCompsRadius=np.copy(compFile)
@@ -1027,10 +1027,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 else:
                     tempCompsRadius[entry,0] = compFile[entry,0] + 180
         radius= 0.5 * pow(  pow(max(tempCompsRadius[:,0])-min(tempCompsRadius[:,0]),2) + pow(max((tempCompsRadius[:,1])-min(tempCompsRadius[:,1]))*cos((min(tempCompsRadius[:,1])+max(tempCompsRadius[:,1]))/2),2) , 0.5)
-     
-    
 
-    
+
+
+
     #avgCoord=SkyCoord(ra=(average(compFile[:,0]))*degree, dec=(average(compFile[:,1]))*degree)
 
     try:
@@ -1057,8 +1057,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                     if len(coords.ra) == 0:
                         coords=[]
                         raise AstrosourceException("Empty catalogue produced from catalogue call")
-                        
-                    
+
+
                     if coords.cat_name == 'PanSTARRS' or coords.cat_name == 'APASS':
                         max_sep=2.5 * arcsecond
                     else:
@@ -1198,7 +1198,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
 
                     ### remove stars that that brighter (--restrictmagbrighter) or dimmer (--restrictmagdimmer) than requested.
-                    
+
                     #print (restrictmagbrightest)
                     #print (restrictmagdimmest)
                     #print (restrictcompcolourcentre)
@@ -1212,8 +1212,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                                 calibStandsReject.append(q)
                                 #logger.info(calibStands[q][3])
                             if restrictcompcolourrange != -99.0:
-                                if int(opt['colrev']) ==0:   
-                                    
+                                if int(opt['colrev']) ==0:
+
                                     if (calibStands[q][3]-calibStands[q][6] > (restrictcompcolourcentre + restrictcompcolourrange)) or (calibStands[q][3]-calibStands[q][6] < (restrictcompcolourcentre - restrictcompcolourrange)) :
                                         calibStandsReject.append(q)
                                 else:
@@ -1531,7 +1531,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     z=0
     logger.debug("Calibrating each photometry file......")
-    
+
     # clear calibcats directory and regenerate
     folders = ['calibcats']
     for fd in folders:
@@ -1545,11 +1545,11 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     #print(datetime.now().strftime("%H:%M:%S"))
     slopeHolder=[]
-    
+
     # REMEMBER photCoordsFile
     counter=0
     for file in fileList:
-        
+
         #print ("**********************************")
         #print(datetime.now().strftime("%H:%M:%S"))
         #logger.debug(file)
@@ -1557,10 +1557,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         #Get the phot file into memory
         photFile = photFileHolder[counter]
         #photFile = load(parentPath / file)
-        
+
         #photCoords=SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
         photCoords=photCoordsFile[counter]
-        
+
         counter=counter+1
         # Get colour information into photFile
         # adding in colour columns to photfile
@@ -1571,7 +1571,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
         #print(catCoords.shape)
         #print(photCoords.shape)
-        
+
         # for q in range(len(photFile[:,0])):
         #     #photCoord=SkyCoord(ra=photFile[q][0]*degree, dec=photFile[q][1]*degree)
         #     photCoord=photCoords[q]
@@ -1588,26 +1588,26 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         #         photFile[q,8]=np.nan
         #         photFile[q,9]=np.nan
         #         photFile[q,10]=0
-        
+
         #for q in range(len(catCoords[:,0])):
         idx,d2d,_=catCoords.match_to_catalog_sky(photCoords)
         #print (idx)
         #print (d2d)
-        
+
         #print (photFile[idx,8])
-        
+
         #print (photFile.shape)
         #print (photFile.size)
-        
+
         photFile[:,8]=np.nan
         photFile[:,9]=np.nan
         photFile[:,10]=0
-        
+
         rejectStars=where(d2d > max_sep)[0]
         #print (d2d)
         #print (max_sep)
         idx=delete(idx, rejectStars, axis=0)
-                
+
         for q in range(len(idx)):
             #if d2d[q] < max_sep:
             if colrev == 1:
@@ -1615,12 +1615,12 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             else:
                 photFile[idx[q],8]=coords.mag[q]-coords.colmatch[q]
             photFile[idx[q],9]=pow(pow(coords.colerr[q],2)+pow(coords.emag[q],2),0.5)
-            photFile[idx[q],10]=1                
-        
-        
-        
-        
-        
+            photFile[idx[q],10]=1
+
+
+
+
+
         #print ("First For Loop")
         #print(datetime.now().strftime("%H:%M:%S"))
 
@@ -1639,27 +1639,27 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         #         photFile[r,10]=2 # 2 means that there was no colour to use to embed the colour.
 
         photFile[:,5]=1.0857 * (photFile[:,5]/photFile[:,4])
-        
+
         #notNanTemp=photFile[:,:][~np.isnan(photFile[:,8]).any(axis=1)]
         #NanTemp=photFile[:,:][np.isnan(photFile[:,8]).any(axis=1)]
-        
+
         notNanTemp=photFile[np.isnan(photFile).any(axis=1)] #rows where any value is nan
         notNanTemp[:,4]=-2.5*log10(notNanTemp[:,4]) -(colourTerm*notNanTemp[:,8])
-        
+
         emptyCalibFlag=0
         NanTemp=photFile[~np.isnan(photFile).any(axis=1)] #rows where no value is nan
-        if len(NanTemp) != 0:            
+        if len(NanTemp) != 0:
             NanTemp[:,4]=-2.5*log10(photFile[:,4])
             NanTemp[:,10]=2 # 2 means that there was no colour to use to embed the colour.
         else:
             emptyCalibFlag=1
-        
-        
+
+
         photFile=np.concatenate([notNanTemp,NanTemp])
         del notNanTemp
         del NanTemp
-           
-        
+
+
         #print ("Nantemp")
         #print(datetime.now().strftime("%H:%M:%S"))
 
@@ -1682,35 +1682,35 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         #             tempDiff.append(calibStands[q,3]-(photFile[idx,4]))
         #             calibOut.append([calibStands[q,3],calibStands[q,4],photFile[idx,4],photFile[idx,5],calibStands[q,3]-(photFile[idx,4]),0,photFile[idx,8],photFile[idx,0],photFile[idx,1]])
         # tempZP= (median(tempDiff))
-        
-        
-        
-        
+
+
+
+
         tempDiff=[]
         calibOut=[]
         if calibStands.size == 13 and calibStands.shape[0]== 13:
             calibCoord=SkyCoord(ra=calibStands[0]*degree,dec=calibStands[1]*degree)
         else:
-            calibCoord=SkyCoord(ra=calibStands[:,0]*degree,dec=calibStands[:,1]*degree)         
-        
-        
-        
-        
+            calibCoord=SkyCoord(ra=calibStands[:,0]*degree,dec=calibStands[:,1]*degree)
+
+
+
+
         if calibStands.size == 13 and calibStands.shape[0]== 13:
-            for q in range(len(calibStands[:,0])):        
+            for q in range(len(calibStands[:,0])):
                 idx,d2d,_=calibCoord.match_to_catalog_sky(photCoords)
                 if photFile[idx,10] != 0:
                     tempDiff.append(calibStands[3]-(photFile[idx,4]))
                     calibOut.append([calibStands[3],calibStands[4],photFile[idx,4],photFile[idx,5],calibStands[3]-(photFile[idx,4]),0,photFile[idx,8],photFile[idx,0],photFile[idx,1]])
         else:
-        
-            # for q in range(len(calibStands[:,0])):        
+
+            # for q in range(len(calibStands[:,0])):
             #     idx,d2d,_=calibCoord[q].match_to_catalog_sky(photCoords)
             #     if photFile[idx,10] != 0:
             #         tempDiff.append(calibStands[q,3]-(photFile[idx,4]))
             #         calibOut.append([calibStands[q,3],calibStands[q,4],photFile[idx,4],photFile[idx,5],calibStands[q,3]-(photFile[idx,4]),0,photFile[idx,8],photFile[idx,0],photFile[idx,1]])
-        
-        
+
+
             idx,d2d,_=calibCoord.match_to_catalog_sky(photCoords)
             rejectStars=where(d2d > max_sep)[0]
             #print (d2d)
@@ -1720,27 +1720,27 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             #print (idx)
             #print (rejectStars)
             #for r in range(len(idx)):
-            for q in range(len(idx)):  
+            for q in range(len(idx)):
                 if photFile[idx[q],10] != 0:
                     tempDiff.append(calibStands[q,3]-(photFile[idx[q],4]))
                     calibOut.append([calibStands[q,3],calibStands[q,4],photFile[idx[q],4],photFile[idx[q],5],calibStands[q,3]-(photFile[idx[q],4]),0,photFile[idx[q],8],photFile[idx[q],0],photFile[idx[q],1]])
-        
-                
-                
-                
-            
+
+
+
+
+
             #sys.exit()
-        
+
             #rejectStars=where((referenceFrame[:,4] < lowcounts) | (referenceFrame[:,4] > hicounts))[0]
             #referenceFrame=delete(referenceFrame, rejectStars, axis=0)
-        
-            # for q in range(len(calibStands[:,0])):        
+
+            # for q in range(len(calibStands[:,0])):
             #     idx,d2d,_=calibCoord[q].match_to_catalog_sky(photCoords)
             #     if photFile[idx,10] != 0:
             #         tempDiff.append(calibStands[q,3]-(photFile[idx,4]))
             #         calibOut.append([calibStands[q,3],calibStands[q,4],photFile[idx,4],photFile[idx,5],calibStands[q,3]-(photFile[idx,4]),0,photFile[idx,8],photFile[idx,0],photFile[idx,1]])
-        
-        
+
+
         tempZP= (median(tempDiff))
 
 
@@ -1750,7 +1750,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
 
 
-        
+
         #print ("Second For Loop")
         #print(datetime.now().strftime("%H:%M:%S"))
 
@@ -1767,27 +1767,27 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         #print (calibOut.shape)
         #print (calibOut.size)
         #print (calibOut)
-        
-        
+
+
         if calibOut.size == 0:
             logger.error("\nFailed to find adequate catalogue comparisons in " +str(file)+"\nIf calibration is failing with astrosource consider removing this file.")
         else:
             calibOut[:,5]=calibOut[:,4]-tempZP # Speedup
             for r in range(len(calibOut[:,0])):
-                
+
                 calibOverlord.append([calibOut[r,0],calibOut[r,1],calibOut[r,2],calibOut[r,3],calibOut[r,4],calibOut[r,5],float(file.split("_")[2].replace("d",".")),tempZP,calibOut[r,6],calibOut[r,7],calibOut[r,8]])
 
-        
+
         #print ("Last For Loop")
         #print(datetime.now().strftime("%H:%M:%S"))
 
         calibOut=asarray(calibOut)
         #print (calibOut)
 
-        
 
 
-        
+
+
         #Save the calibrated photfiles to the calib directory
         if calibSave == True:
             #print ("SPLAY")
@@ -1844,12 +1844,12 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         calibCompUsed.append(lineCompUsed)
         sys.stdout.write('.')
         sys.stdout.flush()
-    
+
     #print(datetime.now().strftime("%H:%M:%S"))
 
     if emptyCalibFlag==1:
         logger.info("\nSome or all of the photometry files did not calibrate successfully due to NAN values in the calibration catalogue.")
-    
+
 
     # Reject outliers in colour slope
     if colourdetect == True:
