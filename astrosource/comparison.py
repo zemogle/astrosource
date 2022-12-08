@@ -20,6 +20,8 @@ from astropy.units import degree, arcsecond
 from astropy.coordinates import SkyCoord
 from astroquery.vo_conesearch.exceptions import VOSError
 from astroquery.vizier import Vizier
+from tqdm import tqdm
+from prettytable import PrettyTable
 
 import requests
 import http
@@ -147,7 +149,6 @@ def find_comparisons(targets,  parentPath=None, fileList=None, photFileArray=Non
     '''
 
     sys.stdout.write("⭐️ Find stable comparison stars for differential photometry\n")
-    sys.stdout.flush()
     # Get list of phot files
     if not parentPath:
         parentPath = Path(os.getcwd())
@@ -215,8 +216,6 @@ def find_comparisons(targets,  parentPath=None, fileList=None, photFileArray=Non
                 if ( isnan(stdCompStar[j]) ) :
                     logger.debug("Star Rejected, Invalid Entry!")
                     starRejecter.append(j)
-                sys.stdout.write('.')
-                sys.stdout.flush()
             if starRejecter:
                 logger.warning("Rejected {} stars".format(len(starRejecter)))
         else:
@@ -238,8 +237,6 @@ def find_comparisons(targets,  parentPath=None, fileList=None, photFileArray=Non
             break
         else:
             logger.warning("Trying again")
-            sys.stdout.write('ðﾟﾒﾫ')
-            sys.stdout.flush()
 
     sys.stdout.write('\n')
     logger.info('Statistical stability reached.')
@@ -1263,8 +1260,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                             calibStands=delete(calibStands, calibStandsReject, axis=0)
 
                     if asarray(calibStands).shape[0] != 0:
-                        logger.info('Calibration Stars Identified below')
-                        logger.info(asarray(calibStands))
+                        logger.debug('Calibration Stars Identified below')
+                        tabl = PrettyTable()
+                        tabl.add_rows(calibStands[:,0:3])
+                        logger.debug(tabl)
 
                     # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
                     #logger.debug(asarray(calibStands).shape[0])
@@ -1548,7 +1547,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     # REMEMBER photCoordsFile
     counter=0
-    for file in fileList:
+    for file in tqdm(fileList):
 
         #print ("**********************************")
         #print(datetime.now().strftime("%H:%M:%S"))
@@ -1842,8 +1841,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             lineCompUsed.append(photFile[idx,4])
 
         calibCompUsed.append(lineCompUsed)
-        sys.stdout.write('.')
-        sys.stdout.flush()
 
     #print(datetime.now().strftime("%H:%M:%S"))
 

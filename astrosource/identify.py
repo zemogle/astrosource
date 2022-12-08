@@ -13,6 +13,9 @@ from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.io import fits
 from astropy.time import Time
 from barycorrpy import utc_tdb
+from tqdm import tqdm
+from prettytable import PrettyTable
+
 
 from astrosource.utils import AstrosourceException
 from astrosource.comparison import catalogue_call
@@ -85,7 +88,7 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False, ignoreed
             photFileHolder.append(photFile)
             photSkyCoord.append(SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree))
 
-        print(phot_dict)
+        # print(phot_dict)
     return phot_dict, photFileHolder, photSkyCoord
 
 def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefraction=0.05, lowestcounts=1800,  racut=-99.9, deccut=-99.9, radiuscut=-99.9):
@@ -553,7 +556,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         q=0
         photReject=[]
 
-        for Nholder in range(len(photFileHolder)):
+        for Nholder in tqdm(range(len(photFileHolder))):
             #print (q)
             #print (photSkyCoord[q])
 
@@ -655,8 +658,6 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                     loFileReject=loFileReject+1
                     photReject.append(q)
                     #fileList.remove(file)
-                sys.stdout.write('.')
-                sys.stdout.flush()
             q=q+1
 
         # Remove files and Hold the photSkyCoords in memory
@@ -670,10 +671,10 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             fracImgReject=0
         else:
             fracImgReject=  TimgReject / initialNImages
-        print (initialNImages)
-        print (TimgReject)
-        print ("FracImgRejct")
-        print (fracImgReject)
+        # print (initialNImages)
+        # print (TimgReject)
+        # print ("FracImgRejct")
+        # print (fracImgReject)
 
 
         # Raise values of imgreject and starreject for next attempt
@@ -798,10 +799,10 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             photCoords=originalphotSkyCoord
             photFileHolder=originalphotFileHolder
 
-        print (imgOverride)
-
-        print (compchecker)
-        print (mincompstars)
+        # print (imgOverride)
+        #
+        # print (compchecker)
+        # print (mincompstars)
 
 
     #print (len(photCoords))
@@ -818,7 +819,9 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         outputComps.append([referenceFrame[j][0],referenceFrame[j][1]])
 
     logger.debug("These are the identified common stars of sufficient brightness that are in every image")
-    logger.debug(outputComps)
+    tabl = PrettyTable()
+    tabl.add_rows(outputComps)
+    logger.debug(tabl)
 
     logger.info('Images Rejected due to high star rejection rate: {}'.format(imgReject))
     logger.info('Images Rejected due to low file size: {}'.format(loFileReject))
@@ -855,7 +858,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                 break
             #Remove target and restore skycoord list
             outputComps=delete(outputComps, targetRejects, axis=0)
-            logger.info(outputComps)
+            # logger.debug(outputComps)
             if len(outputComps) == 0:
                 logger.info("The only comparisons detected where also target stars. No adequate comparisons were found.")
                 sys.exit()
@@ -865,8 +868,6 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     # If a new usedimages.txt has been made, make sure that there is no photcoords in directory
     #if os.path.exists(paths['parent'] / "photSkyCoord"):
     #    os.remove(paths['parent'] / "photSkyCoord")
-
-    sys.stdout.write('\n')
 
     # print (len(photFileHolder))
     # print (len(photCoords))

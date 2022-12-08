@@ -7,3 +7,5 @@ astroquery
 scipy
 colorlog
 barycorrpy
+prettytable==3.5.0
+tqdm==4.64.1

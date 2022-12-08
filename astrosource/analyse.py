@@ -10,6 +10,7 @@ import shutil
 import time
 import math
 import os
+from tqdm import tqdm
 
 import logging
 
@@ -87,7 +88,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     # allocate minimum images to detect
     minimumNoOfObs=int(varsearchminimages*len(fileList))
     logger.debug("Minimum number of observations to detect: " + str(minimumNoOfObs))
-    
+
     # # LOAD Phot FILES INTO LIST
     # photFileArray = []
     # for file in fileList:
@@ -135,15 +136,15 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     allcountscount=0
     # For each variable calculate the variability
     outputVariableHolder=[]
-    
+
     # Prep photfile coordinates
     #photFileCoords=[]
 
     #for photFile in photFileArray:
     #    photFileCoords.append(SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree))
-        
+
     logger.debug("Measuring variability of stars...... ")
-        
+
     q=0
     for target in targetFile:
         q=q+1
@@ -185,23 +186,23 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
         #     diffMagHolder=delete(diffMagHolder, starReject, axis=0)
         #     if z==0:
         #         break
-    
+
         ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
         diffMagHolder=np.array(diffMagHolder)
         while True:
             stdVar=std(diffMagHolder)
             avgVar=average(diffMagHolder)
-            
+
             sizeBefore=diffMagHolder.shape[0]
             #print (sizeBefore)
-            
+
             diffMagHolder[diffMagHolder > avgVar+(4*stdVar) ] = np.nan
             diffMagHolder[diffMagHolder < avgVar-(4*stdVar) ] = np.nan
             diffMagHolder=diffMagHolder[~np.isnan(diffMagHolder)]
-            
+
             if diffMagHolder.shape[0] == sizeBefore:
                 break
-   
+
 
         #diffmag = asarray(diffMagHolder)
         #logger.debug("Standard Deviation in mag: {}".format(std(diffMagHolder)))
@@ -211,16 +212,16 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
         if (diffMagHolder.shape[0] > minimumNoOfObs):
             outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), diffMagHolder.shape[0]])
 
-    
+
 
     savetxt(parentPath / "results/starVariability.csv", outputVariableHolder, delimiter=",", fmt='%0.8f')
-    
-    
-    
-    
+
+
+
+
     ## Routine that actually pops out potential variables.
     starVar = np.asarray(outputVariableHolder)
-    
+
     meanMags = starVar[:,2]
     variations = starVar[:,3]
 
@@ -264,7 +265,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
         meanStarsWithin= (np.mean(starsWithin))
         stdStarsWithin= (np.std(starsWithin))
         variationsByMag.append([xbins[xbinner]+0.5*xStepSize,meanStarsWithin,stdStarsWithin])
-        
+
         # At this point extract RA and Dec of stars that may be variable
         for q in range(len(starVar[:,2])):
             if starVar[q,2] >= xbins[xbinner] and starVar[q,2] < xbins[xbinner]+xStepSize:
@@ -274,25 +275,25 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
                 elif starVar[q,3] > (meanStarsWithin + varsearchstdev*stdStarsWithin):
                     #print (starVar[q,3])
                     potentialVariables.append([starVar[q,0],starVar[q,1],starVar[q,2],starVar[q,3]])
-                    
-        
+
+
     #print (variationsByMag)
     #print (potentialVariables)
-        
+
 
     potentialVariables=np.array(potentialVariables)
     logger.debug("Potential Variables Identified: " + str(potentialVariables.shape[0]))
-    
+
     if potentialVariables.shape[0] == 0:
         logger.info("No Potential Variables identified in this set of data using the parameters requested.")
     else:
         savetxt(parentPath / "results/potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f')
-       
-        
-        
-        
+
+
+
+
         plot_variability(outputVariableHolder, potentialVariables, parentPath)
-    
+
         plt.cla()
         fig, ax = plt.subplots(figsize =(10, 7))
         #plt.hist2d(meanMags, variations, bins =[xbins, ybins], cmap = plt.cm.nipy_spectral)
@@ -308,17 +309,17 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
         plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(), cmap = plt.cm.YlOrRd)
         plt.colorbar()
         plt.title("Variation Histogram")
-        ax.set_xlabel('Mean Differential Magnitude') 
-        ax.set_ylabel('Variation (Standard Deviation)') 
+        ax.set_xlabel('Mean Differential Magnitude')
+        ax.set_ylabel('Variation (Standard Deviation)')
         plt.plot(potentialVariables[:,2],potentialVariables[:,3],'bo')
         plt.tight_layout()
-    
+
         plt.savefig(parentPath / "results/Variation2DHistogram.png")
 
     return outputVariableHolder
 
 def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, filesave=True, outliererror=4, outlierstdev=4,photCoordsFile=None, photFileArray=None, fileList=None):
-      
+
     fileCount=[]
     photometrydata = []
     sys.stdout.write('🖥 Starting photometric calculations\n')
@@ -354,7 +355,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
 
 
 
-    
+
     # Get total counts for each file
     if compFile.shape[0]== 5 and compFile.size ==5:
         loopLength=1
@@ -396,9 +397,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
         #compList=[]
         allcountscount=0
 
-        
-        for imgs, photFile in enumerate(photFileArray):
-            sys.stdout.write('.')
+        for imgs, photFile in enumerate(tqdm(photFileArray)):
             #compList=[]
             #fileRaDec = SkyCoord(ra=photFile[:,0]*degree, dec=photFile[:,1]*degree)
             fileRaDec = photCoordsFile[imgs]
@@ -446,11 +445,11 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                 else:
                     starErrorRejCount=starErrorRejCount+1
                     starRejected=1
-                    
+
             else:
                 starDistanceRejCount=starDistanceRejCount+1
                 starRejected=1
-                
+
             if ( starRejected == 1):
                     #print (starRejected)
 
@@ -486,7 +485,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
 
 
 
-        
+
         #print (outputPhot[j][11])
         # Check for dud images
         imageReject=[]
@@ -496,15 +495,15 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
         #print (imageReject)
         #print (outputPhot)
         outputPhot=delete(outputPhot, imageReject, axis=0)
-        
+
         #print (outputPhot)
-        
+
         #outputPhot=np.vstack(asarray(outputPhot))
 
         try:
             outputPhot=np.vstack(asarray(outputPhot))
-        
-       
+
+
             #sys.exit()
             #outputPhot=asarray
             ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
@@ -516,18 +515,18 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
             while True:
                 starReject=[]
                 for j in range(asarray(outputPhot).shape[0]):
-                    
+
                     if outputPhot[j][10] > avgVar+(4*stdVar) or outputPhot[j][10] < avgVar-(4*stdVar) :
                         starReject.append(j)
                         stdevReject=stdevReject+1
-                
+
                 if starReject != []:
                     outputPhot=delete(outputPhot, starReject, axis=0)
                 else:
                     break
-            
+
             # Reject by outsized error elimination
-            
+
             while True:
                 errorsArray=[]
                 for j in range(asarray(outputPhot).shape[0]):
@@ -535,7 +534,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                 errorsArray=np.asarray(errorsArray)
                 #print (errorsArray)
                 stdErrors=nanstd(errorsArray)
-                avgErrors=nanmean(errorsArray)      
+                avgErrors=nanmean(errorsArray)
                 #print (stdErrors)
                 #print (avgErrors)
                 starReject=[]
@@ -543,12 +542,12 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                     if outputPhot[j][11] > avgErrors+(4*stdErrors):
                         starReject.append(j)
                         starErrorRejCount=starErrorRejCount+1
-                
+
                 if starReject != []:
                     outputPhot=delete(outputPhot, starReject, axis=0)
                 else:
                     break
-                        
+
             #sys.exit()
             sys.stdout.write('\n')
             logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
@@ -557,7 +556,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
             logger.info("Variability of Comparisons")
             logger.info("Average : {}".format(avgVar))
             logger.info("Stdev   : {}".format(stdVar))
-            
+
             outputPhot=delete(outputPhot, starReject, axis=0)
 
         except ValueError:
@@ -567,7 +566,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
             logger.info("Rejected Error Measurements: : {}".format(starErrorRejCount))
             logger.info("Rejected Distance Measurements: : {}".format(starDistanceRejCount))
 
-        
+
 
         # Add calibration columns
         outputPhot= np.c_[outputPhot, np.ones(outputPhot.shape[0]),np.ones(outputPhot.shape[0])]
@@ -588,7 +587,7 @@ def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colour
     pdata = []
     #calibCompFile = genfromtxt(paths['parent'] / 'calibCompsUsed.csv', dtype=float, delimiter=',')
     for j, outputPhot in enumerate(photometrydata):
-        
+
         #compFile = genfromtxt(paths['parent'] / 'stdComps.csv', dtype=float, delimiter=',')
         logger.info("Calibrating Photometry")
         # Load in calibrated magnitudes and add them
@@ -628,7 +627,7 @@ def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colour
                     outputPhot[i][calibIndex]=pow(pow(outputPhot[i][11],2)+pow(ensembleMagError,2),0.5) # Calibrated Magnitude Error. NEEDS ADDING in calibration error. NEEDS ADDING IN COLOUR ERROR
                 else:
                     outputPhot[i][calibIndex-1]=np.nan
-                    outputPhot[i][calibIndex]=np.nan            
+                    outputPhot[i][calibIndex]=np.nan
         else:
             for i in range(outputPhot.shape[0]):
                 if (ensembleMag+outputPhot[i][10]-(colourterm * targetcolour)) > rejectmagbrightest and (ensembleMag+outputPhot[i][10]-(colourterm * targetcolour)) < rejectmagdimmest:
@@ -639,18 +638,18 @@ def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colour
                     outputPhot[i][calibIndex-1]=np.nan
                     outputPhot[i][calibIndex]=np.nan
 
-        
+
 
         # Write back to photometry data
         pdata.append(outputPhot)
 
         #update doerphot on disk
         savetxt(paths['outcatPath'] / f"doerPhot_V{str(j+1)}.csv", outputPhot, delimiter=",", fmt='%0.8f')
-    
+
     if (targetcolour == -99.0):
         logger.info("No provided target colour was provided. Target magnitude does not incorporate a colour correction.")
         logger.info("This is likely ok if your colour term is low (<<0.05). If your colour term is high (>0.05), ")
         logger.info("then consider providing an appropriate colour for this filter using the --targetcolour option")
         logger.info("as well as an appropriate colour term for this filter (using --colourdetect or --colourterm).")
-    
+
     return pdata
