@@ -1262,7 +1262,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                     if asarray(calibStands).shape[0] != 0:
                         logger.debug('Calibration Stars Identified below')
                         tabl = PrettyTable()
-                        tabl.add_rows(calibStands[:,0:3])
+                        tabl.field_names = ["RA","Dec","MagDiff","Mag"]
+                        tabl.add_rows(calibStands[:,0:4])
                         logger.debug(tabl)
 
                     # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards

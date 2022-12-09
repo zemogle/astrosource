@@ -20,8 +20,10 @@ def setup_logger(name, verbose=False):
 
     logger = logging.getLogger(name)
     # logger.handlers = []
-    if verbose:
+    if verbose == "DEBUG":
         LOG_LEVEL = logging.DEBUG
+    elif verbose == "INFO":
+        LOG_LEVEL = logging.INFO
     else:
         LOG_LEVEL = logging.CRITICAL
     logger.setLevel(LOG_LEVEL)
@@ -122,7 +124,7 @@ def get_targets(targetfile):
             print ('It is best to construct the csv using a simple text editor')
             time.sleep(5)
         targets=delete(targets, targetRejecter, axis=0)
-        
+
     return targets
 
 def convert_coords(ra, dec):

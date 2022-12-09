@@ -28,7 +28,7 @@ from astrosource.utils import (AstrosourceException, cleanup, folder_setup,
 class TimeSeries:
     def __init__(self, targets, indir, **kwargs):
         self.targets = targets
-        
+
         self.indir = Path(indir)
         filelist = kwargs.get('filelist', None)
         self.format = kwargs.get('format', 'fz')
@@ -44,7 +44,7 @@ class TimeSeries:
         self.minfractionimages=kwargs.get('minfractionimages', 0.5)
 
         self.detrendfraction =kwargs.get('detrendfraction', 0.1)
-        
+
         self.thresholdcounts = kwargs.get('thresholdcounts', 1000000)
         self.hicounts = kwargs.get('hicounts', 3000000)
         self.lowcounts = kwargs.get('lowcounts', 5000)
@@ -53,58 +53,63 @@ class TimeSeries:
         self.nosdss = kwargs.get('nosdss', False)
         self.closerejectd = kwargs.get('closerejectd', 5.0)
         self.targetradius = kwargs.get('targetradius', 1.5)
-        self.matchradius = kwargs.get('matchradius', 1.0) 
+        self.matchradius = kwargs.get('matchradius', 1.0)
         self.varsearch = kwargs.get('varsearch', False)
 
         self.varsearchglobalstdev = kwargs.get('varsearchglobalstdev', -99.9)
         self.varsearchthresh = kwargs.get('varsearchthresh', 10000)
-        self.varsearchstdev = kwargs.get('varsearchstdev', 1.5) 
-        self.varsearchmagwidth = kwargs.get('varsearchmagwidth', 0.5) 
+        self.varsearchstdev = kwargs.get('varsearchstdev', 1.5)
+        self.varsearchmagwidth = kwargs.get('varsearchmagwidth', 0.5)
         self.varsearchminimages = kwargs.get('varsearchminimages', 0.3)
-        
+
         self.mincompstars = kwargs.get('mincompstars', 0.1)
         self.mincompstarstotal = kwargs.get('mincompstarstotal', -99)
         self.maxcandidatestars= kwargs.get('maxcandidatestars', 10000)
-        
+
         self.lowestcounts= kwargs.get('lowestcounts', 1800)
-        
+
         # Colour stuff
         self.colourdetect = kwargs.get('colourdetect', False)
         self.linearise = kwargs.get('linearise', False)
         self.calibsave = kwargs.get('calibsave', False)
-        
+
         self.variablehunt = kwargs.get('variablehunt', False)
         self.notarget = kwargs.get('notarget', False)
         self.usescreenedcomps = kwargs.get('usescreenedcomps', False)
-        
+
         self.colourterm = kwargs.get('colourterm', 0.0)
         self.colourerror = kwargs.get('colourerror', 0.0)
         self.targetcolour = kwargs.get('targetcolour', -99.0)
-        
+
         self.restrictcompcolourcentre = kwargs.get('restrictcompcolourcentre', -99.0)
         self.restrictcompcolourrange = kwargs.get('restrictcompcolourrange', -99.0)
-        
-        
-        
+
+
+
         self.restrictmagbrightest = kwargs.get('restrictmagbrightest', -99.0)
         self.restrictmagdimmest = kwargs.get('restrictmagdimmest', 99.0)
         self.rejectmagbrightest = kwargs.get('rejectmagbrightest', -99.0)
         self.rejectmagdimmest = kwargs.get('rejectmagdimmest', 99.0)
         self.ignoreedgefraction = kwargs.get('ignoreedgefraction', 0.05)
-        
+
         self.outliererror = kwargs.get('outliererror', 4)
         self.outlierstdev = kwargs.get('outlierstdev', 4)
-        
-        
+
+
         verbose = kwargs.get('verbose', False)
+        debug = kwargs.get('debug', False)
+
+        if debug:
+            verbosity = "DEBUG"
+        elif verbose:
+            verbosity = "INFO"
+        else:
+            verbosity = False
+        logger = setup_logger('astrosource', verbosity)
+
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
-        logger = setup_logger('astrosource', verbose)
-        
-        
-        #print (self.usescreenedcomps)
-        #sys.exit()
-        
+
         if self.usescreenedcomps == False:
             self.files, self.filtercode, self.photFileHolder, self.photCoords = gather_files(self.paths, filelist=filelist, filetype=self.format, bjd=bjd,ignoreedgefraction=self.ignoreedgefraction, lowest=self.lowestcounts, racut=self.racut, deccut=self.deccut, radiuscut=self.radiuscut)
 
@@ -112,7 +117,7 @@ class TimeSeries:
 
 
         parentPath = self.paths['parent']
-            
+
         if usescreenedcomps == False:
             self.usedimages, self.stars, self.photFileHolder, self.photCoords = find_stars(targets=self.targets,
                                                                                  paths=self.paths,
@@ -120,7 +125,7 @@ class TimeSeries:
                                                                                  nopanstarrs=self.nopanstarrs,
                                                                                  nosdss=self.nosdss,
                                                                                  closerejectd=self.closerejectd,
-                                                                                 photCoords=self.photCoords, 
+                                                                                 photCoords=self.photCoords,
                                                                                  photFileHolder=self.photFileHolder,
                                                                                  mincompstars=self.mincompstars,
                                                                                  mincompstarstotal=self.mincompstarstotal,
@@ -131,7 +136,7 @@ class TimeSeries:
                                                                                  maxcandidatestars=self.maxcandidatestars,
                                                                                  restrictcompcolourcentre=self.restrictcompcolourcentre,
                                                                                  restrictcompcolourrange=self.restrictcompcolourrange,
-                                                                                 restrictmagbrightest=self.restrictmagbrightest, 
+                                                                                 restrictmagbrightest=self.restrictmagbrightest,
                                                                                  restrictmagdimmest=self.restrictmagdimmest,
                                                                                  filterCode=self.filtercode,
                                                                                  minfractionimages=self.minfractionimages)
@@ -140,7 +145,7 @@ class TimeSeries:
             #print (len(self.photCoords))
             #sys.exit()
         else:
-            print ("Using screened Comparisons from Previous Run")
+            sys.stdout.write("Using screened Comparisons from Previous Run")
             # Create or load in skycoord array
             if os.path.exists(parentPath / "photSkyCoord"):
                  print ("Loading Sky coords for photometry files")
@@ -148,16 +153,16 @@ class TimeSeries:
                      self.photCoords=pickle.load(f)
             #Create or load in photfileholder array
             if os.path.exists(parentPath / ""):
-                print ("Loading Sky coords for photometry files")
+                sys.stdout.write("Loading Sky coords for photometry files")
                 with open(parentPath / "photFileHolder", 'rb') as f:
                     self.photFileHolder=pickle.load(f)
             if os.path.exists(parentPath / ""):
-                print ("Loading filterCode")
+                sys.stdout.write("Loading filterCode")
                 with open(parentPath / "filterCode", 'rb') as f:
                     self.filtercode=pickle.load(f)
             self.usedimages=genfromtxt(parentPath / 'usedImages.txt', dtype=str, delimiter=',')
             self.stars=genfromtxt(parentPath / 'screenedComps.csv', dtype=float, delimiter=',')
-        
+
         #print (usecompsused)
         #sys.exit()
         if usecompsused ==False:
@@ -166,15 +171,15 @@ class TimeSeries:
             self.files=genfromtxt(parentPath / 'usedImages.txt', dtype=str, delimiter=',')
             self.usedimages,self.photCoords,self.photFileHolder=check_comparisons_files(self.indir, self.files, photFileArray=self.photFileHolder, photSkyCoord=self.photCoords, matchRadius=self.matchradius)
             #Check stars are in images
-        
-        
-        
+
+
+
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         if usecompletedcalib == False:
             self.calibrated = False
             if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs', 'CV', 'w']:
                 try:
-                    
+
                     self.colourterm, self.colourerror, self.calibcompsused = find_comparisons_calibrated(targets=self.targets,
                                                                                     filterCode=self.filtercode,
                                                                                     paths=self.paths,
@@ -192,7 +197,7 @@ class TimeSeries:
                                                                                     calibSave=self.calibsave,
                                                                                     restrictcompcolourcentre=self.restrictcompcolourcentre,
                                                                                     restrictcompcolourrange=self.restrictcompcolourrange)
-    
+
                     self.calibrated = True
                 except AstrosourceException as e:
                     sys.stdout.write(f'⚠️ {e}\n')
@@ -201,8 +206,8 @@ class TimeSeries:
         else:
             self.calibcompsused=genfromtxt(parentPath / 'calibCompsUsed.csv', dtype=float, delimiter=',')
             self.calibrated = True
-        
-        
+        return
+
 
     def find_variables(self):
         find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius, varsearchglobalstdev=self.varsearchglobalstdev, varsearchthresh=self.varsearchthresh, varsearchstdev=self.varsearchstdev, varsearchmagwidth=self.varsearchmagwidth, varsearchminimages=self.varsearchminimages, photCoords=self.photCoords, photFileHolder=self.photFileHolder, fileList=self.usedimages)

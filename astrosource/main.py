@@ -28,6 +28,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--format', default='fz', type=str, help='Input file format. If not `fz`, `fits`, or `fit` assumes the input files are photometry files with correct headers. If image files given, code looks for photometry in FITS Table extension.')
 
 @click.option('--verbose', '-v', is_flag=True, help='Show all system messages for AstroSource')
+@click.option('--debug', '-d', is_flag=True, help='Show debug system messages for AstroSource')
 @click.option('--clean', is_flag=True, help='Remove all generated files. Reset `indir` to initial state')
 
 @click.option('--usescreenedcomps', is_flag=True, help='Use screenedComps.csv as the candidate comparison list rather than detecting them')
@@ -106,8 +107,15 @@ logger = logging.getLogger('astrosource')
 @click.option('--rejectmagbrightest', type=float, default=-99.0, help='Remove calibrated measurements brighter than this from target results')
 @click.option('--rejectmagdimmest', type=float, default=99.0, help='Remove calibrated measurements dimmer than this from target results')
 
-def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescreenedcomps, usepreviousvarsearch, calibsave, outliererror, outlierstdev, varsearchglobalstdev, varsearchstdev, varsearchmagwidth, varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, periodlower, periodupper, periodtests,  thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius, racut, deccut, radiuscut, restrictcompcolourcentre, restrictcompcolourrange, detrendfraction,minfractionimages):
-
+def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescreenedcomps, usepreviousvarsearch, \
+    calibsave, outliererror, outlierstdev, varsearchglobalstdev, varsearchstdev, varsearchmagwidth, \
+    varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, \
+    calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, \
+    mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, debug, periodlower, periodupper, \
+    periodtests,  thresholdcounts, nopanstarrs, nosdss, varsearch, varsearchthresh, starreject, hicounts, \
+    lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, \
+    restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius, racut, deccut, \
+    radiuscut, restrictcompcolourcentre, restrictcompcolourrange, detrendfraction, minfractionimages):
     try:
         parentPath = Path(indir)
         if clean:
@@ -130,7 +138,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
             targets = get_targets(target_file)
         elif notarget == True or variablehunt == True:
             targets = None
-            
+
         if variablehunt == True:
             varsearch=True
             full=True
@@ -148,7 +156,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
                         imgreject=imgreject,
                         periodupper=periodupper,
                         periodlower=periodlower,
-                        periodtests=periodtests,                        
+                        periodtests=periodtests,
                         thresholdcounts=thresholdcounts,
                         lowcounts=lowcounts,
                         hicounts=hicounts,
@@ -158,6 +166,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
                         closerejectd=closerejectd,
                         maxcandidatestars=maxcandidatestars,
                         verbose=verbose,
+                        debug=debug,
                         bjd=bjd,
                         mincompstars=mincompstars,
                         mincompstarstotal=mincompstarstotal,
@@ -179,7 +188,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
                         matchradius=matchradius,
                         varsearchglobalstdev=varsearchglobalstdev,
                         varsearchthresh=varsearchthresh,
-                        varsearchstdev=varsearchstdev, 
+                        varsearchstdev=varsearchstdev,
                         varsearchmagwidth=varsearchmagwidth,
                         varsearchminimages=varsearchminimages,
                         ignoreedgefraction=ignoreedgefraction,
@@ -197,16 +206,16 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
 
         if full or comparison:
             ts.analyse(usescreenedcomps=usescreenedcomps, usecompsused=usecompsused, usecompletedcalib=usecompletedcalib)
-        
-        
+
+
         if (full or calc) and varsearch and not usepreviousvarsearch :
             ts.find_variables()
 
         if variablehunt == True:
             targets = get_targets(parentPath / 'results/potentialVariables.csv')
-        
 
-        
+
+
         if targets is not None:
             if full or phot:
                 ts.photometry(filesave=True, targets=targets)

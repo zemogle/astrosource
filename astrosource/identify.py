@@ -64,7 +64,8 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False, ignoreed
     new_files = []
     photFileHolder=[]
     photSkyCoord=[]
-    for f in filelist:
+    filelist = list(filelist)
+    for f in tqdm(filelist):
         s3 = False
         try:
             fitsobj = Path(f)
@@ -96,7 +97,6 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
     #new_files = []
     #photFileHolder=[]
     #photSkyCoord=[]
-    logger.debug(infile)
     with fits.open(infile) as hdulist:
 
         if not outfile:
@@ -466,8 +466,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     logger.debug("Removing stars with low or high counts")
     rejectStars=[]
     # Check star has adequate counts
-    logger.debug("Number of stars prior")
-    logger.debug(referenceFrame.shape[0])
+    logger.debug(f"{referenceFrame.shape[0]} stars prior")
     logger.debug("Initial count range, Low: " +str(lowcounts)+ " High: "+ str(hicounts))
 
     #for j in range(referenceFrame.shape[0]):
@@ -481,27 +480,24 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     #print (referenceFrame)
     rejectStars=where((referenceFrame[:,4] < lowcounts) | (referenceFrame[:,4] > hicounts))[0]
     referenceFrame=delete(referenceFrame, rejectStars, axis=0)
-    logger.debug("Number of stars after first cut")
-    logger.debug(referenceFrame.shape[0])
+    logger.debug(f"{referenceFrame.shape[0]} stars after first cut")
 
-
-    settled=0
-    while settled==0:
-        rejectStars=[]
+    settled = 0
+    while settled == 0:
+        rejectStars = []
         if referenceFrame.shape[0] > maxcandidatestars:
 
             #for j in range(referenceFrame.shape[0]):
             #    if ( referenceFrame[j][4] < lowcounts or referenceFrame[j][4] > hicounts ):
             #        rejectStars.append(int(j))
-            rejectStars=where((referenceFrame[:,4] < lowcounts) | (referenceFrame[:,4] > hicounts))[0]
+            rejectStars = where((referenceFrame[:,4] < lowcounts) | (referenceFrame[:,4] > hicounts))[0]
         else:
             settled=1
 
+        num_candidate_stars = delete(referenceFrame, rejectStars, axis=0).shape[0]
+        logger.debug(f"{num_candidate_stars} stars after attempting to reduce number of sample comparison stars")
 
-        logger.debug("Number of stars after attempting to reduce number of sample comparison stars")
-        logger.debug(delete(referenceFrame, rejectStars, axis=0).shape[0])
-
-        if delete(referenceFrame, rejectStars, axis=0).shape[0] < maxcandidatestars:
+        if num_candidate_stars < maxcandidatestars:
             settled=1
         else:
             lowcounts=lowcounts+(0.05*lowcounts)
@@ -509,7 +505,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
 
 
     logger.debug("Number of stars post")
-    referenceFrame=delete(referenceFrame, rejectStars, axis=0)
+    referenceFrame = delete(referenceFrame, rejectStars, axis=0)
     logger.debug("Final count range, Low: " +str(int(lowcounts))+ " High: "+ str(int(hicounts)))
 
     #Prepping files.
@@ -556,10 +552,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         q=0
         photReject=[]
 
-        for Nholder in tqdm(range(len(photFileHolder))):
-            #print (q)
-            #print (photSkyCoord[q])
-
+        for Nholder in range(len(photFileHolder)):
 
             if ( not referenceFrame.shape[0] < mincompstars):
                 rejStartCounter = rejStartCounter +1
@@ -719,14 +712,12 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             logger.debug("Removing stars with low or high counts")
             rejectStars=[]
             # Check star has adequate counts
-            logger.debug("Number of stars prior")
-            logger.debug(referenceFrame.shape[0])
+            logger.debug(f"{referenceFrame.shape[0]} stars prior")
             logger.debug("Initial count range, Low: " +str(lowcounts)+ " High: "+ str(hicounts))
 
             rejectStars=where((referenceFrame[:,4] < lowcounts) | (referenceFrame[:,4] > hicounts))[0]
             referenceFrame=delete(referenceFrame, rejectStars, axis=0)
-            logger.debug("Number of stars after first cut")
-            logger.debug(referenceFrame.shape[0])
+            logger.debug(f"{referenceFrame.shape[0]} stars after first cut")
             settled=0
             while settled==0:
                 rejectStars=[]
@@ -735,10 +726,10 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                 else:
                     settled=1
 
-                logger.debug("Number of stars after attempting to reduce number of sample comparison stars")
-                logger.debug(delete(referenceFrame, rejectStars, axis=0).shape[0])
+                num_candidate_stars = delete(referenceFrame, rejectStars, axis=0).shape[0]
+                logger.debug(f"{num_candidate_stars} stars after attempting to reduce number of sample comparison stars")
 
-                if delete(referenceFrame, rejectStars, axis=0).shape[0] < maxcandidatestars:
+                if num_candidate_stars < maxcandidatestars:
                     settled=1
                 else:
                     lowcounts=lowcounts+(0.05*lowcounts)
@@ -820,6 +811,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
 
     logger.debug("These are the identified common stars of sufficient brightness that are in every image")
     tabl = PrettyTable()
+    tabl.field_names = ["RA","Dec"]
     tabl.add_rows(outputComps)
     logger.debug(tabl)
 
