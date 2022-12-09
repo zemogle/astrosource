@@ -91,24 +91,6 @@ def folder_setup(parentPath=None):
 
     return paths
 
-# def photometry_files_to_array(parentPath):
-#     # Load in list of used files
-#     fileList=[]
-#     with open(parentPath / "usedImages.txt", "r") as f:
-#       for line in f:
-#         fileList.append(line.strip())
-
-#     # LOAD Phot FILES INTO LIST
-#     photFileArray=[]
-#     for file in fileList:
-#         loadPhot=load(parentPath / file)
-#         if loadPhot.shape[1] > 6:
-#             loadPhot=delete(loadPhot,6,1)
-#             # loadPhot=delete(loadPhot,6,1)
-#         photFileArray.append(loadPhot)
-
-#     return photFileArray, fileList
-
 def get_targets(targetfile):
     targets = genfromtxt(targetfile, dtype=float, delimiter=',')
     # Remove any nan rows from targets
