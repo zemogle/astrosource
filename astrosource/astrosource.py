@@ -140,10 +140,7 @@ class TimeSeries:
                                                                                  restrictmagdimmest=self.restrictmagdimmest,
                                                                                  filterCode=self.filtercode,
                                                                                  minfractionimages=self.minfractionimages)
-            #print (len(self.usedimages))
-            #print (len(self.photFileHolder))
-            #print (len(self.photCoords))
-            #sys.exit()
+
         else:
             sys.stdout.write("Using screened Comparisons from Previous Run")
             # Create or load in skycoord array
@@ -163,16 +160,12 @@ class TimeSeries:
             self.usedimages=genfromtxt(parentPath / 'usedImages.txt', dtype=str, delimiter=',')
             self.stars=genfromtxt(parentPath / 'screenedComps.csv', dtype=float, delimiter=',')
 
-        #print (usecompsused)
-        #sys.exit()
         if usecompsused ==False:
             find_comparisons(self.targets, self.indir, self.usedimages,photFileArray=self.photFileHolder, photSkyCoord=self.photCoords,  matchRadius=self.matchradius, thresholdCounts=self.thresholdcounts)
         else:
             self.files=genfromtxt(parentPath / 'usedImages.txt', dtype=str, delimiter=',')
             self.usedimages,self.photCoords,self.photFileHolder=check_comparisons_files(self.indir, self.files, photFileArray=self.photFileHolder, photSkyCoord=self.photCoords, matchRadius=self.matchradius)
             #Check stars are in images
-
-
 
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
         if usecompletedcalib == False:
