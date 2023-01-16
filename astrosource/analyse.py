@@ -437,10 +437,10 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
 
         except ValueError:
             #raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
-            logger.info("\nThis target star was not detected in your dataset. Check your input target(s) RA/Dec")
+            logger.error("This target star was not detected in your dataset. Check your input target(s) RA/Dec")
             logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
-            logger.info("Rejected Error Measurements: : {}".format(starErrorRejCount))
-            logger.info("Rejected Distance Measurements: : {}".format(starDistanceRejCount))
+            logger.error("Rejected Error Measurements: : {}".format(starErrorRejCount))
+            logger.error("Rejected Distance Measurements: : {}".format(starDistanceRejCount))
 
 
 
@@ -464,7 +464,7 @@ def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colour
     for j, outputPhot in enumerate(photometrydata):
 
         logger.info("Calibrating Photometry")
-        
+
         # Load in calibrated magnitudes and add them
         single_value = True if calibCompFile.shape[0] == 5 and calibCompFile.size != 25 else False
 
@@ -520,7 +520,7 @@ def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colour
         savetxt(paths['outcatPath'] / f"doerPhot_V{str(j+1)}.csv", outputPhot, delimiter=",", fmt='%0.8f')
 
     if (targetcolour == -99.0):
-        logger.info("No provided target colour was provided. Target magnitude does not incorporate a colour correction.")
+        logger.info("Target colour not provided. Target magnitude does not incorporate a colour correction.")
         logger.info("This is likely ok if your colour term is low (<<0.05). If your colour term is high (>0.05), ")
         logger.info("then consider providing an appropriate colour for this filter using the --targetcolour option")
         logger.info("as well as an appropriate colour term for this filter (using --colourdetect or --colourterm).")
