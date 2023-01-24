@@ -511,7 +511,9 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
             q=q+1
 
         # Remove files and Hold the photSkyCoords in memory
+        photCoords=asarray(photCoords, dtype=object)
         photCoords=delete(photCoords, photReject, axis=0)
+        photFileHolder=asarray(photFileHolder, dtype=object)
         photFileHolder=delete(photFileHolder, photReject, axis=0)
         fileList=delete(fileList, photReject, axis=0)
 
