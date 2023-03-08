@@ -6,8 +6,9 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import math
 import os
-
+from astropy.units import degree, arcsecond
 import logging
+import numpy as np
 
 #from astrosource.utils import photometry_files_to_array, AstrosourceException
 from astrosource.utils import AstrosourceException
@@ -31,6 +32,7 @@ def output_files(paths, photometrydata, mode='diff'):
             magColumn=outputPhot[:,10]
             magerrColumn=outputPhot[:,11]
 
+        #breakpoint()
 
         outputPeransoCalib = [x for x in zip(outputPhot[:,6],magColumn,magerrColumn)]
         outputPeransoCalib = asarray(outputPeransoCalib)
@@ -77,22 +79,69 @@ def open_photometry_files(outcatPath):
     return photometrydata
 
 
-def plot_variability(output, variableID, parentPath):
+def plot_variability(output, variableID, parentPath, compFile):
     # star Variability Plot
 
     if output != []: # Do not attempt plot if output array is empty
+    
+        compSkyCoord = SkyCoord(compFile[:,0],compFile[:,1], frame='icrs', unit=degree)   
+        outputSkyCoord = SkyCoord(np.asarray(output)[:,0],np.asarray(output)[:,1], frame='icrs', unit=degree)
+    
+        # Load calibration comps used if they exist
+        calibCompExist=False
+        if (parentPath / 'results/calibCompsUsed.csv').exists():
+            logger.debug("Calibrated")
+            calibCompFile=genfromtxt(parentPath / 'results/calibCompsUsed.csv', dtype=float, delimiter=',')
+            calibCompSkyCoord = SkyCoord(calibCompFile[:,0],calibCompFile[:,1], frame='icrs', unit=degree)
+            calibCompExist=True
+            
+            calibCompStarPlot = []        
+            for q in range(len(calibCompSkyCoord)):
+                idx, d2d, _ = calibCompSkyCoord[q].match_to_catalog_sky(outputSkyCoord)
+                calibCompStarPlot.append([output[idx][2],output[idx][3]])
+        
+        
+        
+        
+        compStarPlot = []        
+        for q in range(len(compSkyCoord)):
+            idx, d2d, _ = compSkyCoord[q].match_to_catalog_sky(outputSkyCoord)
+            compStarPlot.append([output[idx][2],output[idx][3]])
+            
+    
         plt.cla()
         outplotx = asarray(output)[:, 2]
         outploty = asarray(output)[:, 3]
         plt.xlabel('Mean Differential Magnitude of a Given Star')
         plt.ylabel('Standard Deviation of Differential Magnitudes')
         plt.plot(outplotx, outploty, 'bo')
+        plt.plot(np.asarray(compStarPlot)[:,0],np.asarray(compStarPlot)[:,1], 'yo')
+        if calibCompExist:
+            plt.plot(np.asarray(calibCompStarPlot)[:,0],np.asarray(calibCompStarPlot)[:,1], 'ro', mfc='none')
         # plt.plot(linex, liney)
-        plt.ylim(min(outploty)-0.04, max(outploty)+0.04, 'k-')
+
+        plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04, 'k-')
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
         plt.savefig(parentPath / 'results/starVariability.png')
         plt.savefig(parentPath / 'results/starVariability.eps')
+        
+        
+        plt.cla()
+        outplotx = asarray(output)[:, 2]
+        outploty = asarray(output)[:, 3]
+        plt.xlabel('Mean Differential Magnitude of a Given Star')
+        plt.ylabel('Standard Deviation\nof Differential Magnitudes')
+        plt.plot(outplotx, outploty, 'bo')
+        plt.plot(np.asarray(compStarPlot)[:,0],np.asarray(compStarPlot)[:,1], 'yo')
+        if calibCompExist:
+            plt.plot(np.asarray(calibCompStarPlot)[:,0],np.asarray(calibCompStarPlot)[:,1], 'ro', mfc='none')
+        # plt.plot(linex, liney)
+        plt.ylim(0.0, 0.2, 'k-')
+        plt.xlim(0.0, 5.0)
+        plt.grid(True)
+        plt.savefig(parentPath / 'results/starVariability_compare.png')
+        plt.savefig(parentPath / 'results/starVariability_compare.eps')
         
 
         plt.cla()
@@ -102,11 +151,15 @@ def plot_variability(output, variableID, parentPath):
         plt.xlabel('Mean Differential Magnitude of a Given Star')
         plt.ylabel('Standard Deviation of Differential Magnitudes')
         plt.plot(outplotx, outploty, 'bo')
+        plt.plot(np.asarray(compStarPlot)[:,0],np.asarray(compStarPlot)[:,1], 'yo')
+        if calibCompExist:
+            plt.plot(np.asarray(calibCompStarPlot)[:,0],np.asarray(calibCompStarPlot)[:,1], 'ro', mfc='none')
         fig.set_size_inches(16,9)
         # plt.plot(linex, liney)
-        plt.ylim(min(outploty)-0.04, max(outploty)+0.04, 'k-')
+        plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04, 'k-')
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
+        
         plt.savefig(parentPath / 'results/starVariability_Large.png')
         plt.savefig(parentPath / 'results/starVariability_Large.eps')
         
@@ -117,8 +170,11 @@ def plot_variability(output, variableID, parentPath):
         plt.ylabel('Standard Deviation of Differential Magnitudes')
         plt.plot(outplotx, outploty, 'bo')
         plt.plot(variableID[:,2],variableID[:,3],'ro')
+        plt.plot(np.asarray(compStarPlot)[:,0],np.asarray(compStarPlot)[:,1], 'yo')
+        if calibCompExist:
+            plt.plot(np.asarray(calibCompStarPlot)[:,0],np.asarray(calibCompStarPlot)[:,1], 'ro', mfc='none')
         # plt.plot(linex, liney)
-        plt.ylim(min(outploty)-0.04, max(outploty)+0.04, 'k-')
+        plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04, 'k-')
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
         plt.savefig(parentPath / 'results/starVariability_withID.png')
@@ -133,9 +189,12 @@ def plot_variability(output, variableID, parentPath):
         plt.ylabel('Standard Deviation of Differential Magnitudes')
         plt.plot(outplotx, outploty, 'bo')
         plt.plot(variableID[:,2],variableID[:,3],'ro')
+        plt.plot(np.asarray(compStarPlot)[:,0],np.asarray(compStarPlot)[:,1], 'yo')
+        if calibCompExist:
+            plt.plot(np.asarray(calibCompStarPlot)[:,0],np.asarray(calibCompStarPlot)[:,1], 'ro', mfc='none')
         fig.set_size_inches(16,9)
         # plt.plot(linex, liney)
-        plt.ylim(min(outploty)-0.04, max(outploty)+0.04, 'k-')
+        plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04, 'k-')
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
         plt.savefig(parentPath / 'results/starVariability_Large_withID.png')
@@ -158,6 +217,7 @@ def make_plots(filterCode, paths, photometrydata, fileformat='full'):
             plt.xlabel('BJD')
             plt.ylabel('Differential ' +filterCode+' Mag')
             plt.plot(outplotx,outploty,'bo')
+            
             plt.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
             plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
             plt.grid(True)

@@ -5,7 +5,7 @@ import os
 import logging
 import pickle
 
-from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan, zeros, max, min, nan, where, average, cos, hstack, array, column_stack, copy
+from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan, zeros, max, min, nan, where, average, cos, hstack, array, column_stack, copy, c_
 from astropy import units as u
 from astropy.units import degree, arcsecond
 from astropy import wcs
@@ -89,6 +89,8 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False, ignoreed
             photFileHolder.append(photFile)
             photSkyCoord.append(SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree))
 
+    
+
     return phot_dict, photFileHolder, photSkyCoord
 
 def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefraction=0.05, lowestcounts=1800,  racut=-99.9, deccut=-99.9, radiuscut=-99.9):
@@ -165,6 +167,12 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
                 #remove lowcounts
                 rejectStars=where(photFile[:,4] < lowestcounts)[0]
                 photFile=delete(photFile, rejectStars, axis=0)
+                
+                photFile=c_[photFile,zeros(len(photFile[:,0])),zeros(len(photFile[:,0])),zeros(len(photFile[:,0])),zeros(len(photFile[:,0]))]
+                photFile[:,8]=nan
+                photFile[:,9]=nan
+                photFile[:,10]=0
+                photFile[:,11]=copy(photFile[:,4])
 
     return outfile, photFile
 
@@ -234,12 +242,21 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
                             photFile=delete(photFile, rejectStars, axis=0)
 
                             filepath = Path(fn).with_suffix('.npy')
+                            
+                            photFile=c_[photFile,zeros(len(photFile[:,0])),zeros(len(photFile[:,0])),zeros(len(photFile[:,0])),zeros(len(photFile[:,0]))]
+                            photFile[:,8]=nan
+                            photFile[:,9]=nan
+                            photFile[:,10]=0
+                            photFile[:,11]=copy(photFile[:,4])
 
                             if photFile.size > 16:
                                 new_files.append(filepath.name)
                                 photFileHolder.append(photFile)
                                 photSkyCoord.append(SkyCoord(ra=photFile[:,0]*u.degree, dec=photFile[:,1]*u.degree))
+                                
+                            
 
+                            
                         else:
                             logger.debug("REJECT")
                             logger.debug(fn)
@@ -502,15 +519,16 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                     wcsFileReject=wcsFileReject+1
                     photReject.append(q)
                 else:
-                    logger.error('**********************')
-                    logger.error("CONTAINS TOO FEW STARS")
-                    logger.error('**********************')
+                    logger.debug('**********************')
+                    logger.debug("CONTAINS TOO FEW STARS")
+                    logger.debug('**********************')
                     loFileReject=loFileReject+1
                     photReject.append(q)
 
             q=q+1
 
         # Remove files and Hold the photSkyCoords in memory
+        photCoords=asarray(photCoords)
         photCoords=delete(photCoords, photReject, axis=0)
         photFileHolder=delete(photFileHolder, photReject, axis=0)
         fileList=delete(fileList, photReject, axis=0)

@@ -47,7 +47,7 @@ def get_total_counts(photFileArray, compFile, loopLength, photCoords):
                 matchCoord = SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
 
             idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-            allCounts = add(allCounts, photFile[idx][4])
+            allCounts = add(allCounts, photFile[idx][11])
             allCountsErr = add(allCountsErr, photFile[idx][5])
             if (compFile.shape[0] == 5 and compFile.size == 5) or (compFile.shape[0] == 3 and compFile.size == 3):
                 break
@@ -79,7 +79,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     # allocate minimum images to detect
     minimumNoOfObs=int(varsearchminimages*len(fileList))
-    logger.debug("Minimum number of observations to detect: " + str(minimumNoOfObs))
+    logger.info("Minimum number of observations to detect: " + str(minimumNoOfObs))
 
     # LOAD IN COMPARISON FILE
     preFile = genfromtxt(parentPath / 'results/stdComps.csv', dtype=float, delimiter=',')
@@ -104,16 +104,16 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     allCountsArray = get_total_counts(photFileArray, compFile, loopLength=compFile.shape[0], photCoords=photCoords)
 
     # Define targetlist as every star in referenceImage above a count threshold
-    logger.debug("Setting up Variable Search List")
+    logger.info("Setting up Variable Search List")
     targetFile = referenceFrame
     # Although remove stars that are below the variable countrate
     starReject=[]
     for q in range(targetFile.shape[0]):
-        if targetFile[q][4] < varsearchthresh:
+        if targetFile[q][11] < varsearchthresh:
             starReject.append(q)
-    logger.debug("Total number of stars in reference Frame: {}".format(targetFile.shape[0]))
+    logger.info("Total number of stars in reference Frame: {}".format(targetFile.shape[0]))
     targetFile = delete(targetFile, starReject, axis=0)
-    logger.debug("Total number of stars with sufficient counts: {}".format(targetFile.shape[0]))
+    logger.info("Total number of stars with sufficient counts: {}".format(targetFile.shape[0]))
 
     ## NEED TO REMOVE COMPARISON STARS FROM TARGETLIST
 
@@ -121,7 +121,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     # For each variable calculate the variability
     outputVariableHolder=[]
 
-    logger.debug("Measuring variability of stars...... ")
+    logger.info("Measuring variability of stars...... ")
 
     q=0
     for target in targetFile:
@@ -143,10 +143,12 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
             fileRaDec = photFileCoords[r]
             r=r+1
             idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
-            multTemp=(multiply(-2.5,log10(divide(photFile[idx][4],allCountsArray[allcountscount][0]))))
+            multTemp=(multiply(-2.5,log10(divide(photFile[idx][11],allCountsArray[allcountscount][0]))))
             if less(d2d.arcsecond, matchRadius) and (multTemp != inf) :
                 diffMagHolder=append(diffMagHolder,multTemp)
             allcountscount=add(allcountscount,1)
+
+        #breakpoint()
 
         ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
         diffMagHolder=np.array(diffMagHolder)
@@ -175,6 +177,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     ## Routine that actually pops out potential variables.
     starVar = np.asarray(outputVariableHolder)
 
+    
     meanMags = starVar[:,2]
     variations = starVar[:,3]
 
@@ -215,7 +218,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     else:
         savetxt(parentPath / "results/potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f')
 
-        plot_variability(outputVariableHolder, potentialVariables, parentPath)
+        plot_variability(outputVariableHolder, potentialVariables, parentPath, compFile)
 
         plt.cla()
         fig, ax = plt.subplots(figsize =(10, 7))
@@ -300,7 +303,8 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
             idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
             starRejected=0
             if (less(d2d.arcsecond, targetRadius)):
-                magErrVar = 1.0857 * (photFile[idx][5]/photFile[idx][4])
+                #magErrVar = 1.0857 * (photFile[idx][5]/photFile[idx][4])
+                magErrVar = photFile[idx][5]
                 if magErrVar < errorReject:
 
                     magErrEns = 1.0857 * (allCountsArray[allcountscount][1]/allCountsArray[allcountscount][0])
@@ -315,9 +319,9 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                     tempList = append(tempList, allCountsArray[allcountscount][1])
 
                     #Differential Magnitude
-                    tempList = append(tempList, 2.5 * log10(allCountsArray[allcountscount][0]/photFile[idx][4]))
+                    tempList = append(tempList, 2.5 * log10(allCountsArray[allcountscount][0]/photFile[idx][11]))
                     tempList = append(tempList, magErrTotal)
-                    tempList = append(tempList, photFile[idx][4])
+                    tempList = append(tempList, photFile[idx][11])
                     tempList = append(tempList, photFile[idx][5])
 
                     if (compFile.shape[0]== 5 and compFile.size ==5) or (compFile.shape[0]== 3 and compFile.size ==3):
@@ -330,7 +334,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                         else:
                             matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
                         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-                        tempList=append(tempList, photFileArray[imgs][idx][4])
+                        tempList=append(tempList, photFileArray[imgs][idx][11])
                     outputPhot.append(tempList)
 
                     fileCount.append(allCountsArray[allcountscount][0])
@@ -357,7 +361,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                     #Differential Magnitude
                     tempList=append(tempList,nan)
                     tempList=append(tempList,nan)
-                    tempList=append(tempList, photFileArray[imgs][idx][4])
+                    tempList=append(tempList, photFileArray[imgs][idx][11])
                     tempList=append(tempList, photFileArray[imgs][idx][5])
 
                     if (compFile.shape[0]== 5 and compFile.size ==5) or (compFile.shape[0]== 3 and compFile.size ==3):
@@ -371,7 +375,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                         else:
                             matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
                         idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
-                        tempList=append(tempList, photFileArray[imgs][idx][4])
+                        tempList=append(tempList, photFileArray[imgs][idx][11])
                     outputPhot.append(tempList)
                     fileCount.append(allCountsArray[allcountscount][0])
                     allcountscount=allcountscount+1
