@@ -1317,8 +1317,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         emptyCalibFlag=0
         NanTemp=photFile[~np.isnan(photFile).any(axis=1)] #rows where no value is nan
         if len(NanTemp) != 0:
-            if not colourdetect:
-                NanTemp[:,4]=-2.5*log10(photFile[:,4])
+            #if not colourdetect:
+            #    NanTemp[:,4]=-2.5*log10(photFile[:,4])
             NanTemp[:,10]=2 # 2 means that there was no colour to use to embed the colour.
         else:
             emptyCalibFlag=1
@@ -1367,6 +1367,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             for r in range(len(calibOut[:,0])):
 
                 calibOverlord.append([calibOut[r,0],calibOut[r,1],calibOut[r,2],calibOut[r,3],calibOut[r,4],calibOut[r,5],float(file.split("_")[2].replace("d",".")),tempZP,calibOut[r,6],calibOut[r,7],calibOut[r,8]])
+
+        #breakpoint()
 
         calibOut=asarray(calibOut)
 
@@ -1567,6 +1569,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         fig = plt.gcf()
         outplotx=calibOverlord[:,0]
         outploty=calibOverlord[:,5]
+        #breakpoint()
         sqsol = np.linalg.lstsq(np.vstack([calibOverlord[:,0],np.ones(len(calibOverlord[:,0]))]).T,calibOverlord[:,5], rcond=None)
         m, c = sqsol[0]
         x, residuals, rank, s = sqsol
