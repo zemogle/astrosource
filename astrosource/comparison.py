@@ -29,10 +29,7 @@ import urllib3
 
 from astrosource.utils import AstrosourceException
 
-import logging
-
-logger = logging.getLogger('astrosource')
-
+from loguru import logger
 
 
 def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, photSkyCoord=None, matchRadius=1.45):
@@ -40,8 +37,7 @@ def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, 
     Find stable comparison stars for the target photometry
     '''
 
-    sys.stdout.write("⭐️ Checking Provided stars are in every image\n")
-    sys.stdout.flush()
+    logger.info("⭐️ Checking Provided stars are in every image\n")
 
     # Get list of phot files
     if not parentPath:
@@ -120,7 +116,7 @@ def find_comparisons(targets,  parentPath=None, fileList=None, photFileArray=Non
 
     '''
 
-    sys.stdout.write("⭐️ Find stable comparison stars for differential photometry\n")
+    logger.info("⭐️ Find stable comparison stars for differential photometry\n")
     # Get list of phot files
     if not parentPath:
         parentPath = Path(os.getcwd())
@@ -184,7 +180,6 @@ def find_comparisons(targets,  parentPath=None, fileList=None, photFileArray=Non
         else:
             logger.warning("Trying again")
 
-    sys.stdout.write('\n')
     logger.info('Statistical stability reached.')
 
     outfile, num_comparisons = final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCounts, variabilityMax)
@@ -427,7 +422,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
              #'vizier.idia.ac.za']
         vS=0
         v.VIZIER_SERVER=vServers[vS]
-        variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')
+        variableResult=v.query_region(avgCoord, radius=1.5*radius*degree, catalog='VSX')
         if str(variableResult)=="Empty TableList":
             logger.info("VSX Returned an Empty Table.")
         else:
@@ -659,7 +654,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
 def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, colourdetect=False, linearise=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, colourTerm=0.0, colourError=0.0, restrictmagbrightest=-99.9, restrictmagdimmest=99.9, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, photCoordsFile=None, photFileHolder=None, calibSave=False):
 
 
-    sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
+    logger.info("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
 
     FILTERS = {
                 'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag', 'colmatch' : 'Vmag', 'colerr' : 'e_Vmag', 'colname' : 'B-V', 'colrev' : '0'}},
@@ -1264,7 +1259,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         photFile=np.c_[photFile,np.zeros(len(photFile[:,0])),np.zeros(len(photFile[:,0])),np.zeros(len(photFile[:,0]))]
 
         idx,d2d,_=catCoords.match_to_catalog_sky(photCoords)
-        
+
         photFile[:,8]=np.nan
         photFile[:,9]=np.nan
         photFile[:,10]=0
@@ -1646,6 +1641,5 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     compFile = asarray(finalCompUsedFile)
     savetxt(parentPath / "results/calibCompsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
-    sys.stdout.write('\n')
 
     return colourTerm, colourError, compFile

@@ -12,7 +12,7 @@ import math
 import os
 from tqdm import tqdm
 
-import logging
+from loguru import logger
 
 #from astrosource.utils import photometry_files_to_array, AstrosourceException
 from astrosource.utils import AstrosourceException
@@ -22,9 +22,6 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-
-logger = logging.getLogger('astrosource')
-
 
 def get_total_counts(photFileArray, compFile, loopLength, photCoords):
 
@@ -216,7 +213,6 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
         savetxt(parentPath / "results/potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f')
 
         plot_variability(outputVariableHolder, potentialVariables, parentPath)
-
         plt.cla()
         fig, ax = plt.subplots(figsize =(10, 7))
         plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(), cmap = plt.cm.YlOrRd)
@@ -235,7 +231,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
 
     fileCount=[]
     photometrydata = []
-    sys.stdout.write('🖥 Starting photometric calculations\n')
+    logger.info('🖥 Starting photometric calculations\n')
 
     if (paths['parent'] / 'results/calibCompsUsed.csv').exists():
         logger.debug("Calibrated")
@@ -425,7 +421,6 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                 else:
                     break
 
-            sys.stdout.write('\n')
             logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
             logger.info("Rejected Error Measurements: : {}".format(starErrorRejCount))
             logger.info("Rejected Distance Measurements: : {}".format(starDistanceRejCount))
@@ -436,13 +431,11 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
             outputPhot=delete(outputPhot, starReject, axis=0)
 
         except ValueError:
-            #raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
-            logger.error("This target star was not detected in your dataset. Check your input target(s) RA/Dec")
-            logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
-            logger.error("Rejected Error Measurements: : {}".format(starErrorRejCount))
-            logger.error("Rejected Distance Measurements: : {}".format(starDistanceRejCount))
-
-
+            raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
+            # logger.error("This target star was not detected in your dataset. Check your input target(s) RA/Dec")
+            # logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
+            # logger.error("Rejected Error Measurements: : {}".format(starErrorRejCount))
+            # logger.error("Rejected Distance Measurements: : {}".format(starDistanceRejCount))
 
         # Add calibration columns
         outputPhot= np.c_[outputPhot, np.ones(outputPhot.shape[0]),np.ones(outputPhot.shape[0])]

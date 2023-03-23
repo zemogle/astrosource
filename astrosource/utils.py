@@ -8,27 +8,16 @@ from numpy import asarray, genfromtxt, load, isnan, delete
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 import click
-from colorlog import ColoredFormatter
 from pathlib import Path
 
-def setup_logger(name, verbose=False):
-    # formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
-    LOGFORMAT = "%(log_color)s%(levelname)-8s%(reset)s | %(log_color)s%(message)s%(reset)s"
-    formatter = ColoredFormatter(LOGFORMAT)
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
+from loguru import logger
 
-    logger = logging.getLogger(name)
-    # logger.handlers = []
-    if verbose == "DEBUG":
-        LOG_LEVEL = logging.DEBUG
-    elif verbose == "INFO":
-        LOG_LEVEL = logging.INFO
-    else:
-        LOG_LEVEL = logging.CRITICAL
-    logger.setLevel(LOG_LEVEL)
-    logger.addHandler(handler)
-    return logger
+def setup_logger(verbose=False):
+    # logger.remove()
+    if not verbose:
+        verbose = 'CRITICAL'
+    logger.add(sys.stdout, format="<level>[{level}] {message}</level>", filter="astrosource", level=verbose, colorize=True)
+    return
 
 class Mutex(click.Option):
     def __init__(self, *args, **kwargs):

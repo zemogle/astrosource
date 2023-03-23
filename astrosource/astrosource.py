@@ -1,4 +1,3 @@
-import logging
 import os
 import pickle
 import ssl
@@ -24,6 +23,7 @@ from astrosource.plots import (make_calibrated_plots, make_plots,
 from astrosource.utils import (AstrosourceException, cleanup, folder_setup,
                                setup_logger)
 
+from loguru import logger
 
 class TimeSeries:
     def __init__(self, targets, indir, **kwargs):
@@ -105,7 +105,7 @@ class TimeSeries:
             verbosity = "INFO"
         else:
             verbosity = False
-        logger = setup_logger('astrosource', verbosity)
+        setup_logger(verbosity)
 
         bjd = kwargs.get('bjd', False)
         self.paths = folder_setup(self.indir)
@@ -142,19 +142,19 @@ class TimeSeries:
                                                                                  minfractionimages=self.minfractionimages)
 
         else:
-            sys.stdout.write("Using screened Comparisons from Previous Run")
+            logger.info("Using screened Comparisons from Previous Run")
             # Create or load in skycoord array
             if os.path.exists(parentPath / "photSkyCoord"):
-                 print ("Loading Sky coords for photometry files")
+                 logger.debug ("Loading Sky coords for photometry files")
                  with open(parentPath / "photSkyCoord", 'rb') as f:
                      self.photCoords=pickle.load(f)
             #Create or load in photfileholder array
             if os.path.exists(parentPath / ""):
-                sys.stdout.write("Loading Sky coords for photometry files")
+                logger.info("Loading Sky coords for photometry files")
                 with open(parentPath / "photFileHolder", 'rb') as f:
                     self.photFileHolder=pickle.load(f)
             if os.path.exists(parentPath / ""):
-                sys.stdout.write("Loading filterCode")
+                logger.info("Loading filterCode")
                 with open(parentPath / "filterCode", 'rb') as f:
                     self.filtercode=pickle.load(f)
             self.usedimages=genfromtxt(parentPath / 'usedImages.txt', dtype=str, delimiter=',')
@@ -193,9 +193,9 @@ class TimeSeries:
 
                     self.calibrated = True
                 except AstrosourceException as e:
-                    sys.stdout.write(f'⚠️ {e}\n')
+                    logger.error(f'⚠️ {e}\n')
             elif calib:
-                sys.stdout.write(f'⚠️ filter {self.filtercode} not supported for calibration\n')
+                logger.error(f'⚠️ filter {self.filtercode} not supported for calibration\n')
         else:
             self.calibcompsused=genfromtxt(parentPath / 'calibCompsUsed.csv', dtype=float, delimiter=',')
             self.calibrated = True

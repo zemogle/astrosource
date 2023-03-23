@@ -17,6 +17,7 @@ periodEstimates.txt
 *.png
 *.eps
 
+.idea/
 inputs/
 checkplots/
 outputcats/

@@ -1,7 +1,6 @@
 from pathlib import Path
 import click
 import sys
-import logging
 
 from numpy import array, all
 from astropy.utils.exceptions import AstropyWarning, AstropyDeprecationWarning
@@ -10,7 +9,7 @@ from astrosource.astrosource import TimeSeries
 
 from astrosource.utils import get_targets, folder_setup, AstrosourceException, cleanup, convert_coords
 
-logger = logging.getLogger('astrosource')
+from loguru import logger
 
 @click.command()
 @click.option('--full', is_flag=True, help='Perform full analysis, i.e. steps 1-5')
@@ -27,7 +26,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--target-file', default=None, type=str, help='Textfile in csv with RA and Dec in decimal')
 @click.option('--format', default='fz', type=str, help='Input file format. If not `fz`, `fits`, or `fit` assumes the input files are photometry files with correct headers. If image files given, code looks for photometry in FITS Table extension.')
 
-@click.option('--verbose', '-v', is_flag=True, help='Show all system messages for AstroSource')
+@click.option('--verbose', '-v', is_flag=True, help='Show system messages for AstroSource')
 @click.option('--debug', '-d', is_flag=True, help='Show debug system messages for AstroSource')
 @click.option('--clean', is_flag=True, help='Remove all generated files. Reset `indir` to initial state')
 
@@ -222,7 +221,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
             if full or plot:
                 ts.plot(detrend=detrend, period=period, eebls=eebls, filesave=True)
 
-        sys.stdout.write("✅ AstroSource analysis complete\n")
+        logger.info("✅ AstroSource analysis complete\n")
 
     except AstrosourceException as e:
         logger.critical(e)

@@ -7,12 +7,10 @@ import matplotlib.pyplot as plt
 import math
 import os
 
-import logging
-
 #from astrosource.utils import photometry_files_to_array, AstrosourceException
 from astrosource.utils import AstrosourceException
 
-logger = logging.getLogger('astrosource')
+from loguru import logger
 
 
 def output_files(paths, photometrydata, mode='diff'):
@@ -34,35 +32,35 @@ def output_files(paths, photometrydata, mode='diff'):
 
         outputPeransoCalib = [x for x in zip(outputPhot[:,6],magColumn,magerrColumn)]
         outputPeransoCalib = asarray(outputPeransoCalib)
-        
+
         if not outputPeransoCalib.size == 0:
             #remove rows with nan values
             outputPeransoCalib = outputPeransoCalib[~isnan(outputPeransoCalib).any(axis=1)]
-    
+
             savetxt(paths['outcatPath'] / f'V{r}_{mode}Peranso.txt', outputPeransoCalib, delimiter=" ", fmt='%0.8f')
             savetxt(paths['outcatPath'] / f'V{r}_{mode}Excel.csv', outputPeransoCalib, delimiter=",", fmt='%0.8f')
-    
+
             #output for EXOTIC modelling
             outputEXOTICCalib = [x for x in zip(outputPhot[:,6],magColumn,magerrColumn,outputPhot[:,7])]
-    
+
             outputEXOTICCalib=asarray(outputEXOTICCalib)
             exoMedian=median(outputEXOTICCalib[:,1])
-    
+
             for q in range (outputEXOTICCalib.shape[0]):
                 outputEXOTICCalib[q][1]=(1-pow(10,((outputEXOTICCalib[q][1]-exoMedian)/2.5)))+1
                 outputEXOTICCalib[q][2]=(outputEXOTICCalib[q][2]/1.0857)*outputEXOTICCalib[q][1]
-    
+
             outputEXOTICCalib=outputEXOTICCalib[outputEXOTICCalib[:,0].argsort()]
             outputEXOTICCalib = asarray(outputEXOTICCalib)
             outputEXOTICCalib = outputEXOTICCalib[~isnan(outputEXOTICCalib).any(axis=1)]
-    
+
             savetxt(paths['outcatPath'] / f'V{r}_{mode}EXOTIC.csv', outputEXOTICCalib, delimiter=",", fmt='%0.8f')
-    
+
             # Output Differential astroImageJ file
             outputaijCalib = [x for x in zip(outputPhot[:,6]-2450000.0,magColumn,magerrColumn)]
             outputaijCalib = asarray(outputaijCalib)
             outputaijCalib = outputaijCalib[~isnan(outputaijCalib).any(axis=1)]
-    
+
             savetxt(paths['outcatPath'] / f'V{r}_{mode}AIJ.txt', outputaijCalib, delimiter=" ", fmt='%0.8f')
             savetxt(paths['outcatPath'] / f'V{r}_{mode}AIJ.csv', outputaijCalib, delimiter=",", fmt='%0.8f')
     return
@@ -93,7 +91,7 @@ def plot_variability(output, variableID, parentPath):
         plt.grid(True)
         plt.savefig(parentPath / 'results/starVariability.png')
         plt.savefig(parentPath / 'results/starVariability.eps')
-        
+
 
         plt.cla()
         fig = plt.gcf()
@@ -109,7 +107,7 @@ def plot_variability(output, variableID, parentPath):
         plt.grid(True)
         plt.savefig(parentPath / 'results/starVariability_Large.png')
         plt.savefig(parentPath / 'results/starVariability_Large.eps')
-        
+
         plt.cla()
         outplotx = asarray(output)[:, 2]
         outploty = asarray(output)[:, 3]
@@ -123,7 +121,7 @@ def plot_variability(output, variableID, parentPath):
         plt.grid(True)
         plt.savefig(parentPath / 'results/starVariability_withID.png')
         plt.savefig(parentPath / 'results/starVariability_withID.eps')
-        
+
 
         plt.cla()
         fig = plt.gcf()
@@ -140,8 +138,8 @@ def plot_variability(output, variableID, parentPath):
         plt.grid(True)
         plt.savefig(parentPath / 'results/starVariability_Large_withID.png')
         plt.savefig(parentPath / 'results/starVariability_Large_withID.eps')
-        
-        
+
+
     return
 
 
@@ -165,7 +163,7 @@ def make_plots(filterCode, paths, photometrydata, fileformat='full'):
                 plt.savefig(paths['outputPath'] / f'V{r}_EnsembleVarDiffMag.png')
             if fileformat == 'full' or fileformat == 'eps':
                 plt.savefig(paths['outputPath'] / f'V{r}_EnsembleVarDiffMag.eps')
-    
+
             plt.cla()
             outplotx=asarray(outputPhot)[:,7]
             outploty=asarray(outputPhot)[:,10]
@@ -179,7 +177,7 @@ def make_plots(filterCode, paths, photometrydata, fileformat='full'):
                 plt.savefig(paths['checkPath'] / f'V{r}_AirmassEnsVarDiffMag.png')
             if fileformat == 'full' or fileformat == 'eps':
                 plt.savefig(paths['checkPath'] / f'V{r}_AirmassEnsVarDiffMag.eps')
-    
+
             plt.cla()
             outplotx=asarray(outputPhot)[:,7]
             outploty=asarray(outputPhot)[:,8]
@@ -238,9 +236,9 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
             if calibFile.size > 3:
                 for i in range(calibFile.shape[0]):
                     calibFile[i][1] = calibFile[i][1]
-        
+
                 # Variable lightcurve
-            
+
                 plt.cla()
                 outplotx = calibFile[:, 0]
                 outploty = calibFile[:, 1]
@@ -253,9 +251,9 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
                 plt.grid(True)
                 plt.savefig(outputPath / 'Variable{}_{}_Lightcurve.png'.format(q+1,filterCode))
                 plt.savefig(outputPath / 'Variable{}_{}_Lightcurve.eps'.format(q+1,filterCode))
-        
+
                 # Phased lightcurve
-        
+
                 plt.cla()
                 fig = plt.gcf()
                 outplotx=((calibFile[:,0]/period)+phaseShift)%1
@@ -274,13 +272,13 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
                 fig.set_size_inches(6,3)
                 plt.savefig(outputPath / 'Variable{}_{}_PhasedLightcurve.png'.format(q+1,filterCode))
                 plt.savefig(outputPath / 'Variable{}_{}_PhasedLightcurve.eps'.format(q+1,filterCode))
-        
+
                 logger.info("Variable V{}_{}".format(q+1,filterCode))
                 logger.info("Max Magnitude: "+ str(max(calibFile[:,1])))
                 logger.info("Min Magnitude: "+ str(min(calibFile[:,1])))
                 logger.info("Amplitude    : "+ str(max(calibFile[:,1])-min(calibFile[:,1])))
                 logger.info("Mid Magnitude: "+ str((max(calibFile[:,1])+min(calibFile[:,1]))/2))
-        
+
                 with open(paths['parent'] / "results/LightcurveStats.txt", "a+") as f:
                     f.write("Lightcurve Statistics \n\n")
                     f.write("Variable V{}_{}\n".format(str(q+1),filterCode))

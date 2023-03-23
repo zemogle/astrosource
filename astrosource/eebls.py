@@ -1,6 +1,5 @@
 import sys
 import os
-import logging
 import matplotlib.pyplot as plt
 from numpy import median, zeros, nan, nanmedian, sqrt, mean, std, loadtxt, linspace, \
     zeros_like, divide, asarray
@@ -10,7 +9,7 @@ from pathlib import Path
 
 from astrosource.utils import AstrosourceException
 
-logger = logging.getLogger('astrosource')
+from loguru import logger
 
 def bls(t, x, qmi, qma, fmin, df, nf, nb, startPeriod, dp):
     """First trial, BLS algorithm, only minor modification from author's code
@@ -175,10 +174,10 @@ def plot_bls(paths, startPeriod=-99.9, endPeriod=-99.9, nf=1000, nb=200, qmi=0.0
         os.makedirs(eelbsPath)
     fileList = paths['outcatPath'].glob('*diffExcel*csv')
     r=0
-    
+
     for filename in fileList:
         photFile = loadtxt(paths['outcatPath'] / Path(filename).name, delimiter=',')
-        
+
         print (startPeriod)
         print (endPeriod)
         # estimate a search bracket if none provided
@@ -192,8 +191,8 @@ def plot_bls(paths, startPeriod=-99.9, endPeriod=-99.9, nf=1000, nb=200, qmi=0.0
         fmax = 1/startPeriod
         df = (fmax-fmin)/nf
         dp = (endPeriod-startPeriod)/nf
-        
-        
+
+
         logger.debug('**********************')
         logger.debug(f'Testing: {filename}')
         t = photFile[:,0]

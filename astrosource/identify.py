@@ -2,7 +2,6 @@ import glob
 from pathlib import Path
 import sys
 import os
-import logging
 import pickle
 
 from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan, zeros, max, min, nan, where, average, cos, hstack, array, column_stack, copy
@@ -20,7 +19,7 @@ from prettytable import PrettyTable
 from astrosource.utils import AstrosourceException
 from astrosource.comparison import catalogue_call
 
-logger = logging.getLogger('astrosource')
+from loguru import logger
 
 def rename_data_file(prihdr, bjd=False):
 
@@ -82,7 +81,6 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False, ignoreed
             filename = f.name
         else:
             filename = fitsobj.name
-
         if photFile.size > 100:
             phot_dict.append(filepath)
 
@@ -119,7 +117,6 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
         if photFile.size > 16: #ignore zero sized files and files with only one or two entries
             if max(photFile[:,0]) < 360 and max(photFile[:,1]) < 90:
                 photFile=photFile[~isnan(photFile).any(axis=1)]
-
 
                 # if radial cut do that otherwise chop off image edges
                 if racut != -99.9 and deccut !=-99.9 and radiuscut !=-99.9:
@@ -161,7 +158,6 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
                 photFile[:,1][photFile[:,1] == 0.0 ] = nan
 
                 photFile=photFile[~isnan(photFile).any(axis=1)]
-
                 #remove lowcounts
                 rejectStars=where(photFile[:,4] < lowestcounts)[0]
                 photFile=delete(photFile, rejectStars, axis=0)
@@ -272,7 +268,7 @@ def convert_mjd_bjd(hdr):
 
 def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefraction=0.05, lowest=1800,  racut=-99.9, deccut=-99.9, radiuscut=-99.9):
     # Get list of files
-    sys.stdout.write('💾 Inspecting input files\n')
+    logger.info('💾 Inspecting input files\n')
 
     if not filelist:
         if filetype not in ['fits', 'fit', 'fz']:
@@ -339,7 +335,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     used_file : str
             Path to newly created file containing all images which are usable for photometry
     """
-    sys.stdout.write("🌟 Identify comparison stars for photometry calculations\n")
+    logger.info("🌟 Identify comparison stars for photometry calculations\n")
 
     # LOOK FOR REJECTING NON-WCS IMAGES
     # If the WCS matching has failed, this function will remove the image from the list
@@ -359,7 +355,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         photFile = photFileHolder[counter]
 
         # Sort through and find the largest file and use that as the reference file
-        if photFile.size > fileSizer:            
+        if photFile.size > fileSizer:
             referenceFrame = photFile
             fileSizer = photFile.size
             fileRaDec = photCoords[counter]
@@ -835,7 +831,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         outputComps=column_stack((calibStands[:,0],calibStands[:,1]))
 
         logger.info('Removed ' + str(len(calibStandsReject)) + ' Candidate Comparison Stars for being too bright or too dim or the wrong colour')
-        
+
     savetxt(screened_file, outputComps, delimiter=",", fmt='%0.8f')
     used_file = paths['parent'] / "results/usedImages.txt"
     with open(used_file, "w") as f:

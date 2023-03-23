@@ -12,9 +12,7 @@ import platform
 import matplotlib.pyplot as plt
 import click
 
-import logging
-
-logger = logging.getLogger('astrosource')
+from loguru import logger
 
 def detrend_data(paths, filterCode, detrendfraction=0.1):
     polyFitRequest=1 # Currently only works with one or two coefficients
@@ -43,7 +41,7 @@ def detrend_data(paths, filterCode, detrendfraction=0.1):
             calibDiff=-((photFile[:,1]-calibFile[:,1])[0])
         #logger.debug(photFile[:,1])
         #logger.debug(photFile[:,0])
-        
+
         #print (calibFile)
         #logger.debug(file)
         #logger.debug(photFile[:,1])
@@ -55,7 +53,7 @@ def detrend_data(paths, filterCode, detrendfraction=0.1):
         photFile[:,0]=photFile[:,0]-baseSubDate
 
 
-        
+
 
         #leftMost = click.prompt("Enter left side most valid date:")
         #leftFlat = click.prompt("Enter left side end of flat region:")
@@ -63,11 +61,11 @@ def detrend_data(paths, filterCode, detrendfraction=0.1):
         #rightFlat = click.prompt("Enter right side start of flat region:")
         #rightMost = click.prompt("Enter right side most valid date:")
 
-        
+
         detrendPercent=0.1
         leftMost=min(photFile[:,0])
         leftFlat=min(photFile[:,0])+ (detrendPercent * max(photFile[:,0])-min(photFile[:,0]))
-        
+
         rightFlat=max(photFile[:,0])- (detrendPercent * max(photFile[:,0])-min(photFile[:,0]))
         rightMost=max(photFile[:,0])
 
