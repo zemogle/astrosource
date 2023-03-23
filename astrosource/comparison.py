@@ -455,7 +455,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
                     vS=0
 
                 v.VIZIER_SERVER=vServers[vS]
-                variableResult=v.query_region(avgCoord, str(1.5*radius)+' deg', catalog='VSX')['B/vsx/vsx']
+                variableResult=v.query_region(avgCoord, radius=1.5*radius*degree, catalog='VSX')['B/vsx/vsx']
                 connected=True
                 tableFound=True
                 cycler=cycler+1
