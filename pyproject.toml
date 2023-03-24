@@ -40,3 +40,6 @@ dev = ["pytest"]
 
 [project.scripts]
 astrosource = "astrosource.main:main"
+
+[tool.setuptools]
+packages = ["astrosource"]
