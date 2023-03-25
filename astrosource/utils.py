@@ -1,6 +1,7 @@
 from os import getcwd, makedirs, remove
 import shutil
 import logging
+import time
 
 from numpy import asarray, genfromtxt, load, isnan, delete
 from astropy.coordinates import SkyCoord
@@ -18,8 +19,10 @@ def setup_logger(name, verbose=False):
 
     logger = logging.getLogger(name)
     # logger.handlers = []
-    if verbose:
+    if verbose == "DEBUG":
         LOG_LEVEL = logging.DEBUG
+    elif verbose == "INFO":
+        LOG_LEVEL = logging.INFO
     else:
         LOG_LEVEL = logging.CRITICAL
     logger.setLevel(LOG_LEVEL)
@@ -78,7 +81,8 @@ def folder_setup(parentPath=None):
         'outputPath' : parentPath / "outputplots",
         'outcatPath' : parentPath / "outputcats",
         'checkPath'  : parentPath / "checkplots",
-        'periods'    : parentPath / "periods"
+        'periods'    : parentPath / "periods",
+        'results'    : parentPath / "results"
     }
     for k, path in paths.items():
         if not path.exists():
@@ -86,33 +90,22 @@ def folder_setup(parentPath=None):
 
     return paths
 
-def photometry_files_to_array(parentPath):
-    # Load in list of used files
-    fileList=[]
-    with open(parentPath / "usedImages.txt", "r") as f:
-      for line in f:
-        fileList.append(line.strip())
-
-    # LOAD Phot FILES INTO LIST
-    photFileArray=[]
-    for file in fileList:
-        loadPhot=load(parentPath / file)
-        if loadPhot.shape[1] > 6:
-            loadPhot=delete(loadPhot,6,1)
-            # loadPhot=delete(loadPhot,6,1)
-        photFileArray.append(loadPhot)
-
-    return photFileArray, fileList
-
 def get_targets(targetfile):
     targets = genfromtxt(targetfile, dtype=float, delimiter=',')
     # Remove any nan rows from targets
     targetRejecter=[]
+
     if not (targets.shape[0] == 4 and targets.size == 4):
         for z in range(targets.shape[0]):
           if isnan(targets[z][0]):
             targetRejecter.append(z)
+            print('FOUND A NAN ENTRY IN YOUR CSV AT LINE: ' + str(z+1))
+            print ('Please check this. This can sometimes happen')
+            print ('when using Excel or sophisticated software')
+            print ('It is best to construct the csv using a simple text editor')
+            time.sleep(5)
         targets=delete(targets, targetRejecter, axis=0)
+
     return targets
 
 def convert_coords(ra, dec):

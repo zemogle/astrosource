@@ -16,7 +16,7 @@ import logging
 
 logger = logging.getLogger('astrosource')
 
-def detrend_data(paths, filterCode):
+def detrend_data(paths, filterCode, detrendfraction=0.1):
     polyFitRequest=1 # Currently only works with one or two coefficients
 
 
@@ -25,44 +25,65 @@ def detrend_data(paths, filterCode):
     for line in (paths['parent'] / "usedImages.txt").read_text():
         fileList.append(line.strip())
 
+    #print (paths['outcatPath'])
+
     fileList = paths['outcatPath'].glob('*diffExcel*csv')
     r=0
     #logger.debug(fileList)
     for file in fileList:
-        photFile = load(paths['parent'] / file)
+        #photFile = load(paths['parent'] / file)
+        #print (file)
+        photFile = genfromtxt(file, dtype=float, delimiter=',')
+        #print (photFile)
         exists=os.path.isfile(str(file).replace('diff','calib'))
         if exists:
             calibFile = genfromtxt(str(file).replace('diff','calib'), dtype=float, delimiter=',')
-            logger.debug("Calibration difference")
-            logger.debug(-(photFile[:,1]-calibFile[:,1])[0])
+            #logger.debug("Calibration difference")
+            #logger.debug(-(photFile[:,1]-calibFile[:,1])[0])
             calibDiff=-((photFile[:,1]-calibFile[:,1])[0])
         #logger.debug(photFile[:,1])
         #logger.debug(photFile[:,0])
-        logger.debug(file)
-        logger.debug(photFile[:,1])
+        
+        #print (calibFile)
+        #logger.debug(file)
+        #logger.debug(photFile[:,1])
 
         baseSubDate=min(photFile[:,0])
-        logger.debug(baseSubDate)
-        logger.debug(math.floor(baseSubDate))
+        #logger.debug(baseSubDate)
+        #logger.debug(math.floor(baseSubDate))
 
         photFile[:,0]=photFile[:,0]-baseSubDate
 
 
-        leftMost = click.prompt("Enter left side most valid date:")
-        leftFlat = click.prompt("Enter left side end of flat region:")
+        
 
-        rightFlat = click.prompt("Enter right side start of flat region:")
-        rightMost = click.prompt("Enter right side most valid date:")
+        #leftMost = click.prompt("Enter left side most valid date:")
+        #leftFlat = click.prompt("Enter left side end of flat region:")
+
+        #rightFlat = click.prompt("Enter right side start of flat region:")
+        #rightMost = click.prompt("Enter right side most valid date:")
+
+        
+        detrendPercent=0.1
+        leftMost=min(photFile[:,0])
+        leftFlat=min(photFile[:,0])+ (detrendPercent * max(photFile[:,0])-min(photFile[:,0]))
+        
+        rightFlat=max(photFile[:,0])- (detrendPercent * max(photFile[:,0])-min(photFile[:,0]))
+        rightMost=max(photFile[:,0])
 
 
+        #print (leftMost)
+        #print (leftFlat)
+        #print (rightFlat)
+        #print (rightMost)
 
         # Clip off edges
         clipReject=[]
         for i in range(photFile.shape[0]):
             if photFile[i,0] < float(leftMost) or photFile[i,0] > float(rightMost):
                 clipReject.append(i)
-                logger.debug(photFile[i,1])
-                logger.debug("REJECT")
+                #logger.debug(photFile[i,1])
+                #logger.debug("REJECT")
         logger.debug(photFile.shape[0])
         photFile=delete(photFile, clipReject, axis=0)
         logger.debug(photFile.shape[0])
@@ -72,12 +93,10 @@ def detrend_data(paths, filterCode):
         transitReject=[]
         flatFile=asarray(photFile)
         for i in range(flatFile.shape[0]):
-            if (flatFile[i,0] > float(leftMost) and flatFile[i,0] < float(leftFlat)) or (flatFile[i,0] > float(rightFlat) and flatFile[i,0] < float(rightMost)):
-                logger.debug("Keep")
-            else:
+            if not (flatFile[i,0] > float(leftMost) and flatFile[i,0] < float(leftFlat)) or (flatFile[i,0] > float(rightFlat) and flatFile[i,0] < float(rightMost)):
                 transitReject.append(i)
-                logger.debug(flatFile[i,0])
-                logger.debug("REJECT")
+                #logger.debug(flatFile[i,0])
+                #logger.debug("REJECT")
         logger.debug(flatFile.shape[0])
         flatFile=delete(flatFile, transitReject, axis=0)
         logger.debug(flatFile.shape[0])

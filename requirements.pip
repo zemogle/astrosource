@@ -1,9 +1,0 @@
-astropy
-click
-matplotlib
-numpy
-pytest
-astroquery
-scipy
-colorlog
-barycorrpy

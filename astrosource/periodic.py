@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 
 import logging
 
-from astrosource.utils import photometry_files_to_array, AstrosourceException
+#from astrosource.utils import photometry_files_to_array, AstrosourceException
+from astrosource.utils import AstrosourceException
 from astropy.timeseries import LombScargle
 
 logger = logging.getLogger('astrosource')
@@ -612,7 +613,7 @@ def aov_periodfind(times,
                    sigclip=10.0,
                    nworkers=None,
                    verbose=True,
-                   periodPath=None, variableName="NoName"):
+                   periodPath=None, variableName="NoName", periodsteps=10000):
     '''This runs a parallelized Analysis-of-Variance (AoV) period search.
 
     NOTE: `normalize = True` here as recommended by Schwarzenberg-Czerny 1996,
@@ -737,15 +738,18 @@ def aov_periodfind(times,
             # default end period is length of time series
             startf = 1.0/(stimes.max() - stimes.min())
 
-        # if we're not using autofreq, then use the provided frequencies
-        if not autofreq:
-            frequencies = nparange(startf, endf, stepsize)
+        # # if we're not using autofreq, then use the provided frequencies
+        # if not autofreq:
+        #     frequencies = nparange(startf, endf, stepsize)
 
-        else:
-            # this gets an automatic grid of frequencies to use
-            frequencies = get_frequency_grid(stimes,
-                                             minfreq=startf,
-                                             maxfreq=endf)
+        # else:
+        #     # this gets an automatic grid of frequencies to use
+        #     frequencies = get_frequency_grid(stimes,
+        #                                      minfreq=startf,
+        #                                      maxfreq=endf)
+
+        stepsize = (endf-startf)/periodsteps
+        frequencies = nparange(startf, endf, stepsize)
 
         # renormalize the working mags to zero and scale them so that the
         # variance = 1 for use with our LSP functions
@@ -769,8 +773,12 @@ def aov_periodfind(times,
         #plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
         plt.xlabel(r"Trial Period")
         plt.ylabel(r"Likelihood of Period")
-        plt.savefig(periodPath / f"{variableName}_ANOVALikelihoodPlot.png")
+        plt.savefig(periodPath / f"{variableName}_ANOVAThetaLikelihoodPlot.png")
         plt.clf()
+
+        # Output likelihood csv
+        tempfile=str(f"{variableName}_ANOVATheta_Likelihood.csv")
+        savetxt(periodPath / tempfile, np.column_stack(periods, lsp), delimiter=",", fmt='%0.8f')
 
         # find the nbestpeaks for the periodogram: 1. sort the lsp array by
         # highest value first 2. go down the values until we find five
@@ -844,7 +852,27 @@ def aov_periodfind(times,
                 peakcount = peakcount + 1
 
             prevperiod = period
-
+        
+        plt.plot((times/finperiods[bestperiodind])%1, mags, 'bo', linestyle='None')
+        plt.plot(((times/finperiods[bestperiodind])%1)+1, mags, 'ro', linestyle='None')
+        plt.subplots_adjust(left=0.07, right=0.98, top=0.94, bottom=0.10, wspace=0.3, hspace=0.4)
+        fig = plt.gcf()
+        fig.set_size_inches(15,5)
+        plt.gca().invert_yaxis()
+        plt.title("Period: " + str(finperiods[bestperiodind]))
+        plt.xlim(-0.01,2.01)
+        #plt.gca().invert_yaxis()
+        #plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
+        plt.xlabel(r"Phase")
+        plt.ylabel(r"Magnitude")
+        plt.savefig(periodPath / f"{variableName}_ANOVAThetaLightcurve.png")
+        plt.clf()
+        
+        # Output lightcurve csv
+        tempfile=str(f"{variableName}_ANOVATheta_Lightcurve.csv")
+        savetxt(periodPath / tempfile, np.column_stack(((times/finperiods[bestperiodind])%1, times, mags)), delimiter=",", fmt='%0.8f')
+ 
+        
         return {'bestperiod':finperiods[bestperiodind],
                 'bestlspval':finlsp[bestperiodind],
                 'nbestpeaks':nbestpeaks,
@@ -1103,7 +1131,7 @@ def aovhm_periodfind(times,
                      sigclip=10.0,
                      nworkers=None,
                      verbose=True,
-                     periodPath=None, variableName="NoName"):
+                     periodPath=None, variableName="NoName", periodsteps=10000):
     '''This runs a parallelized harmonic Analysis-of-Variance (AoV) period
     search.
 
@@ -1225,15 +1253,21 @@ def aovhm_periodfind(times,
             # default end period is length of time series
             startf = 1.0/(stimes.max() - stimes.min())
 
-        # if we're not using autofreq, then use the provided frequencies
-        if not autofreq:
-            frequencies = nparange(startf, endf, stepsize)
 
-        else:
-            # this gets an automatic grid of frequencies to use
-            frequencies = get_frequency_grid(stimes,
-                                             minfreq=startf,
-                                             maxfreq=endf)
+    
+
+        # # if we're not using autofreq, then use the provided frequencies
+        # if not autofreq:
+        #     frequencies = nparange(startf, endf, stepsize)
+
+        # else:
+        #     # this gets an automatic grid of frequencies to use
+        #     frequencies = get_frequency_grid(stimes,
+        #                                      minfreq=startf,
+        #                                      maxfreq=endf)
+
+        stepsize = (endf-startf)/periodsteps
+        frequencies = nparange(startf, endf, stepsize)
 
         # map to parallel workers
         if (not nworkers) or (nworkers > NCPUS):
@@ -1269,6 +1303,10 @@ def aovhm_periodfind(times,
         plt.ylabel(r"Likelihood of Period")
         plt.savefig(periodPath / f"{variableName}_ANOVAharmonic_LikelihoodPlot.png")
         plt.clf()
+        
+        # Output likelihood csv
+        tempfile=str(f"{variableName}_ANOVAharmonic_Likelihood.csv")
+        savetxt(periodPath / tempfile, np.column_stack((periods, lsp)), delimiter=",", fmt='%0.8f')
 
 
         # find the nbestpeaks for the periodogram: 1. sort the lsp array by
@@ -1342,6 +1380,25 @@ def aovhm_periodfind(times,
                 peakcount = peakcount + 1
 
             prevperiod = period
+        
+        plt.plot((times/finperiods[bestperiodind])%1, mags, 'bo', linestyle='None')
+        plt.plot(((times/finperiods[bestperiodind])%1)+1, mags, 'ro', linestyle='None')
+        plt.subplots_adjust(left=0.07, right=0.98, top=0.94, bottom=0.10, wspace=0.3, hspace=0.4)
+        fig = plt.gcf()
+        fig.set_size_inches(15,5)
+        plt.gca().invert_yaxis()
+        plt.title("Period: " + str(finperiods[bestperiodind]))
+        plt.xlim(-0.01,2.01)
+        #plt.gca().invert_yaxis()
+        #plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
+        plt.xlabel(r"Phase")
+        plt.ylabel(r"Magnitude")
+        plt.savefig(periodPath / f"{variableName}_ANOVAHarmonicLightcurve.png")
+        plt.clf()
+        
+        # Output lightcurve csv
+        tempfile=str(f"{variableName}_ANOVAHarmonic_Lightcurve.csv")
+        savetxt(periodPath / tempfile, np.column_stack(((times/finperiods[bestperiodind])%1, times, mags)), delimiter=",", fmt='%0.8f')
 
         return {'bestperiod':finperiods[bestperiodind],
                 'bestlspval':finlsp[bestperiodind],
@@ -1586,13 +1643,28 @@ def phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, nu
 #########################################
 
 def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nterms=1, multisearch=False, samples=5,
-                         disablelightcurve=False, periodPath=False, variableName="NoName"):
+                         disablelightcurve=False, periodPath=False, variableName="NoName", periodsteps=10000):
     #print(
     #    'using ' + str(samples) + ' samples per peak, start P = ' + str(periodlower) + ', end P = ' + str(periodupper))
     # Calculate the Lomb-Scargle periodogram values
-    ls = LombScargle(t, m, d, nterms=nterms)
-    freq, power = ls.autopower(samples_per_peak=samples, minimum_frequency=1 / periodupper,
-                               maximum_frequency=1 / periodlower)
+        
+    ls = LombScargle(t, m, d, nterms=nterms, fit_mean=True)
+
+    # create equally spaced test in time space, then swap to unequal spaces in frequency    
+    freq = np.linspace( periodlower, periodupper, periodsteps)  
+    freq = 1/freq
+
+    
+    try:
+        
+        #freq, power = ls.autopower(samples_per_peak=samples, minimum_frequency=1 / periodupper,
+        #                           maximum_frequency=1 / periodlower)
+        power = ls.power(freq)
+    except:
+        print ("Lomb Scargle failed.") # Need to hunt down a very rare but existant memory problem
+        return (0)
+
+    
 
     # Create the likelihood plot
     fig2, ax2 = plt.subplots(figsize=(8, 6))
@@ -1606,6 +1678,12 @@ def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nter
 
     # Find peak of the likelihood plot (most likely frequency)
     best_freq = freq[np.argmax(power)]
+
+    # Output likelihood csv
+    tempfile=str(f"{variableName}_LombScargle_N" + str(nterms) + "_Likelihood.csv")
+    savetxt(periodPath / tempfile, np.column_stack((1 / freq, power)), delimiter=",", fmt='%0.8f')
+    
+    
 
     if not disablelightcurve:
         # Create phased lightcurve for fourier fit
@@ -1623,8 +1701,12 @@ def LombScargleMultiterm(infile, t, m, d, periodlower=0.2, periodupper=2.5, nter
         ax.invert_yaxis()
         tempfile=str(f"{variableName}_LombScargle_N" + str(nterms) + "_Lightcurve.png")
         plt.savefig(periodPath / tempfile)
+        
+        # Output lightcurve csv
+        tempfile=str(f"{variableName}_LombScargle_N" + str(nterms) + "_Lightcurve.csv")
+        savetxt(periodPath / tempfile, np.column_stack(((t * best_freq) % 1, t, m)), delimiter=",", fmt='%0.8f')
 
-    best_period = 1 / best_freq
+    best_period = 1 / best_freq    
 
     plt.close('all')
     return (best_period)
@@ -1638,10 +1720,10 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
     if minperiod==-99.9:
             minperiod=0.05
 
-    if maxperiod==-99.9:
+    if maxperiod==-99.9 or maxperiod==None:
         # Load in list of used files
         fileList = []
-        with open(paths['parent'] / "usedImages.txt", "r") as f:
+        with open(paths['parent'] / "results/usedImages.txt", "r") as f:
             for line in f:
                 fileList.append(line.strip())
 
@@ -1659,6 +1741,9 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         if periodsteps > 1000000:
             periodsteps = 1000000
 
+    if maxperiod < minperiod:
+        maxperiod = minperiod + 0.01
+
     logger.info("Minimum Period Tested  : " +str(minperiod))
     logger.info("Maximum Period Tested  : " +str(maxperiod))
     logger.info("Number of Period Trials: " +str(periodsteps))
@@ -1673,8 +1758,8 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
     logger.debug("Filter Set: " + filterCode)
 
     fileList = paths['outcatPath'].glob('*_diffExcel.csv')
-    with open(paths['parent'] / "periodEstimates.txt", "w") as f:
-        f.write("Period Estimates \n\n")
+    with open(paths['parent'] / "results/periodEstimates.txt", "w") as f:
+        f.write("results/Period Estimates \n\n")
 
     # Load in the files
     for file in fileList:
@@ -1688,20 +1773,26 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         if calibFile.exists():
             calibData=genfromtxt(calibFile, dtype=float, delimiter=',')
 
-        pdm=phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, numBins, periodPath, variableName)
+            #print (calibData.size)
+        if calibFile.exists():
+            if (calibData.size > 3):
+                pdm=phase_dispersion_minimization(calibData, periodsteps, minperiod, maxperiod, numBins, periodPath, variableName)
+            else:
+                logger.info("Calibration File not large enough to run period methods on Calibrated data, running on differential data")
+                pdm=phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, numBins, periodPath, variableName)
+        else:
+            pdm=phase_dispersion_minimization(varData, periodsteps, minperiod, maxperiod, numBins, periodPath, variableName)
 
         plt.figure(figsize=(15, 5))
 
         logger.debug("Distance Method Estimate (days): " + str(pdm["distance_minperiod"]))
         logger.debug("Distance method error: " + str(pdm["distance_error"]))
-
-        phaseTest=(varData[:,0] / (pdm["distance_minperiod"])) % 1
-        with open(paths['parent'] / "periodEstimates.txt", "a+") as f:
+        
+        with open(paths['parent'] / "results/periodEstimates.txt", "a+") as f:
             f.write("Variable : "+str(variableName) +"\n")
             f.write("Distance Method Estimate (days): " + str(pdm["distance_minperiod"])+"\n")
             f.write("Distance method error: " + str(pdm["distance_error"])+"\n")
-
-
+        
         plt.plot(pdm["periodguess_array"], pdm["distance_results"])
         plt.gca().invert_yaxis()
         plt.title("Range {0} d  Steps: {1}".format(trialRange, periodsteps))
@@ -1709,57 +1800,63 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
         plt.ylabel(r"Likelihood of Period")
         plt.savefig(periodPath / f"{variableName}_StringLikelihoodPlot.png")
         plt.clf()
-
-        plt.plot(phaseTest, varData[:,1], 'bo', linestyle='None')
-        plt.plot(phaseTest+1, varData[:,1], 'ro', linestyle='None')
-        plt.errorbar(phaseTest, varData[:,1], yerr=varData[:,2], linestyle='None')
-        plt.errorbar(phaseTest+1, varData[:,1], yerr=varData[:,2], linestyle='None')
-        plt.gca().invert_yaxis()
-        plt.title("Period: {0} d  Steps: {1}".format(pdm["distance_minperiod"], periodsteps))
-        plt.xlabel(r"Phase ($\phi$)")
-        plt.ylabel(f"Differential {filterCode} Magnitude")
-        plt.savefig(periodPath / f"{variableName}_StringTestPeriodPlot.png")
-        plt.clf()
-
-        if calibFile.exists():
-            phaseTestCalib=(calibData[:,0] / (pdm["distance_minperiod"])) % 1
-            plt.plot(phaseTestCalib, calibData[:,1], 'bo', linestyle='None')
-            plt.plot(phaseTestCalib+1, calibData[:,1], 'ro', linestyle='None')
-            plt.errorbar(phaseTestCalib, calibData[:,1], yerr=varData[:,2], linestyle='None')
-            plt.errorbar(phaseTestCalib+1, calibData[:,1], yerr=varData[:,2], linestyle='None')
+        
+        if (varData.size > 3):
+            phaseTest=(varData[:,0] / (pdm["distance_minperiod"])) % 1        
+    
+            plt.plot(phaseTest, varData[:,1], 'bo', linestyle='None')
+            plt.plot(phaseTest+1, varData[:,1], 'ro', linestyle='None')
+            plt.errorbar(phaseTest, varData[:,1], yerr=varData[:,2], linestyle='None')
+            plt.errorbar(phaseTest+1, varData[:,1], yerr=varData[:,2], linestyle='None')
             plt.gca().invert_yaxis()
             plt.title("Period: {0} d  Steps: {1}".format(pdm["distance_minperiod"], periodsteps))
             plt.xlabel(r"Phase ($\phi$)")
-            plt.ylabel(f"Calibrated {filterCode} Magnitude")
-            plt.savefig(periodPath / f"{variableName}_StringTestPeriodPlot_Calibrated.png")
+            plt.ylabel(f"Differential {filterCode} Magnitude")
+            plt.savefig(periodPath / f"{variableName}_StringTestPeriodPlot.png")
             plt.clf()
 
+        if calibFile.exists():
+            if (calibData.size > 3):
+                phaseTestCalib=(calibData[:,0] / (pdm["distance_minperiod"])) % 1
+                plt.plot(phaseTestCalib, calibData[:,1], 'bo', linestyle='None')
+                plt.plot(phaseTestCalib+1, calibData[:,1], 'ro', linestyle='None')
+                plt.errorbar(phaseTestCalib, calibData[:,1], yerr=calibData[:,2], linestyle='None')
+                plt.errorbar(phaseTestCalib+1, calibData[:,1], yerr=calibData[:,2], linestyle='None')
+                plt.gca().invert_yaxis()
+                plt.title("Period: {0} d  Steps: {1}".format(pdm["distance_minperiod"], periodsteps))
+                plt.xlabel(r"Phase ($\phi$)")
+                plt.ylabel(f"Calibrated {filterCode} Magnitude")
+                plt.savefig(periodPath / f"{variableName}_StringTestPeriodPlot_Calibrated.png")
+                plt.clf()
+    
+                tempPeriodCatOut=[]
+                for g in range(len(calibData[:,0])):
+                    tempPeriodCatOut.append([(calibData[g,0]/(pdm["distance_minperiod"]) % 1), calibData[g,1], calibData[g,2]])
+                tempPeriodCatOut=asarray(tempPeriodCatOut)
+                savetxt(periodPath / f"{variableName}_String_PhasedCalibMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+
+        if (varData.size > 3):
+
             tempPeriodCatOut=[]
-            for g in range(len(calibData[:,0])):
-                tempPeriodCatOut.append([(calibData[g,0]/(pdm["distance_minperiod"]) % 1), calibData[g,1], calibData[g,2]])
+            for g in range(len(phaseTest)):
+                tempPeriodCatOut.append([phaseTest[g],varData[g,1]])
             tempPeriodCatOut=asarray(tempPeriodCatOut)
-            savetxt(periodPath / f"{variableName}_String_PhasedCalibMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+            savetxt(periodPath / f"{variableName}_StringTrial.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+    
+            tempPeriodCatOut=[]
+            for g in range(len(varData[:,0])):
+                tempPeriodCatOut.append([(varData[g,0]/(pdm["distance_minperiod"]) % 1), varData[g,1], varData[g,2]])
+            tempPeriodCatOut=asarray(tempPeriodCatOut)
+            savetxt(periodPath / f"{variableName}_String_PhasedDiffMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
-        tempPeriodCatOut=[]
-        for g in range(len(phaseTest)):
-            tempPeriodCatOut.append([phaseTest[g],varData[g,1]])
-        tempPeriodCatOut=asarray(tempPeriodCatOut)
-        savetxt(periodPath / f"{variableName}_StringTrial.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
-
-        tempPeriodCatOut=[]
-        for g in range(len(varData[:,0])):
-            tempPeriodCatOut.append([(varData[g,0]/(pdm["distance_minperiod"]) % 1), varData[g,1], varData[g,2]])
-        tempPeriodCatOut=asarray(tempPeriodCatOut)
-        savetxt(periodPath / f"{variableName}_String_PhasedDiffMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
-
-        if np.isnan(pdm["stdev_results"][0]) or pdm["stdev_results"][0] == 0.0:
+        if np.isnan(pdm["stdev_results"][0]) or pdm["stdev_results"][0] == 0.0 or (varData.size < 4):
             logger.info("No PDM results due to lack of datapoint coverage")
         else:
             logger.debug("PDM Method Estimate (days): "+ str(pdm["stdev_minperiod"]))
             phaseTest=(varData[:,0] / (pdm["stdev_minperiod"])) % 1
             logger.debug("PDM method error: " + str(pdm["stdev_error"]))
 
-            with open(paths['parent'] / "periodEstimates.txt", "a+") as f:
+            with open(paths['parent'] / "results/periodEstimates.txt", "a+") as f:
                 f.write("PDM Method Estimate (days): "+ str(pdm["stdev_minperiod"])+"\n")
                 f.write("PDM method error: " + str(pdm["stdev_error"])+"\n\n")
 
@@ -1773,48 +1870,51 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
 
         plt.clf()
 
-
-        plt.plot(phaseTest, varData[:,1], 'bo', linestyle='None')
-        plt.plot(phaseTest+1, varData[:,1], 'ro', linestyle='None')
-        plt.errorbar(phaseTest, varData[:,1], yerr=varData[:,2], linestyle='None')
-        plt.errorbar(phaseTest+1, varData[:,1], yerr=varData[:,2], linestyle='None')
-        plt.gca().invert_yaxis()
-        plt.title("Period: {0} d  Steps: {1}".format(pdm["stdev_minperiod"], periodsteps))
-        plt.xlabel(r"Phase ($\phi$)")
-        plt.ylabel(r"Differential " + str(filterCode) + " Magnitude")
-        plt.savefig(periodPath / f"{variableName}_PDMTestPeriodPlot.png")
-        plt.clf()
-
-        if calibFile.exists():
-            phaseTestCalib=(calibData[:,0] / (pdm["stdev_minperiod"])) % 1
-            plt.plot(phaseTestCalib, calibData[:,1], 'bo', linestyle='None')
-            plt.plot(phaseTestCalib+1, calibData[:,1], 'ro', linestyle='None')
-            plt.errorbar(phaseTestCalib, calibData[:,1], yerr=varData[:,2], linestyle='None')
-            plt.errorbar(phaseTestCalib+1, calibData[:,1], yerr=varData[:,2], linestyle='None')
+        if (varData.size > 3):
+            plt.plot(phaseTest, varData[:,1], 'bo', linestyle='None')
+            plt.plot(phaseTest+1, varData[:,1], 'ro', linestyle='None')
+            plt.errorbar(phaseTest, varData[:,1], yerr=varData[:,2], linestyle='None')
+            plt.errorbar(phaseTest+1, varData[:,1], yerr=varData[:,2], linestyle='None')
             plt.gca().invert_yaxis()
             plt.title("Period: {0} d  Steps: {1}".format(pdm["stdev_minperiod"], periodsteps))
             plt.xlabel(r"Phase ($\phi$)")
-            plt.ylabel(r"Calibrated " + str(filterCode) + " Magnitude")
-            plt.savefig(periodPath / f"{variableName}_PDMTestPeriodPlot_Calibrated.png")
+            plt.ylabel(r"Differential " + str(filterCode) + " Magnitude")
+            plt.savefig(periodPath / f"{variableName}_PDMTestPeriodPlot.png")
             plt.clf()
 
+        if calibFile.exists():
+            if (calibData.size > 3):
+                phaseTestCalib=(calibData[:,0] / (pdm["stdev_minperiod"])) % 1
+                plt.plot(phaseTestCalib, calibData[:,1], 'bo', linestyle='None')
+                plt.plot(phaseTestCalib+1, calibData[:,1], 'ro', linestyle='None')
+                plt.errorbar(phaseTestCalib, calibData[:,1], yerr=calibData[:,2], linestyle='None')
+                plt.errorbar(phaseTestCalib+1, calibData[:,1], yerr=calibData[:,2], linestyle='None')
+                plt.gca().invert_yaxis()
+                plt.title("Period: {0} d  Steps: {1}".format(pdm["stdev_minperiod"], periodsteps))
+                plt.xlabel(r"Phase ($\phi$)")
+                plt.ylabel(r"Calibrated " + str(filterCode) + " Magnitude")
+                plt.savefig(periodPath / f"{variableName}_PDMTestPeriodPlot_Calibrated.png")
+                plt.clf()
+    
+                tempPeriodCatOut=[]
+                for g in range(len(calibData[:,0])):
+                    tempPeriodCatOut.append([(calibData[g,0]/(pdm["stdev_minperiod"])) % 1, calibData[g,1], calibData[g,2]])
+                tempPeriodCatOut=asarray(tempPeriodCatOut)
+                savetxt(periodPath / f"{variableName}_PDM_PhasedCalibMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+
+        if (varData.size > 3):
+
             tempPeriodCatOut=[]
-            for g in range(len(calibData[:,0])):
-                tempPeriodCatOut.append([(calibData[g,0]/(pdm["stdev_minperiod"])) % 1, calibData[g,1], calibData[g,2]])
+            for g in range(len(phaseTest)):
+                tempPeriodCatOut.append([phaseTest[g],varData[g,1]])
             tempPeriodCatOut=asarray(tempPeriodCatOut)
-            savetxt(periodPath / f"{variableName}_PDM_PhasedCalibMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
-
-        tempPeriodCatOut=[]
-        for g in range(len(phaseTest)):
-            tempPeriodCatOut.append([phaseTest[g],varData[g,1]])
-        tempPeriodCatOut=asarray(tempPeriodCatOut)
-        savetxt(periodPath / f"{variableName}_PDMTrial.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
-
-        tempPeriodCatOut=[]
-        for g in range(len(varData[:,0])):
-            tempPeriodCatOut.append([(varData[g,0]/(pdm["stdev_minperiod"])) % 1, varData[g,1], varData[g,2]])
-        tempPeriodCatOut=asarray(tempPeriodCatOut)
-        savetxt(periodPath / f"{variableName}_PDM_PhaseddiffMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+            savetxt(periodPath / f"{variableName}_PDMTrial.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
+    
+            tempPeriodCatOut=[]
+            for g in range(len(varData[:,0])):
+                tempPeriodCatOut.append([(varData[g,0]/(pdm["stdev_minperiod"])) % 1, varData[g,1], varData[g,2]])
+            tempPeriodCatOut=asarray(tempPeriodCatOut)
+            savetxt(periodPath / f"{variableName}_PDM_PhaseddiffMags.csv", tempPeriodCatOut, delimiter=",", fmt='%0.8f')
 
         # Plot publication plots
 
@@ -1844,34 +1944,88 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
 
 
         # ANOVA
+        
         if calibFile.exists():
-            if len(calibData[:,0]) < 75:
-                binsize=0.1
-            else:
-                binsize=0.05
-
-            minperbin=int((len(calibData[:,0])/10))
+            if (calibData.size > 3):
+                if len(calibData[:,0]) < 75:
+                    binsize=0.1
+                else:
+                    binsize=0.05
+                minperbin=int((len(calibData[:,0])/10))
+            elif (varData.size > 3):
+                if len(varData[:,0]) < 75:
+                    binsize=0.1
+                else:
+                    binsize=0.05
+                minperbin=int((len(varData[:,0])/10))
+                
+        else:
+            if (varData.size > 3):
+                if len(varData[:,0]) < 75:
+                    binsize=0.1
+                else:
+                    binsize=0.05
+                minperbin=int((len(varData[:,0])/10))
+        
+        if 'minperbin' in locals():
             if minperbin > 10:
                 minperbin=10
-
-            aovoutput=aov_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath, variableName=variableName)
-
-            logger.debug("Theta Anova Method Estimate (days): " + str(aovoutput["bestperiod"]))
-
-            aovhmoutput=aovhm_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName)
-
-            logger.debug("Harmonic Anova Method Estimate (days): " + str(aovhmoutput["bestperiod"]))
-
-
-            # LOMB SCARGLE
-            for nts in range(6):
-
-                lscargoutput = LombScargleMultiterm('periodifile', (calibData[:, 0]), (calibData[:, 1]), (calibData[:, 2]),
-                                                    nterms=nts+1,
-                                                    periodlower=minperiod, periodupper=maxperiod, samples=20,
-                                                    disablelightcurve=False, periodPath=periodPath, variableName=variableName)
-
-                logger.debug('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput))
+        else:
+            minperbin = 3
+            
+        
+        # Theta Anova Method off for the moment until I put in a command-line option
+        
+        # if calibFile.exists():
+        #     if (calibData.size > 3):
+        #         aovoutput=aov_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
+        # else:
+        #     if (varData.size > 3):
+        #         aovoutput=aov_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, phasebinsize=binsize, mindetperbin=minperbin, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
 
 
-    return pdm["distance_minperiod"]
+        # logger.debug("Theta Anova Method Estimate (days): " + str(aovoutput["bestperiod"]))
+        #with open(paths['parent'] / "periodEstimates.txt", "a+") as f:            
+        #    f.write("Theta Anova Method Estimate (days): " + str(aovoutput["bestperiod"])+"\n")
+        
+        if calibFile.exists():
+            if (calibData.size > 3):
+                aovhmoutput=aovhm_periodfind((calibData[:,0]),(calibData[:,1]),(calibData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
+            elif (varData.size > 3):                
+                aovhmoutput=aovhm_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
+                
+        else:
+            if (varData.size > 3):
+                aovhmoutput=aovhm_periodfind((varData[:,0]),(varData[:,1]),(varData[:,2]), sigclip=False, autofreq=False, startp=minperiod, endp=maxperiod, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
+            
+        logger.debug("Harmonic Anova Method Estimate (days): " + str(aovhmoutput["bestperiod"]))
+        with open(paths['parent'] / "results/periodEstimates.txt", "a+") as f:            
+            f.write("Harmonic Anova Method Estimate (days): " + str(aovhmoutput["bestperiod"])+"\n")
+
+        # LOMB SCARGLE
+        for nts in range(2):
+            if calibFile.exists():
+                if (calibData.size > 3):
+                    lscargoutput = LombScargleMultiterm('periodifile', (calibData[:, 0]), (calibData[:, 1]), (calibData[:, 2]),
+                                                        nterms=nts+1,
+                                                        periodlower=minperiod, periodupper=maxperiod, samples=20,
+                                                        disablelightcurve=False, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
+        
+                    logger.debug('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput))
+                    with open(paths['parent'] / "results/periodEstimates.txt", "a+") as f:            
+                        f.write('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput)+"\n")
+            else:
+                if (varData.size > 3):
+                    lscargoutput = LombScargleMultiterm('periodifile', (varData[:, 0]), (varData[:, 1]), (varData[:, 2]),
+                                                        nterms=nts+1,
+                                                        periodlower=minperiod, periodupper=maxperiod, samples=20,
+                                                        disablelightcurve=False, periodPath=periodPath, variableName=variableName, periodsteps=periodsteps)
+        
+                    logger.debug('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput))
+                    with open(paths['parent'] / "results/periodEstimates.txt", "a+") as f:            
+                        f.write('Lomb-Scargle N=' + str(nts+1) + ' Period Best Estimate: ' + str(lscargoutput)+"\n")
+
+    if 'pdm' in locals():
+        return pdm["distance_minperiod"]
+    else:
+        return 0.0
