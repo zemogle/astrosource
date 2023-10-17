@@ -43,3 +43,4 @@ Documentation
 
   basic_usage
   api_usage
+  cookbook

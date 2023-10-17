@@ -16,6 +16,9 @@ authors:
   - name: Saeed Salimpour
     orcid: 0000-0002-0387-3152
     affiliation: 3
+  - name: Joe Singleton
+    orcid: 0000-0002-3403-8328
+    affiliation: 5
   - name: Ridlo W. Wibowo
     affiliation: 4
 affiliations:
@@ -27,6 +30,8 @@ affiliations:
    index: 3
  - name: Institut Teknologi Bandung, Bandung, Indonesia
    index: 4
+ - name: School of Computer Science, Cardiff University, Cardiff, United Kingdom
+   index: 5
 date: 20 August 2020
 bibliography: paper.bib
 ---
@@ -99,8 +104,6 @@ code, but would likely be cumbersome to explain manually in any given observer g
 
 Some examples of the output of ``astrosource`` are:
 
-
-
 * An RRc type RR Lyrae star folded lightcurve in zs calibrated to PanSTARRS shown in \autoref{fig:rrc}
 
 * A Phase-Dispersion-Minimization (PDM) likelihood plot for a Cepheid variable with a 20 day period shown in \autoref{fig:pdm}
@@ -109,14 +112,17 @@ Some examples of the output of ``astrosource`` are:
 
 * A transit model fit using EXOTIC to data produced by ``astrosource`` as shown in \autoref{fig:exotic}.
 
-
-
+# Figures
 ![RRc-type RR Lyrae phased lightcurve in zs \label{fig:rrc}](Variable1_zs_PhasedLightcurve.png)
+
 ![A Phase-Dispersion-Minimization Likelihood plot for a 20 day period Cepheid Variable. \label{fig:pdm}](V2_PDMLikelihoodPlot.png)
+
 ![The standard deviation variability of each star in the dataset compared to the ensemble comparison star. \label{fig:starvar}](starVariability.png)
+
 ![An EXOTIC transit model fit to ``astrosource`` processed data. \label{fig:exotic}](EXOTICfit.png)
 
 
+# Summary
 ``astrosource`` is under continual development and is responsive to new situations where new glitches occur
 due to the differing nature of datasets and different nature of calibration. Astrosource has been used
 by over one hundred different non-expert users to great effect (e.g. [@jones2020new; @sarva2020exoplanet])

@@ -348,12 +348,10 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPat
             stdCompDiffMags=std(compDiffMags[:,z])
             medCompDiffMags=np.nanmedian(compDiffMags[:,z])
             medInstrMags=np.nanmedian(instrMags[:,z])
-
             if np.isnan(stdCompDiffMags) :
                 logger.error("Star Variability non rejected")
                 stdCompDiffMags=99
             stdCompStar.append(stdCompDiffMags)
-
             sortStars.append([compFile[z,0],compFile[z,1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
     return stdCompStar, sortStars
@@ -361,6 +359,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPat
 def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, removeTargets):
     max_sep=acceptDistance * arcsecond
     logger.info("Removing Target Stars from potential Comparisons")
+    tableFound=False
 
     if not (compFile.shape[0] == 2 and compFile.size ==2):
         fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
@@ -398,7 +397,6 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
         else:
             avgCoord=SkyCoord(ra=(average(compFile[:,0])*degree), dec=((average(compFile[:,1])*degree)))
 
-
     # Get search Radius
     radius= 0.5 * pow(  pow(max(compFile[:,0])-min(compFile[:,0]),2) + pow(max((compFile[:,1])-min(compFile[:,1]))*cos((min(compFile[:,1])+max(compFile[:,1]))/2),2) , 0.5)
     if radius > 120:
@@ -435,7 +433,6 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
             tableFound=True
 
     except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError) :
-
         connected=False
         logger.info("Connection failed, waiting and trying again")
         cycler=0
@@ -614,6 +611,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         logger.info("Looks like your catalogue has too many sources next to nearby sources. ABORTING.")
 
     # Remove any star that has invalid values for mag or magerror
+
     if len(resp) != 0:
         catReject=[]
 
@@ -770,7 +768,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                     if len(coords.ra) == 0:
                         coords=[]
                         raise AstrosourceException("Empty catalogue produced from catalogue call")
-
 
                     if coords.cat_name == 'PanSTARRS' or coords.cat_name == 'APASS':
                         max_sep=2.5 * arcsecond
@@ -1095,7 +1092,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         colourPath = paths['parent'] / 'colourplots'
         if not colourPath.exists():
             os.makedirs(colourPath)
-
         for qert in range(len(photFileHolder)):
 
             
@@ -1215,11 +1211,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     else:
         logger.info("Skipping Colour Correction Estimation")
 
-
-
-    
-
-
     # Get rid of higher variability stars from calibration list
     varimin=(min(asarray(calibStands)[:,2])) * variabilityMultiplier
     calibStandsReject=[]
@@ -1302,7 +1293,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         #Replace undetected colours with average colour of the field
         photFile[:,8]=np.nan_to_num(photFile[:,8],nan=np.nanmedian(photFile[:,8]))
         photFile[:,9]=np.nan_to_num(photFile[:,9],nan=np.nanmedian(photFile[:,9]))
-
         # If the colour detection routine was run, this was calculated already
         #if not colourdetect:
         #    photFile[:,5]=1.0857 * (photFile[:,5]/photFile[:,4])
@@ -1365,11 +1355,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         else:
             calibOut[:,5]=calibOut[:,4]-tempZP # Speedup
             for r in range(len(calibOut[:,0])):
-
                 calibOverlord.append([calibOut[r,0],calibOut[r,1],calibOut[r,2],calibOut[r,3],calibOut[r,4],calibOut[r,5],float(file.split("_")[2].replace("d",".")),tempZP,calibOut[r,6],calibOut[r,7],calibOut[r,8]])
-
-        #breakpoint()
-
         calibOut=asarray(calibOut)
 
         #Save the calibrated photfiles to the calib directory
@@ -1391,6 +1377,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             weights=1/(calibOut[:,1])
             linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
             linB = outploty * np.sqrt(weights)
+
             #breakpoint()
             
 
@@ -1415,17 +1402,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 
             except:
                 logger.info("\nFailed linear fit on a postcolour plot: ")
-            
-            
-            
+
             z=z+1
         
-        
-        
-        
-        
-
-        #Look within photfile for ACTUAL usedcomps.csv and pull them out
+    #Look within photfile for ACTUAL usedcomps.csv and pull them out
         lineCompUsed=[]
         if compUsedFile.shape[0] ==3 and compUsedFile.size == 3:
             lenloop=1
@@ -1628,7 +1608,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         nonlinearSlope=m
         nonlinearZero=c
         nonlinearError=residuals[0] / pow(len(fileList), 0.5)
-
 
         with open(parentPath / "results/CalibrationSanityPlotCoefficients.txt", "a+") as f:
             f.write("Corrected Magnitude slope     : " + str(m)+"\n")

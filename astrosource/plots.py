@@ -32,8 +32,6 @@ def output_files(paths, photometrydata, mode='diff'):
             magColumn=outputPhot[:,10]
             magerrColumn=outputPhot[:,11]
 
-        #breakpoint()
-
         outputPeransoCalib = [x for x in zip(outputPhot[:,6],magColumn,magerrColumn)]
         outputPeransoCalib = asarray(outputPeransoCalib)
         

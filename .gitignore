@@ -23,6 +23,7 @@ checkplots/
 outputcats/
 outputplots/
 __pycache__/
+astrosource/test/__pycache__/
 .pytest_cache/
 .cache/
 *.egg-info

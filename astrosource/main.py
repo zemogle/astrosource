@@ -20,6 +20,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--phot', is_flag=True, help='Step 4: Photometry calculations for either differential or calibrated')
 @click.option('--plot', is_flag=True, help='Step 5: Produce lightcurve plots')
 
+
 @click.option('--indir', default=None, type=str, required=True, help='Path of directory containing LCO data files. If none is given, astrosource assumes the current directory')
 @click.option('--ra', type=str, help='Right Ascension of the target (in decimal or H:M:S)')
 @click.option('--dec', type=str, help='Declination of the target (in decimal or D:M:S)')

@@ -166,7 +166,6 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
             if diffMagHolder.shape[0] == sizeBefore:
                 break
 
-
         if (diffMagHolder.shape[0] > minimumNoOfObs):
             outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), diffMagHolder.shape[0]])
 
@@ -445,8 +444,6 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
             logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
             logger.error("Rejected Error Measurements: : {}".format(starErrorRejCount))
             logger.error("Rejected Distance Measurements: : {}".format(starDistanceRejCount))
-
-
 
         # Add calibration columns
         outputPhot= np.c_[outputPhot, np.ones(outputPhot.shape[0]),np.ones(outputPhot.shape[0])]

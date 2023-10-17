@@ -1,7 +1,6 @@
 from os import getcwd, makedirs, remove
 import shutil
 import logging
-import sys
 import time
 
 from numpy import asarray, genfromtxt, load, isnan, delete

@@ -71,7 +71,7 @@ def test_remove_targets_calibrated(setup):
 @patch('astrosource.comparison.Vizier',mock_vizier_apass_b)
 def test_find_comparisons_calibrated_b(setup):
     compFile = find_comparisons_calibrated(filterCode='B', paths=TEST_PATHS, targets=setup.targets)
-    
+
     assert asarray(compFile).shape == (3,)
 
 @patch('astrosource.comparison.Vizier',mock_vizier_apass_v)

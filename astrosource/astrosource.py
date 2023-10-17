@@ -34,7 +34,7 @@ class TimeSeries:
         self.format = kwargs.get('format', 'fz')
         self.imgreject = kwargs.get('imgreject', 0.05)
         self.periodupper = kwargs.get('periodupper', -99.9)
-        self.periodlower = kwargs.get('periodlower', -99.9)
+        self.periodlower = kwargs.get('periodlower', 0.05)
         self.periodtests = kwargs.get('periodtests', -99)
 
         self.racut = kwargs.get('racut', -99.9)
@@ -168,6 +168,7 @@ class TimeSeries:
             #Check stars are in images
 
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
+
         if usecompletedcalib == False:
             self.calibrated = False
             if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs', 'CV', 'w']:
@@ -200,7 +201,6 @@ class TimeSeries:
             self.calibcompsused=genfromtxt(parentPath / 'calibCompsUsed.csv', dtype=float, delimiter=',')
             self.calibrated = True
         return
-
 
     def find_variables(self):
         find_variable_stars(targets=self.targets, parentPath=self.paths['parent'], matchRadius=self.matchradius, varsearchglobalstdev=self.varsearchglobalstdev, varsearchthresh=self.varsearchthresh, varsearchstdev=self.varsearchstdev, varsearchmagwidth=self.varsearchmagwidth, varsearchminimages=self.varsearchminimages, photCoords=self.photCoords, photFileHolder=self.photFileHolder, fileList=self.usedimages)
