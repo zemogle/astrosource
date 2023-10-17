@@ -122,34 +122,23 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     outputVariableHolder=[]
 
     logger.info("Measuring variability of stars...... ")
+    taketime=time.time()
 
-    q=0
     for target in targetFile:
-        q=q+1
-        #logger.debug("*********************")
-        #logger.debug("Processing Target {}".format(str(q)))
-        #logger.debug("RA {}".format(target[0]))
-        #logger.debug("DEC {}".format(target[1]))
-        varCoord = SkyCoord(target[0],(target[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
-
-
         diffMagHolder=[]
-
         allcountscount=0
 
-        r=0
+        
         for photFile in photFileArray:
-            #compList=[]
-            fileRaDec = photFileCoords[r]
-            r=r+1
-            idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
+            # A bit rougher than using SkyCoord, but way faster
+            # The amount of calculations is too slow for SkyCoord
+            idx=(np.abs(photFile[:,0] - target[0]) + np.abs(photFile[:,1] - target[1])).argmin()
+            d2d=pow(pow(photFile[idx,0] - target[0],2) + pow(photFile[idx,0] - target[0],2),0.5) * 3600
             multTemp=(multiply(-2.5,log10(divide(photFile[idx][11],allCountsArray[allcountscount][0]))))
-            if less(d2d.arcsecond, matchRadius) and (multTemp != inf) :
+            if less(d2d, matchRadius) and (multTemp != inf) :
                 diffMagHolder=append(diffMagHolder,multTemp)
             allcountscount=add(allcountscount,1)
-
-        #breakpoint()
-
+            
         ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
         diffMagHolder=np.array(diffMagHolder)
         while True:
@@ -169,7 +158,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
         if (diffMagHolder.shape[0] > minimumNoOfObs):
             outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), diffMagHolder.shape[0]])
 
-
+    print ("Star Variability done in " + str(time.time()-taketime))
 
     savetxt(parentPath / "results/starVariability.csv", outputVariableHolder, delimiter=",", fmt='%0.8f')
 
