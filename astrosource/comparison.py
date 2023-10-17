@@ -975,7 +975,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                         coords=[]
                         raise AstrosourceException("There is no adequate match between this catalogue and your comparisons.")
 
-                    if coords !=[] and calibStands !=[]:
+                    if len(coords.mag) !=0 and len(calibStands) !=0:
                         cat_used=cat_name
 
         except AstrosourceException as e:
@@ -1064,7 +1064,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
     plt.plot(outplotx,outploty,'bo')
     plt.plot(outplotx,m*outplotx+c,'r')
-    plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
+    plt.ylim(max(outploty)+0.05,min(outploty)-0.05)
     plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
     plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
     plt.grid(True)
@@ -1153,7 +1153,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
             plt.plot(outplotx,outploty,'bo')
             plt.plot(outplotx,m*outplotx+c,'r')
-            plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
+            plt.ylim(max(outploty)+0.05,min(outploty)-0.05)
             plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
             plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
             plt.grid(True)
@@ -1391,7 +1391,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 plt.xlabel(colname + ' Catalogue Colour')
                 plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
                 plt.plot(outplotx,outploty,'bo')
-                plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
+                plt.ylim(max(outploty)+0.05,min(outploty)-0.05)
                 plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
                 plt.errorbar(outplotx, outploty, yerr=calibOut[:,1], fmt='-o', linestyle='None')
                 plt.grid(True)
@@ -1481,7 +1481,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
     plt.plot(outplotx,outploty,'bo')
     plt.plot(outplotx,m*outplotx+c,'r')
-    plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
+    plt.ylim(max(outploty)+0.05,min(outploty)-0.05)
     plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
     plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
     plt.grid(True)
@@ -1559,7 +1559,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.plot(outplotx,outploty,'bo')
         plt.plot(outplotx,m*outplotx+c,'r')
 
-        plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
+        plt.ylim(min(outploty)-0.05,max(outploty)+0.05)
         plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
         plt.grid(True)
         plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
@@ -1647,7 +1647,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.plot(outplotx,outploty,'bo')
         plt.plot(outplotx,m*outplotx+c,'r')
 
-        plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
+        plt.ylim(min(outploty)-0.05,max(outploty)+0.05)
         plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
         plt.grid(True)
         plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
@@ -1684,7 +1684,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.ylabel('Calibrated - Catalogue Magnitude')
         plt.plot(outplotx,outploty,'bo')
         plt.plot(outplotx,m*outplotx+c,'r')
-        plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
+        plt.ylim(min(outploty)-0.05,max(outploty)+0.05)
         plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
         plt.grid(True)
         plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
