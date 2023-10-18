@@ -485,7 +485,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                         imgRejFlag=1
 
                     # if the rejectstar list is not empty, remove the stars from the reference List
-                    if rejectStars != []:
+                    if len(rejectStars) != 0:
 
                         if not (((len(rejectStars) / referenceFrame.shape[0]) > starreject) and rejStartCounter > rejectStart):
                             referenceFrame = delete(referenceFrame, rejectStars, axis=0)
