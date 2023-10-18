@@ -909,7 +909,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
                     ### remove stars that that brighter (--restrictmagbrighter) or dimmer (--restrictmagdimmer) than requested.
                     calibStandsReject=[]
-                    if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and calibStands != []:
+                    if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and len(calibStands) != 0:
                         for q in range(len(asarray(calibStands)[:,0])):
 
                             if (calibStands[q][3] > restrictmagdimmest) or (calibStands[q][3] < restrictmagbrightest):
@@ -935,7 +935,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
                     calibStandsReject=[]
 
-                    if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and calibStands != []:
+                    if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and len(calibStands) != 0:
                         for q in range(len(asarray(calibStands)[:,0])):
                             reject=0
                             if colourdetect == True:
