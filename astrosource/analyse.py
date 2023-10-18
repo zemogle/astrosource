@@ -392,7 +392,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                         starReject.append(j)
                         stdevReject=stdevReject+1
 
-                if starReject != []:
+                if len(starReject) != 0:
                     outputPhot=delete(outputPhot, starReject, axis=0)
                 else:
                     break
@@ -412,7 +412,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                         starReject.append(j)
                         starErrorRejCount=starErrorRejCount+1
 
-                if starReject != []:
+                if len(starReject) != 0:
                     outputPhot=delete(outputPhot, starReject, axis=0)
                 else:
                     break
