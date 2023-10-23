@@ -309,7 +309,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
 
     filterCode = list(filters)[0]
 
-    if filterCode  == 'clear' or filterCode  == 'air' or filterCode=='w' or filterCode=='G':
+    if filterCode  == 'clear' or filterCode  == 'air' or filterCode=='w' or filterCode=='G' or filterCode == 'RGGBclearV':
         filterCode  = 'CV'
 
     logger.debug("Filter Set: {}".format(filterCode))
