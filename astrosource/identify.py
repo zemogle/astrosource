@@ -185,7 +185,7 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
         photFile = genfromtxt(fn, dtype=float, delimiter=',')
         logger.info(fn)
         # reject nan entries in file
-        if photFile.size > 16: #ignore zero sized files and files with only one or two entries
+        if photFile.size > 16 and photFile.shape[1] == 8: #ignore zero sized files and files with only one or two entries
             if max(photFile[:,0]) < 360 and max(photFile[:,1]) < 90:
 
                 if (photFile.size > 50):
