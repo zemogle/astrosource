@@ -312,6 +312,15 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
     if filterCode  == 'clear' or filterCode  == 'air' or filterCode=='w' or filterCode=='G' or filterCode == 'RGGBclearV':
         filterCode  = 'CV'
 
+    if filterCode  == 'RGGBG1' or filterCode  == 'RGGBG2':
+        filterCode  = 'PG'
+
+    if filterCode  == 'RGGBR1':
+        filterCode  = 'PR'
+
+    if filterCode  == 'RGGBB1':
+        filterCode  = 'PB'
+    
     logger.debug("Filter Set: {}".format(filterCode))
 
     if len(filters) > 1:
