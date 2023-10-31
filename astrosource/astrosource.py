@@ -171,7 +171,7 @@ class TimeSeries:
 
         if usecompletedcalib == False:
             self.calibrated = False
-            if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs', 'CV', 'w']:
+            if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs', 'CV', 'w', 'PB', 'PG','PR']:
                 try:
 
                     self.colourterm, self.colourerror, self.calibcompsused = find_comparisons_calibrated(targets=self.targets,
