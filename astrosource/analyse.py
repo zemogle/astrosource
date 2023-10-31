@@ -133,7 +133,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
             # A bit rougher than using SkyCoord, but way faster
             # The amount of calculations is too slow for SkyCoord
             idx=(np.abs(photFile[:,0] - target[0]) + np.abs(photFile[:,1] - target[1])).argmin()
-            d2d=pow(pow(photFile[idx,0] - target[0],2) + pow(photFile[idx,0] - target[0],2),0.5) * 3600
+            d2d=pow(pow(photFile[idx,0] - target[0],2) + pow(photFile[idx,1] - target[1],2),0.5) * 3600
             multTemp=(multiply(-2.5,log10(divide(photFile[idx][11],allCountsArray[allcountscount][0]))))
             if less(d2d, matchRadius) and (multTemp != inf) :
                 diffMagHolder=append(diffMagHolder,multTemp)
@@ -277,9 +277,13 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
         else:
             logger.debug("Dec {}".format(targets[q][1]))
         if int(len(targets)) == 4 and targets.size==4:
-            varCoord = SkyCoord(targets[0],(targets[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
+            #varCoord = SkyCoord(targets[0],(targets[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
+            singleCoordRA=targets[0]
+            singleCoordDEC=targets[1]
         else:
-            varCoord = SkyCoord(targets[q][0],(targets[q][1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
+            #varCoord = SkyCoord(targets[q][0],(targets[q][1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
+            singleCoordRA=targets[q][0]
+            singleCoordDEC=targets[q][1]
 
         # Grabbing variable rows
         logger.debug("Extracting and Measuring Differential Magnitude in each Photometry File")
@@ -287,10 +291,16 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
         allcountscount=0
 
         for imgs, photFile in enumerate(tqdm(photFileArray)):
-            fileRaDec = photCoordsFile[imgs]
-            idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
+            #fileRaDec = photCoordsFile[imgs]
+            #idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
+            #breakpoint()
+            idx=(np.abs(photFile[:,0] - singleCoordRA) + np.abs(photFile[:,1] - singleCoordDEC)).argmin()
+            d2d=pow(pow(photFile[idx,0] - singleCoordRA,2) + pow(photFile[idx,1] - singleCoordDEC,2),0.5) * 3600
+            
+            #print (d2d)
+            
             starRejected=0
-            if (less(d2d.arcsecond, targetRadius)):
+            if (less(d2d, targetRadius)):
                 #magErrVar = 1.0857 * (photFile[idx][5]/photFile[idx][4])
                 magErrVar = photFile[idx][5]
                 if magErrVar < errorReject:
@@ -318,10 +328,16 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                         loopLength=compFile.shape[0]
                     for j in range(loopLength):
                         if compFile.size == 2 or (compFile.shape[0]== 3 and compFile.size ==3) or (compFile.shape[0]== 5 and compFile.size ==5):
-                            matchCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+                            #matchCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+                            matchRA=compFile[0]
+                            matchDEC=compFile[1]
                         else:
-                            matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
-                        idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+                            #matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
+                            matchRA=compFile[j][0]
+                            matchDEC=compFile[j][1]
+                        #idx, d2d, _ = matchCoord.match_to_catalog_sky(fileRaDec)
+                        idx=(np.abs(photFile[:,0] - matchRA) + np.abs(photFile[:,1] - matchDEC)).argmin()
+                        d2d=pow(pow(photFile[idx,0] - matchRA,2) + pow(photFile[idx,1] - matchDEC,2),0.5) * 3600
                         tempList=append(tempList, photFileArray[imgs][idx][11])
                     outputPhot.append(tempList)
 
@@ -359,10 +375,16 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
 
                     for j in range(loopLength):
                         if compFile.size == 2 or (compFile.shape[0]== 3 and compFile.size ==3) or (compFile.shape[0]== 5 and compFile.size ==5):
-                            matchCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+                           # matchCoord=SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+                           matchRA=compFile[0]
+                           matchDEC=compFile[1]
                         else:
-                            matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
-                        idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+                           # matchCoord=SkyCoord(ra=compFile[j][0]*degree, dec=compFile[j][1]*degree)
+                           matchRA=compFile[j][0]
+                           matchDEC=compFile[j][1]
+                        #idx, d2d, d3d = matchCoord.match_to_catalog_sky(fileRaDec)
+                        idx=(np.abs(photFile[:,0] - matchRA) + np.abs(photFile[:,1] - matchDEC)).argmin()
+                        d2d=pow(pow(photFile[idx,0] - matchRA,2) + pow(photFile[idx,1] - matchDEC,2),0.5) * 3600
                         tempList=append(tempList, photFileArray[imgs][idx][11])
                     outputPhot.append(tempList)
                     fileCount.append(allCountsArray[allcountscount][0])
