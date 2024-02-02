@@ -1055,32 +1055,38 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         colTemp=delete(colTemp, calibStandsReject, axis=0)
 
     # Pre-colour Reference plot
-    plt.cla()
-    fig = plt.gcf()
-    outplotx=colTemp[:,4]
-    outploty=colTemp[:,2]-colTemp[:,0]
-    weights=1/(colTemp[:,3])
-    linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
-    linB = outploty * np.sqrt(weights)
-    sqsol = np.linalg.lstsq(linA,linB, rcond=None)
-    m, c = sqsol[0]
-    x, residuals, rank, s = sqsol
+    
+        plt.cla()
+        fig = plt.gcf()
+        outplotx=colTemp[:,4]
+        outploty=colTemp[:,2]-colTemp[:,0]
+        weights=1/(colTemp[:,3])
+        plt.xlabel(colname + ' Catalogue Colour')
+        plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
+        plt.plot(outplotx,outploty,'bo')
+        try:
+            linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
+            linB = outploty * np.sqrt(weights)
+            sqsol = np.linalg.lstsq(linA,linB, rcond=None)
+            m, c = sqsol[0]
+            x, residuals, rank, s = sqsol
+            plt.plot(outplotx,m*outplotx+c,'r')
+        except:
+            logger.info("Couldn't fit a line to pre-colour reference plot")
 
-    plt.xlabel(colname + ' Catalogue Colour')
-    plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
-    plt.plot(outplotx,outploty,'bo')
-    plt.plot(outplotx,m*outplotx+c,'r')
-    plt.ylim(max(outploty)+0.05,min(outploty)-0.05)
-    plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
-    plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
-    plt.grid(True)
-    plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
-    fig.set_size_inches(6,3)
-    plt.savefig(parentPath / str("results/CalibrationSanityPlot_PreColour_Reference.png"))
-    plt.savefig(parentPath / str("results/CalibrationSanityPlot_PreColour_Reference.eps"))
-
-    logger.info('Estimated Colour Slope in Reference Frame: ' + str(m))
-
+        
+        
+        plt.ylim(max(outploty)+0.05,min(outploty)-0.05)
+        plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+        plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
+        plt.grid(True)
+        plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+        fig.set_size_inches(6,3)
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_PreColour_Reference.png"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_PreColour_Reference.eps"))
+    
+        logger.info('Estimated Colour Slope in Reference Frame: ' + str(m))
+    
     # MAKE ALL PRE-COLOUR PLOTS
 
     if colourdetect == True and colourTerm == 0.0:
@@ -1477,26 +1483,34 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     outplotx=colTemp[:,4]
     outploty=colTemp[:,2]-colTemp[:,0]
     weights=1/(colTemp[:,3])
-    linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
-    linB = outploty * np.sqrt(weights)
-    sqsol = np.linalg.lstsq(linA,linB, rcond=None)
-    m, c = sqsol[0]
-    x, residuals, rank, s = sqsol
-
+    
     plt.xlabel(colname + ' Catalogue Colour')
     plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
     plt.plot(outplotx,outploty,'bo')
-    plt.plot(outplotx,m*outplotx+c,'r')
-    plt.ylim(max(outploty)+0.05,min(outploty)-0.05)
-    plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
-    plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
-    plt.grid(True)
-    plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
-    fig.set_size_inches(6,3)
-    plt.savefig(parentPath / str("results/CalibrationSanityPlot_POSTColour_Reference.png"))
-    plt.savefig(parentPath / str("results/CalibrationSanityPlot_POSTColour_Reference.eps"))
-
-    logger.info('Estimated POST Colour Slope in Reference Frame: ' + str(m))
+    
+    try:
+        linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
+        linB = outploty * np.sqrt(weights)
+        sqsol = np.linalg.lstsq(linA,linB, rcond=None)
+        m, c = sqsol[0]
+        x, residuals, rank, s = sqsol
+        plt.plot(outplotx,m*outplotx+c,'r')
+        
+    except:
+        logger.info("Couldn't fit a line to colour plot2")
+    try:
+        plt.ylim(max(outploty)+0.05,min(outploty)-0.05)
+        plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+        plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
+        plt.grid(True)
+        plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+        fig.set_size_inches(6,3)
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_POSTColour_Reference.png"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_POSTColour_Reference.eps"))
+    
+        logger.info('Estimated POST Colour Slope in Reference Frame: ' + str(m))
+    except:
+        logger.info('Could not make POST colour slope plot')
 
     if emptyCalibFlag==1:
         logger.info("\nSome or all of the photometry files did not calibrate successfully due to NAN values in the calibration catalogue.")
