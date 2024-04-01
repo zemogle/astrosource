@@ -413,24 +413,28 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     tableFound=False
     # Check VSX for any known variable stars and remove them from the list
     logger.info("Searching for known variable stars in VSX......")
+    vServers = ['vizier.cfa.harvard.edu','vizier.u-strasbg.fr']
+    vS=0
     try:
-        v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
-        v.ROW_LIMIT=-1
-        vServers = ['vizier.u-strasbg.fr',
-             #'vizier.nao.ac.jp',
-             'vizier.cfa.harvard.edu']
-             #'vizier.iucaa.in',
-             #'vizier.china-vo.org',
-             #'vizier.inasan.ru',
-             #'vizier.idia.ac.za']
-        vS=0
-        v.VIZIER_SERVER=vServers[vS]
-        variableResult=v.query_region(avgCoord, radius=1.5*radius*degree, catalog='VSX')
-        if str(variableResult)=="Empty TableList":
-            logger.info("VSX Returned an Empty Table.")
-        else:
-            variableResult=variableResult['B/vsx/vsx']
-            tableFound=True
+        while vS < len(vServers):
+            v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
+            v.ROW_LIMIT=-1
+            
+                 #'vizier.nao.ac.jp',
+                 #]
+                 #'vizier.iucaa.in',
+                 #'vizier.china-vo.org',
+                 #'vizier.inasan.ru',
+                 #'vizier.idia.ac.za']
+            
+            v.VIZIER_SERVER=vServers[vS]
+            vS=vS + 1
+            variableResult=v.query_region(avgCoord, radius=1.5*radius*degree, catalog='VSX')
+            if str(variableResult)=="Empty TableList":
+                logger.info("VSX Returned an Empty Table from " + str(vServers[vS]) + ".")
+            else:
+                variableResult=variableResult['B/vsx/vsx']
+                tableFound=True
 
     except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError) :
         connected=False
@@ -558,10 +562,39 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     elif cat_name == 'APASS':
         queryConstraint={}
 
+
+
+    # vServers = ['vizier.cfa.harvard.edu','vizier.u-strasbg.fr']
+    # vS=0
+    # try:
+    #     while vS < len(vServers):
+    #         v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
+    #         v.ROW_LIMIT=-1
+            
+    #              #'vizier.nao.ac.jp',
+    #              #]
+    #              #'vizier.iucaa.in',
+    #              #'vizier.china-vo.org',
+    #              #'vizier.inasan.ru',
+    #              #'vizier.idia.ac.za']
+            
+    #         v.VIZIER_SERVER=vServers[vS]
+    #         vS=vS + 1
+    #         variableResult=v.query_region(avgCoord, radius=1.5*radius*degree, catalog='VSX')
+    #         if str(variableResult)=="Empty TableList":
+    #             logger.info("VSX Returned an Empty Table from " + str(vServers[vS]) + ".")
+    #         else:
+    #             variableResult=variableResult['B/vsx/vsx']
+    #             tableFound=True
+
     cycler=0
     try:
-        v.VIZIER_SERVER=vServers[vS]
-        query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
+        while vS < len(vServers):
+            v.VIZIER_SERVER=vServers[vS]
+            query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
+            if str(query)=="Empty TableList":
+                vS=vS+1
+            
     except VOSError:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
     except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError):
