@@ -594,6 +594,8 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
             query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
             if str(query)=="Empty TableList":
                 vS=vS+1
+            else:
+                break
             
     except VOSError:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
