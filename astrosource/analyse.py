@@ -160,7 +160,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     print ("Star Variability done in " + str(time.time()-taketime))
 
-    savetxt(parentPath / "results/starVariability.csv", outputVariableHolder, delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/starVariability.csv", outputVariableHolder, delimiter=",", fmt='%0.8f', header='RA,DEC,DiffMag,Variability,No_of_images_used')
 
     ## Routine that actually pops out potential variables.
     starVar = np.asarray(outputVariableHolder)
@@ -204,7 +204,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     if potentialVariables.shape[0] == 0:
         logger.info("No Potential Variables identified in this set of data using the parameters requested.")
     else:
-        savetxt(parentPath / "results/potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f')
+        savetxt(parentPath / "results/potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f', header='RA,DEC,DiffMag,Variability')
 
         plot_variability(outputVariableHolder, potentialVariables, parentPath, compFile)
 

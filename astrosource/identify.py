@@ -181,8 +181,9 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
     new_files = []
     photFileHolder=[]
     photSkyCoord=[]
+    #breakpoint()
     for fn in filelist:
-        photFile = genfromtxt(fn, dtype=float, delimiter=',')
+        photFile = genfromtxt(fn, dtype=float, delimiter=',', skip_header=1)
         logger.info(fn)
         # reject nan entries in file
         if photFile.size > 16 and photFile.shape[1] == 8: #ignore zero sized files and files with only one or two entries
@@ -309,7 +310,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
 
     filterCode = list(filters)[0]
 
-    if filterCode  == 'clear' or filterCode  == 'air' or filterCode  == 'w' or filterCode  == 'PL' or filterCode  == 'pl' or filterCode=='w' or filterCode=='G' or filterCode == 'RGGBclearV':
+    if filterCode  == 'clear' or filterCode  == 'air' or filterCode=='w' or filterCode=='G' or filterCode == 'RGGBclearV':
         filterCode  = 'CV'
 
     if filterCode  == 'RGGBG1' or filterCode  == 'RGGBG2':
