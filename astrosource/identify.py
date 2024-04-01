@@ -181,9 +181,8 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
     new_files = []
     photFileHolder=[]
     photSkyCoord=[]
-    
     for fn in filelist:
-        photFile = genfromtxt(fn, dtype=float, delimiter=',', skip_header=1)
+        photFile = genfromtxt(fn, dtype=float, delimiter=',')
         logger.info(fn)
         # reject nan entries in file
         if photFile.size > 16 and photFile.shape[1] == 8: #ignore zero sized files and files with only one or two entries
@@ -275,7 +274,6 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
             logger.debug(fn)
 
     if new_files ==[] or photFileHolder==[] :
-        #breakpoint()
         raise AstrosourceException("Either there are no files of this photometry type or radial Cut seems to be outside of the range of your images... check your racut, deccut and radiuscut")
 
     return new_files, photFileHolder, photSkyCoord
@@ -310,9 +308,8 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
     filters = set([f.split('_')[1] for f in phot_list])
 
     filterCode = list(filters)[0]
-    
 
-    if filterCode  == 'clear' or filterCode  == 'air' or filterCode=='w' or filterCode=='PL' or filterCode=='pl' or filterCode=='G' or filterCode == 'RGGBclearV':
+    if filterCode  == 'clear' or filterCode  == 'air' or filterCode  == 'w' or filterCode  == 'PL' or filterCode  == 'pl' or filterCode=='w' or filterCode=='G' or filterCode == 'RGGBclearV':
         filterCode  = 'CV'
 
     if filterCode  == 'RGGBG1' or filterCode  == 'RGGBG2':
