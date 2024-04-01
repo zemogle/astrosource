@@ -433,8 +433,12 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
             if str(variableResult)=="Empty TableList":
                 logger.info("VSX Returned an Empty Table from " + str(vServers[vS]) + ".")
             else:
-                variableResult=variableResult['B/vsx/vsx']
-                tableFound=True
+                try:
+                    variableResult=variableResult['B/vsx/vsx']
+                    tableFound=True
+                    break
+                except:
+                    print ("VSX bugged out")
 
     except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError) :
         connected=False
