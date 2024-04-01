@@ -275,7 +275,7 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
             logger.debug(fn)
 
     if new_files ==[] or photFileHolder==[] :
-        breakpoint()
+        #breakpoint()
         raise AstrosourceException("Either there are no files of this photometry type or radial Cut seems to be outside of the range of your images... check your racut, deccut and radiuscut")
 
     return new_files, photFileHolder, photSkyCoord
@@ -312,7 +312,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
     filterCode = list(filters)[0]
     
 
-    if filterCode  == 'clear' or filterCode  == 'air' or filterCode=='w' or filterCode=='G' or filterCode == 'RGGBclearV':
+    if filterCode  == 'clear' or filterCode  == 'air' or filterCode=='w' or filterCode=='PL' or filterCode=='pl' or filterCode=='G' or filterCode == 'RGGBclearV':
         filterCode  = 'CV'
 
     if filterCode  == 'RGGBG1' or filterCode  == 'RGGBG2':
