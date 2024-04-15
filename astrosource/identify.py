@@ -869,7 +869,12 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         # NOW only keep those stars in outputComps that match calibStands
 
         calibStands=asarray(calibStands)
-        outputComps=column_stack((calibStands[:,0],calibStands[:,1]))
+        print (calibStands)
+        print (len(calibStands))
+        if len(calibStands[:,0]) > 2:
+            outputComps=column_stack((calibStands[:,0],calibStands[:,1]))
+        else:
+            outputComps=column_stack((calibStands[0],calibStands[1]))
 
         logger.info('Removed ' + str(len(calibStandsReject)) + ' Candidate Comparison Stars for being too bright or too dim or the wrong colour')
         
