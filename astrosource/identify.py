@@ -721,8 +721,8 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     file1.close
 
     # Remove candidate comparisons that are out of the restricted range of colours or magnitudes
-
-    if restrictmagbrightest != -99.0 or restrictmagdimmest !=99.0 or restrictcompcolourcentre != -999.0 or restrictcompcolourrange != -99.0:
+    
+    if restrictmagbrightest > -99.0 or restrictmagdimmest < 99.0 or restrictcompcolourcentre > -99.0 or restrictcompcolourrange > -99.0:
 
         if outputComps.shape[0] == 1 and outputComps.size == 2:
             avgCoord=SkyCoord(ra=(outputComps[0])*degree, dec=(outputComps[1]*degree))
