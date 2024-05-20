@@ -169,6 +169,8 @@ class TimeSeries:
 
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
 
+        print ("calib: " + str(calib))
+
         if usecompletedcalib == False:
             self.calibrated = False
             if calib and self.filtercode in ['B', 'V', 'up', 'gp', 'rp', 'ip', 'zs', 'CV', 'w', 'PB', 'PG','PR']:
