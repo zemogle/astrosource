@@ -81,8 +81,13 @@ def plot_variability(output, variableID, parentPath, compFile):
     # star Variability Plot
 
     if output != []: # Do not attempt plot if output array is empty
-    
-        compSkyCoord = SkyCoord(compFile[:,0],compFile[:,1], frame='icrs', unit=degree)   
+        
+
+        # If single comp
+        if len(compFile) == 3:
+            compSkyCoord = SkyCoord(compFile[0],compFile[1], frame='icrs', unit=degree)   
+        else:
+            compSkyCoord = SkyCoord(compFile[:,0],compFile[:,1], frame='icrs', unit=degree)   
         outputSkyCoord = SkyCoord(np.asarray(output)[:,0],np.asarray(output)[:,1], frame='icrs', unit=degree)
     
         # Load calibration comps used if they exist
@@ -90,22 +95,37 @@ def plot_variability(output, variableID, parentPath, compFile):
         if (parentPath / 'results/calibCompsUsed.csv').exists():
             logger.debug("Calibrated")
             calibCompFile=genfromtxt(parentPath / 'results/calibCompsUsed.csv', dtype=float, delimiter=',')
-            calibCompSkyCoord = SkyCoord(calibCompFile[:,0],calibCompFile[:,1], frame='icrs', unit=degree)
+            
+            if len(calibCompFile) == 5:
+                calibCompSkyCoord = SkyCoord(calibCompFile[0],calibCompFile[1], frame='icrs', unit=degree)
+                calibnumber=1
+            else:
+                calibCompSkyCoord = SkyCoord(calibCompFile[:,0],calibCompFile[:,1], frame='icrs', unit=degree)
+                calibnumber=len(calibCompSkyCoord)
             calibCompExist=True
             
             calibCompStarPlot = []        
-            for q in range(len(calibCompSkyCoord)):
-                idx, d2d, _ = calibCompSkyCoord[q].match_to_catalog_sky(outputSkyCoord)
+            #for q in range(len(calibCompSkyCoord)):
+            if calibnumber==1:
+                idx, d2d, _ = calibCompSkyCoord.match_to_catalog_sky(outputSkyCoord)
                 calibCompStarPlot.append([output[idx][2],output[idx][3]])
+            else:
+                for q in range(calibnumber):
+                    idx, d2d, _ = calibCompSkyCoord[q].match_to_catalog_sky(outputSkyCoord)
+                    calibCompStarPlot.append([output[idx][2],output[idx][3]])
         
         
         
         
-        compStarPlot = []        
-        for q in range(len(compSkyCoord)):
-            idx, d2d, _ = compSkyCoord[q].match_to_catalog_sky(outputSkyCoord)
-            compStarPlot.append([output[idx][2],output[idx][3]])
-            
+        compStarPlot = []    
+        if len(compFile) == 3:
+            idx, d2d, _ = compSkyCoord.match_to_catalog_sky(outputSkyCoord)
+            compStarPlot.append([output[idx][2],output[idx][3]])        
+        else:
+            for q in range(len(compSkyCoord)):
+                idx, d2d, _ = compSkyCoord[q].match_to_catalog_sky(outputSkyCoord)
+                compStarPlot.append([output[idx][2],output[idx][3]])
+                
     
         plt.cla()
         outplotx = asarray(output)[:, 2]
