@@ -77,6 +77,7 @@ logger = logging.getLogger('astrosource')
 @click.option('--nopanstarrs',  is_flag=True, help='Do not use the PanSTARRS catalogue for calibration')
 @click.option('--nosdss',  is_flag=True, help='Do not use the SDSS catalogue for calibration')
 @click.option('--noskymapper',  is_flag=True, help='Do not use the Skymapper catalogue for calibration')
+@click.option('--nocalib',  is_flag=True, help='Do not undertake calibration')
 @click.option('--varsearch',  is_flag=True, help='Undertake variability calculations for identified stars')
 
 @click.option('--varsearchglobalstdev',  type=float, default=-99.9, help='Just detect variables above a certain variability not variability by magnitude')
@@ -114,7 +115,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
     varsearchminimages, ignoreedgefraction, usecompsused, usecompletedcalib, mincompstarstotal, calc, \
     calib, phot, plot, detrend, eebls, period, indir, ra, dec, target_file, format, imgreject, \
     mincompstars, maxcandidatestars, closerejectd, bjd, clean, verbose, debug, periodlower, periodupper, \
-    periodtests,  thresholdcounts, nopanstarrs, nosdss, noskymapper, varsearch, varsearchthresh, starreject, hicounts, \
+    periodtests,  thresholdcounts, nopanstarrs, nosdss, noskymapper, nocalib, varsearch, varsearchthresh, starreject, hicounts, \
     lowcounts, colourdetect, linearise, colourterm, colourerror, targetcolour, restrictmagbrightest, \
     restrictmagdimmest, rejectmagbrightest, rejectmagdimmest,targetradius, matchradius, racut, deccut, \
     radiuscut, restrictcompcolourcentre, restrictcompcolourrange, detrendfraction, minfractionimages):
@@ -166,6 +167,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
                         nopanstarrs=nopanstarrs,
                         nosdss=nosdss,
                         noskymapper=noskymapper,
+                        nocalib=nocalib,
                         closerejectd=closerejectd,
                         maxcandidatestars=maxcandidatestars,
                         verbose=verbose,

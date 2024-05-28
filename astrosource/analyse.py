@@ -302,7 +302,17 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
             starRejected=0
             if (less(d2d, targetRadius)):
                 #magErrVar = 1.0857 * (photFile[idx][5]/photFile[idx][4])
-                magErrVar = photFile[idx][5]
+                
+                
+                
+                # If the file hasn't been calibrated, then it still contains the countrate in it.
+                # So convert these to mags, otherwise use the calibrated error.
+                if photFile[idx][4] > 50:
+                    magErrVar = 1.0857 * (photFile[idx][5]/photFile[idx][4])
+                else:
+                    magErrVar = photFile[idx][5]
+                    
+                    
                 if magErrVar < errorReject:
 
                     magErrEns = 1.0857 * (allCountsArray[allcountscount][1]/allCountsArray[allcountscount][0])
@@ -390,6 +400,8 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                     fileCount.append(allCountsArray[allcountscount][0])
                     allcountscount=allcountscount+1
 
+        #breakpoint()
+
         # Check for dud images
         imageReject=[]
         for j in range(asarray(outputPhot).shape[0]):
@@ -451,7 +463,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
 
         except ValueError:
             #raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
-            #print(traceback.print_exc())
+            print(traceback.print_exc())
             logger.error("This target star was not detected in your dataset. Check your input target(s) RA/Dec")
             #logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
             #logger.error("Rejected Error Measurements: : {}".format(starErrorRejCount))

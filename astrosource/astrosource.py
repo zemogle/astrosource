@@ -52,6 +52,8 @@ class TimeSeries:
         self.nopanstarrs = kwargs.get('nopanstarrs', False)
         self.nosdss = kwargs.get('nosdss', False)
         self.noskymapper = kwargs.get('noskymapper', False)
+        
+        self.nocalib = kwargs.get('nocalib', False)
         self.closerejectd = kwargs.get('closerejectd', 5.0)
         self.targetradius = kwargs.get('targetradius', 1.5)
         self.matchradius = kwargs.get('matchradius', 1.0)
@@ -170,6 +172,9 @@ class TimeSeries:
             #Check stars are in images
 
         # Check that it is a filter that can actually be calibrated - in the future I am considering calibrating w against V to give a 'rough V' calibration, but not for now.
+
+        if self.nocalib==True:
+            calib=False
 
         print ("calib: " + str(calib))
 
