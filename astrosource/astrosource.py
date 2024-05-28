@@ -51,6 +51,7 @@ class TimeSeries:
         self.starreject = kwargs.get('starreject', 0.3)
         self.nopanstarrs = kwargs.get('nopanstarrs', False)
         self.nosdss = kwargs.get('nosdss', False)
+        self.noskymapper = kwargs.get('noskymapper', False)
         self.closerejectd = kwargs.get('closerejectd', 5.0)
         self.targetradius = kwargs.get('targetradius', 1.5)
         self.matchradius = kwargs.get('matchradius', 1.0)
@@ -123,7 +124,8 @@ class TimeSeries:
                                                                                  paths=self.paths,
                                                                                  fileList=self.files,
                                                                                  nopanstarrs=self.nopanstarrs,
-                                                                                 nosdss=self.nosdss,
+                                                                                 nosdss=self.nosdss,                                                                                 
+                                                                                 noskymapper=self.noskymapper,
                                                                                  closerejectd=self.closerejectd,
                                                                                  photCoords=self.photCoords,
                                                                                  photFileHolder=self.photFileHolder,
@@ -180,7 +182,8 @@ class TimeSeries:
                                                                                     filterCode=self.filtercode,
                                                                                     paths=self.paths,
                                                                                     nopanstarrs=self.nopanstarrs,
-                                                                                    nosdss=self.nosdss,
+                                                                                    nosdss=self.nosdss,                                                                                 
+                                                                                    noskymapper=self.noskymapper,
                                                                                     closerejectd=self.closerejectd,
                                                                                     colourdetect=self.colourdetect,
                                                                                     linearise=self.linearise,

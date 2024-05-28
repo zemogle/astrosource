@@ -546,7 +546,8 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         radecname = {'ra' :'raj2000', 'dec': 'dej2000'}
 
     if cat_name in ['APASS']:
-        searchColumns=[radecname['ra'], radecname['dec'], opt['filter'], opt['error'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag'), opt['colmatch'], opt['colerr'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag')]
+        searchColumns=[]
+        #searchColumns=[radecname['ra'], radecname['dec'], 'i_mag', opt['filter'].replace('i_mag','i\'mag').replace('r_mag','r\'mag').replace('g_mag','g\'mag'), opt['error'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag'), opt['colmatch'].replace('i_mag','i\'mag').replace('r_mag','r\'mag').replace('g_mag','g\'mag'), opt['colerr'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag')]
         #print (searchColumns)
     else:
         searchColumns=[radecname['ra'], radecname['dec'], opt['filter'], opt['error'], opt['colmatch'], opt['colerr']]
@@ -653,6 +654,13 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
 
     if len(resp) != 0:
         catReject=[]
+        
+        # v=Vizier() # Skymapper by default does not report the error columns
+        # v.ROW_LIMIT=-1
+        # query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
+        # resp = query[tbname]
+
+        #breakpoint()
 
         for q in range(len(resp)):
             if np.asarray(resp[opt['filter']][q]) == 0.0 or np.asarray(resp[opt['error']][q]) == 0.0 or np.isnan(resp[opt['filter']][q]) or np.isnan(resp[opt['error']][q]):
@@ -693,7 +701,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
 
     return data
 
-def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, colourdetect=False, linearise=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, colourTerm=0.0, colourError=0.0, restrictmagbrightest=-99.9, restrictmagdimmest=99.9, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, photCoordsFile=None, photFileHolder=None, calibSave=False):
+def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False,  noskymapper=False, colourdetect=False, linearise=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, colourTerm=0.0, colourError=0.0, restrictmagbrightest=-99.9, restrictmagdimmest=99.9, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, photCoordsFile=None, photFileHolder=None, calibSave=False):
 
 
     sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
@@ -806,6 +814,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                     logger.info("Skipping PanSTARRS")
                 elif cat_name == 'SDSS' and nosdss==True:
                     logger.info("Skipping SDSS")
+                elif cat_name == 'SkyMapper' and noskymapper==True:
+                    logger.info("Skipping Skymapper")
                 else:
 
                     coords = catalogue_call(avgCoord, 1.5*radius, opt, cat_name, targets=targets, closerejectd=closerejectd)
