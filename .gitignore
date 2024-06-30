@@ -1,4 +1,5 @@
 *.pyc
+run.py
 
 stdComps.csv
 compsUsed.csv
