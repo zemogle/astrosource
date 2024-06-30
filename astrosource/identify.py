@@ -181,11 +181,12 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
     new_files = []
     photFileHolder=[]
     photSkyCoord=[]
+    #breakpoint()
     for fn in filelist:
-        photFile = genfromtxt(fn, dtype=float, delimiter=',')
+        photFile = genfromtxt(fn, dtype=float, delimiter=',', skip_header=1)
         logger.info(fn)
         # reject nan entries in file
-        if photFile.size > 16: #ignore zero sized files and files with only one or two entries
+        if photFile.size > 16 and photFile.shape[1] == 8: #ignore zero sized files and files with only one or two entries
             if max(photFile[:,0]) < 360 and max(photFile[:,1]) < 90:
 
                 if (photFile.size > 50):
@@ -309,9 +310,18 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
 
     filterCode = list(filters)[0]
 
-    if filterCode  == 'clear' or filterCode  == 'air' or filterCode=='w' or filterCode=='G':
+    if filterCode  == 'clear' or filterCode  == 'air' or filterCode=='w' or filterCode=='G' or filterCode == 'RGGBclearV':
         filterCode  = 'CV'
 
+    if filterCode  == 'RGGBG1' or filterCode  == 'RGGBG2':
+        filterCode  = 'PG'
+
+    if filterCode  == 'RGGBR1':
+        filterCode  = 'PR'
+
+    if filterCode  == 'RGGBB1':
+        filterCode  = 'PB'
+    
     logger.debug("Filter Set: {}".format(filterCode))
 
     if len(filters) > 1:
@@ -323,7 +333,7 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
 
     return phot_list, filterCode, photFileHolder, photSkyCoord
 
-def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closerejectd=5.0, photCoords=None, photFileHolder=None, mincompstars=0.1, mincompstarstotal=-99, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=3, maxcandidatestars=10000, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, filterCode=None, restrictmagbrightest=-99.0, restrictmagdimmest=99.0, minfractionimages=0.5):
+def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, noskymapper=False,closerejectd=5.0, photCoords=None, photFileHolder=None, mincompstars=0.1, mincompstarstotal=-99, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=3, maxcandidatestars=10000, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, filterCode=None, restrictmagbrightest=-99.0, restrictmagdimmest=99.0, minfractionimages=0.5):
     """
     Finds stars useful for photometry in each photometry/data file
 
@@ -485,7 +495,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                         imgRejFlag=1
 
                     # if the rejectstar list is not empty, remove the stars from the reference List
-                    if rejectStars != []:
+                    if len(rejectStars) != 0:
 
                         if not (((len(rejectStars) / referenceFrame.shape[0]) > starreject) and rejStartCounter > rejectStart):
                             referenceFrame = delete(referenceFrame, rejectStars, axis=0)
@@ -711,8 +721,8 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
     file1.close
 
     # Remove candidate comparisons that are out of the restricted range of colours or magnitudes
-
-    if restrictmagbrightest != -99.0 or restrictmagdimmest !=99.0 or restrictcompcolourcentre != -999.0 or restrictcompcolourrange != -99.0:
+    
+    if restrictmagbrightest > -99.0 or restrictmagdimmest < 99.0 or restrictcompcolourcentre > -99.0 or restrictcompcolourrange > -99.0:
 
         if outputComps.shape[0] == 1 and outputComps.size == 2:
             avgCoord=SkyCoord(ra=(outputComps[0])*degree, dec=(outputComps[1]*degree))
@@ -749,8 +759,10 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
 
         FILTERS = {
                     'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag', 'colmatch' : 'Vmag', 'colerr' : 'e_Vmag', 'colname' : 'B-V', 'colrev' : '0'}},
+                    'PB' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag', 'colmatch' : 'Vmag', 'colerr' : 'e_Vmag', 'colname' : 'B-V', 'colrev' : '0'}},
                     'V' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag', 'colmatch' : 'Bmag', 'colerr' : 'e_Bmag', 'colname' : 'B-V', 'colrev' : '1'}},
-                    'CV' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag', 'colmatch' : 'Bmag', 'colerr' : 'e_Bmag', 'colname' : 'B-V', 'colrev' : '1'}},
+                    'CV' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag', 'colmatch' : 'Bmag', 'colerr' : 'e_Bmag', 'colname' : 'B-V', 'colrev' : '1'}},                    
+                    'PG' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag', 'colmatch' : 'Bmag', 'colerr' : 'e_Bmag', 'colname' : 'B-V', 'colrev' : '1'}},
                     'up' : {'SDSS' : {'filter' : 'umag', 'error' : 'e_umag', 'colmatch' : 'gmag', 'colerr' : 'e_gmag', 'colname' : 'u-g', 'colrev' : '0'},
                             'SkyMapper' : {'filter' : 'uPSF', 'error' : 'e_uPSF', 'colmatch' : 'gPSF', 'colerr' : 'e_gPSF', 'colname' : 'u-g', 'colrev' : '0'}},
                     'gp' : {'SDSS' : {'filter' : 'gmag', 'error' : 'e_gmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'g-r', 'colrev' : '0'},
@@ -758,6 +770,10 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
                             'PanSTARRS': {'filter' : 'gmag', 'error' : 'e_gmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'g-r', 'colrev' : '0'},
                             'APASS' : {'filter' : 'g_mag', 'error' : 'e_g_mag', 'colmatch' : 'r_mag', 'colerr' : 'e_r_mag', 'colname' : 'g-r', 'colrev' : '0'}},
                     'rp' : {'SDSS' : {'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},
+                            'SkyMapper' : {'filter' : 'rPSF', 'error' : 'e_rPSF', 'colmatch' : 'iPSF', 'colerr' : 'e_iPSF', 'colname' : 'r-i', 'colrev' : '0'},
+                            'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},
+                            'APASS' : {'filter' : 'r_mag', 'error' : 'e_r_mag', 'colmatch' : 'i_mag', 'colerr' : 'e_i_mag', 'colname' : 'r-i', 'colrev' : '0'}},
+                    'PR' : {'SDSS' : {'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},
                             'SkyMapper' : {'filter' : 'rPSF', 'error' : 'e_rPSF', 'colmatch' : 'iPSF', 'colerr' : 'e_iPSF', 'colname' : 'r-i', 'colrev' : '0'},
                             'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},
                             'APASS' : {'filter' : 'r_mag', 'error' : 'e_r_mag', 'colmatch' : 'i_mag', 'colerr' : 'e_i_mag', 'colname' : 'r-i', 'colrev' : '0'}},
@@ -828,7 +844,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         calibStandsReject=[]
         calibStands=asarray(calibStands)
 
-        if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and calibStands != []:
+        if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and len(calibStands) != 0:
             for q in range(len(asarray(calibStands)[:,0])):
 
                 if (calibStands[q][3] > restrictmagdimmest) or (calibStands[q][3] < restrictmagbrightest):
@@ -853,7 +869,12 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, closer
         # NOW only keep those stars in outputComps that match calibStands
 
         calibStands=asarray(calibStands)
-        outputComps=column_stack((calibStands[:,0],calibStands[:,1]))
+        print (calibStands)
+        print (len(calibStands))
+        if len(calibStands[:,0]) > 2:
+            outputComps=column_stack((calibStands[:,0],calibStands[:,1]))
+        else:
+            outputComps=column_stack((calibStands[0],calibStands[1]))
 
         logger.info('Removed ' + str(len(calibStandsReject)) + ' Candidate Comparison Stars for being too bright or too dim or the wrong colour')
         

@@ -81,8 +81,12 @@ def plot_variability(output, variableID, parentPath, compFile):
     # star Variability Plot
 
     if output != []: # Do not attempt plot if output array is empty
+<<<<<<< HEAD
         
 
+=======
+    
+>>>>>>> dev
         # If single comp
         if len(compFile) == 3:
             compSkyCoord = SkyCoord(compFile[0],compFile[1], frame='icrs', unit=degree)   
@@ -125,7 +129,11 @@ def plot_variability(output, variableID, parentPath, compFile):
             for q in range(len(compSkyCoord)):
                 idx, d2d, _ = compSkyCoord[q].match_to_catalog_sky(outputSkyCoord)
                 compStarPlot.append([output[idx][2],output[idx][3]])
+<<<<<<< HEAD
                 
+=======
+            
+>>>>>>> dev
     
         plt.cla()
         outplotx = asarray(output)[:, 2]
@@ -138,7 +146,7 @@ def plot_variability(output, variableID, parentPath, compFile):
             plt.plot(np.asarray(calibCompStarPlot)[:,0],np.asarray(calibCompStarPlot)[:,1], 'ro', mfc='none')
         # plt.plot(linex, liney)
 
-        plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04, 'k-')
+        plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04)
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
         plt.savefig(parentPath / 'results/starVariability.png')
@@ -155,7 +163,7 @@ def plot_variability(output, variableID, parentPath, compFile):
         if calibCompExist:
             plt.plot(np.asarray(calibCompStarPlot)[:,0],np.asarray(calibCompStarPlot)[:,1], 'ro', mfc='none')
         # plt.plot(linex, liney)
-        plt.ylim(0.0, 0.2, 'k-')
+        plt.ylim(0.0, 0.2)
         plt.xlim(0.0, 5.0)
         plt.grid(True)
         plt.savefig(parentPath / 'results/starVariability_compare.png')
@@ -174,7 +182,7 @@ def plot_variability(output, variableID, parentPath, compFile):
             plt.plot(np.asarray(calibCompStarPlot)[:,0],np.asarray(calibCompStarPlot)[:,1], 'ro', mfc='none')
         fig.set_size_inches(16,9)
         # plt.plot(linex, liney)
-        plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04, 'k-')
+        plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04)
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
         
@@ -192,7 +200,7 @@ def plot_variability(output, variableID, parentPath, compFile):
         if calibCompExist:
             plt.plot(np.asarray(calibCompStarPlot)[:,0],np.asarray(calibCompStarPlot)[:,1], 'ro', mfc='none')
         # plt.plot(linex, liney)
-        plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04, 'k-')
+        plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04)
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
         plt.savefig(parentPath / 'results/starVariability_withID.png')
@@ -212,7 +220,7 @@ def plot_variability(output, variableID, parentPath, compFile):
             plt.plot(np.asarray(calibCompStarPlot)[:,0],np.asarray(calibCompStarPlot)[:,1], 'ro', mfc='none')
         fig.set_size_inches(16,9)
         # plt.plot(linex, liney)
-        plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04, 'k-')
+        plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04)
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
         plt.savefig(parentPath / 'results/starVariability_Large_withID.png')
@@ -236,7 +244,7 @@ def make_plots(filterCode, paths, photometrydata, fileformat='full'):
             plt.ylabel('Differential ' +filterCode+' Mag')
             plt.plot(outplotx,outploty,'bo')
             
-            plt.ylim(max(outploty)+0.02,min(outploty)-0.02,'k-')
+            plt.ylim(max(outploty)+0.02,min(outploty)-0.02)
             plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
             plt.grid(True)
             if fileformat == 'full' or fileformat == 'png':
@@ -250,7 +258,7 @@ def make_plots(filterCode, paths, photometrydata, fileformat='full'):
             plt.xlabel('Airmass')
             plt.ylabel(f'Differential {filterCode} Mag')
             plt.plot(outplotx,outploty,'bo')
-            plt.ylim(min(outploty)-0.02,max(outploty)+0.02,'k-')
+            plt.ylim(min(outploty)-0.02,max(outploty)+0.02)
             plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
             plt.grid(True)
             if fileformat == 'full' or fileformat == 'png':
@@ -264,7 +272,7 @@ def make_plots(filterCode, paths, photometrydata, fileformat='full'):
             plt.xlabel('Airmass')
             plt.ylabel('Variable Counts')
             plt.plot(outplotx,outploty,'bo')
-            plt.ylim(min(outploty)-1000,max(outploty)+1000,'k-')
+            plt.ylim(min(outploty)-1000,max(outploty)+1000)
             plt.xlim(min(outplotx)-0.01,max(outplotx)+0.01)
             plt.grid(True)
             if fileformat == 'full' or fileformat == 'png':
@@ -290,7 +298,7 @@ def make_calibrated_plots(filterCode, paths, photometrydata):
             plt.xlabel('BJD')
             plt.ylabel(f'Calibrated {filterCode} Mag')
             plt.plot(outplotx, outploty, 'bo')
-            plt.ylim(max(outploty)+0.02, min(outploty)-0.02, 'k-')
+            plt.ylim(max(outploty)+0.02, min(outploty)-0.02)
             plt.xlim(min(outplotx)-0.01, max(outplotx)+0.01)
             plt.grid(True)
             plt.savefig(paths['outputPath'] / f'V{j+1}_EnsembleVarCalibMag.png')
@@ -326,7 +334,7 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
                 plt.ylabel('Apparent {} Magnitude'.format(filterCode))
                 plt.plot(outplotx, outploty, 'bo')
                 # plt.plot(linex, liney)
-                plt.ylim(max(outploty)+0.04, min(outploty)-0.04, 'k-')
+                plt.ylim(max(outploty)+0.04, min(outploty)-0.04)
                 plt.xlim(min(outplotx)-0.01, max(outplotx)+0.01)
                 plt.grid(True)
                 plt.savefig(outputPath / 'Variable{}_{}_Lightcurve.png'.format(q+1,filterCode))
@@ -343,7 +351,7 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
                 plt.ylabel('Apparent ' + str(filterCode) + ' Magnitude')
                 plt.plot(outplotx,outploty,'bo')
                 plt.plot(outplotxrepeat,outploty,'ro')
-                plt.ylim(max(outploty)+0.04,min(outploty)-0.04,'k-')
+                plt.ylim(max(outploty)+0.04,min(outploty)-0.04)
                 plt.xlim(-0.01,2.01)
                 plt.errorbar(outplotx, outploty, yerr=calibFile[:,2], fmt='-o', linestyle='None')
                 plt.errorbar(outplotxrepeat, outploty, yerr=calibFile[:,2], fmt='-o', linestyle='None')

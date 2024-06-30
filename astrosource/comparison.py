@@ -194,13 +194,13 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
 
     logger.info('List of stable comparison candidates output to stdComps.csv')
 
-    savetxt(parentPath / "results/stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/stdComps.csv", sortStars, delimiter=",", fmt='%0.8f',header='RA,Dec,Variability,std_CompDiffMags,med_CompDiffMags,med_InstrMags,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy')
 
     # The following process selects the subset of the candidates that we will use (the least variable comparisons that hopefully get the request countrate)
 
     # Sort through and find the largest file and use that as the reference file
     referenceFrame, fileRaDec = find_reference_frame(photFileArray)
-    savetxt(parentPath / "results/referenceFrame.csv", referenceFrame, delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/referenceFrame.csv", referenceFrame, delimiter=",", fmt='%0.8f', header='RA,Dec,Xpix,Ypix,Counts,Counts_err,Ra_err,Dec_err,dummy,dummy,dummy,dummy')
 
     # SORT THE COMP CANDIDATE FILE such that least variable comparison is first
     sortStars=(sortStars[sortStars[:,2].argsort()])
@@ -252,7 +252,7 @@ def final_candidate_catalogue(parentPath, photFileArray, sortStars, thresholdCou
         f.write('Number of stars used: ' + str(j) +"\n")
 
     outfile = parentPath / "results/compsUsed.csv"
-    savetxt(outfile, compFile, delimiter=",", fmt='%0.8f')
+    savetxt(outfile, compFile, delimiter=",", fmt='%0.8f',header='RA,Dec,Variability')
 
     return outfile, compFile.shape[0]
 
@@ -413,24 +413,32 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     tableFound=False
     # Check VSX for any known variable stars and remove them from the list
     logger.info("Searching for known variable stars in VSX......")
+    vServers = ['vizier.cfa.harvard.edu','vizier.u-strasbg.fr']
+    vS=0
     try:
-        v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
-        v.ROW_LIMIT=-1
-        vServers = ['vizier.u-strasbg.fr',
-             #'vizier.nao.ac.jp',
-             'vizier.cfa.harvard.edu']
-             #'vizier.iucaa.in',
-             #'vizier.china-vo.org',
-             #'vizier.inasan.ru',
-             #'vizier.idia.ac.za']
-        vS=0
-        v.VIZIER_SERVER=vServers[vS]
-        variableResult=v.query_region(avgCoord, radius=1.5*radius*degree, catalog='VSX')
-        if str(variableResult)=="Empty TableList":
-            logger.info("VSX Returned an Empty Table.")
-        else:
-            variableResult=variableResult['B/vsx/vsx']
-            tableFound=True
+        while vS < len(vServers):
+            v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
+            v.ROW_LIMIT=-1
+            
+                 #'vizier.nao.ac.jp',
+                 #]
+                 #'vizier.iucaa.in',
+                 #'vizier.china-vo.org',
+                 #'vizier.inasan.ru',
+                 #'vizier.idia.ac.za']
+            
+            v.VIZIER_SERVER=vServers[vS]
+            vS=vS + 1
+            variableResult=v.query_region(avgCoord, radius=1.5*radius*degree, catalog='VSX')
+            if str(variableResult)=="Empty TableList":
+                logger.info("VSX Returned an Empty Table from " + str(vServers[vS]) + ".")
+            else:
+                try:
+                    variableResult=variableResult['B/vsx/vsx']
+                    tableFound=True
+                    break
+                except:
+                    print ("VSX bugged out")
 
     except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError) :
         connected=False
@@ -495,10 +503,10 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     if (compFile.shape[0] ==1):
         compFile=[[compFile[0][0],compFile[0][1],0.01]]
         compFile=asarray(compFile)
-        savetxt(parentPath / "results/compsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
+        savetxt(parentPath / "results/compsUsed.csv", compFile, delimiter=",", fmt='%0.8f',header='RA,Dec,Variability')
         sortStars=[[compFile[0][0],compFile[0][1],0.01,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]]
         sortStars=asarray(sortStars)
-        savetxt("stdComps.csv", sortStars, delimiter=",", fmt='%0.8f')
+        savetxt("stdComps.csv", sortStars, delimiter=",", fmt='%0.8f',header='RA,Dec,Variability,std_CompDiffMags,med_CompDiffMags,med_InstrMags,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy')
         raise AstrosourceException("Looks like you have a single comparison star!")
     return compFile
 
@@ -538,7 +546,8 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         radecname = {'ra' :'raj2000', 'dec': 'dej2000'}
 
     if cat_name in ['APASS']:
-        searchColumns=[radecname['ra'], radecname['dec'], opt['filter'], opt['error'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag'), opt['colmatch'], opt['colerr'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag')]
+        searchColumns=[]
+        #searchColumns=[radecname['ra'], radecname['dec'], 'i_mag', opt['filter'].replace('i_mag','i\'mag').replace('r_mag','r\'mag').replace('g_mag','g\'mag'), opt['error'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag'), opt['colmatch'].replace('i_mag','i\'mag').replace('r_mag','r\'mag').replace('g_mag','g\'mag'), opt['colerr'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag')]
         #print (searchColumns)
     else:
         searchColumns=[radecname['ra'], radecname['dec'], opt['filter'], opt['error'], opt['colmatch'], opt['colerr']]
@@ -558,10 +567,41 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     elif cat_name == 'APASS':
         queryConstraint={}
 
+
+
+    # vServers = ['vizier.cfa.harvard.edu','vizier.u-strasbg.fr']
+    # vS=0
+    # try:
+    #     while vS < len(vServers):
+    #         v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
+    #         v.ROW_LIMIT=-1
+            
+    #              #'vizier.nao.ac.jp',
+    #              #]
+    #              #'vizier.iucaa.in',
+    #              #'vizier.china-vo.org',
+    #              #'vizier.inasan.ru',
+    #              #'vizier.idia.ac.za']
+            
+    #         v.VIZIER_SERVER=vServers[vS]
+    #         vS=vS + 1
+    #         variableResult=v.query_region(avgCoord, radius=1.5*radius*degree, catalog='VSX')
+    #         if str(variableResult)=="Empty TableList":
+    #             logger.info("VSX Returned an Empty Table from " + str(vServers[vS]) + ".")
+    #         else:
+    #             variableResult=variableResult['B/vsx/vsx']
+    #             tableFound=True
+
     cycler=0
     try:
-        v.VIZIER_SERVER=vServers[vS]
-        query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
+        while vS < len(vServers):
+            v.VIZIER_SERVER=vServers[vS]
+            query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
+            if str(query)=="Empty TableList":
+                vS=vS+1
+            else:
+                break
+            
     except VOSError:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
     except (ConnectionError , requests.exceptions.ConnectionError , http.client.RemoteDisconnected , urllib3.exceptions.ProtocolError):
@@ -614,6 +654,13 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
 
     if len(resp) != 0:
         catReject=[]
+        
+        # v=Vizier() # Skymapper by default does not report the error columns
+        # v.ROW_LIMIT=-1
+        # query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
+        # resp = query[tbname]
+
+        #breakpoint()
 
         for q in range(len(resp)):
             if np.asarray(resp[opt['filter']][q]) == 0.0 or np.asarray(resp[opt['error']][q]) == 0.0 or np.isnan(resp[opt['filter']][q]) or np.isnan(resp[opt['error']][q]):
@@ -654,15 +701,17 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
 
     return data
 
-def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False, colourdetect=False, linearise=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, colourTerm=0.0, colourError=0.0, restrictmagbrightest=-99.9, restrictmagdimmest=99.9, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, photCoordsFile=None, photFileHolder=None, calibSave=False):
+def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, nosdss=False,  noskymapper=False, colourdetect=False, linearise=False, closerejectd=5.0, max_magerr=0.05, stdMultiplier=2, variabilityMultiplier=2, colourTerm=0.0, colourError=0.0, restrictmagbrightest=-99.9, restrictmagdimmest=99.9, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, photCoordsFile=None, photFileHolder=None, calibSave=False):
 
 
     sys.stdout.write("⭐️ Find comparison stars in catalogues for calibrated photometry\n")
 
     FILTERS = {
                 'B' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag', 'colmatch' : 'Vmag', 'colerr' : 'e_Vmag', 'colname' : 'B-V', 'colrev' : '0'}},
+                'PB' : {'APASS' : {'filter' : 'Bmag', 'error' : 'e_Bmag', 'colmatch' : 'Vmag', 'colerr' : 'e_Vmag', 'colname' : 'B-V', 'colrev' : '0'}},
                 'V' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag', 'colmatch' : 'Bmag', 'colerr' : 'e_Bmag', 'colname' : 'B-V', 'colrev' : '1'}},
                 'CV' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag', 'colmatch' : 'Bmag', 'colerr' : 'e_Bmag', 'colname' : 'B-V', 'colrev' : '1'}},
+                'PG' : {'APASS' : {'filter' : 'Vmag', 'error' : 'e_Vmag', 'colmatch' : 'Bmag', 'colerr' : 'e_Bmag', 'colname' : 'B-V', 'colrev' : '1'}},
                 'up' : {'SDSS' : {'filter' : 'umag', 'error' : 'e_umag', 'colmatch' : 'gmag', 'colerr' : 'e_gmag', 'colname' : 'u-g', 'colrev' : '0'},
                         'SkyMapper' : {'filter' : 'uPSF', 'error' : 'e_uPSF', 'colmatch' : 'gPSF', 'colerr' : 'e_gPSF', 'colname' : 'u-g', 'colrev' : '0'}},
                 'gp' : {'SDSS' : {'filter' : 'gmag', 'error' : 'e_gmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'g-r', 'colrev' : '0'},
@@ -673,6 +722,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                         'SkyMapper' : {'filter' : 'rPSF', 'error' : 'e_rPSF', 'colmatch' : 'iPSF', 'colerr' : 'e_iPSF', 'colname' : 'r-i', 'colrev' : '0'},
                         'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},
                         'APASS' : {'filter' : 'r_mag', 'error' : 'e_r_mag', 'colmatch' : 'i_mag', 'colerr' : 'e_i_mag', 'colname' : 'r-i', 'colrev' : '0'}},
+                'PR' : {'SDSS' : {'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},
+                        'SkyMapper' : {'filter' : 'rPSF', 'error' : 'e_rPSF', 'colmatch' : 'iPSF', 'colerr' : 'e_iPSF', 'colname' : 'r-i', 'colrev' : '0'},
+                        'PanSTARRS': {'filter' : 'rmag', 'error' : 'e_rmag', 'colmatch' : 'imag', 'colerr' : 'e_imag', 'colname' : 'r-i', 'colrev' : '0'},
+                        'APASS' : {'filter' : 'r_mag', 'error' : 'e_r_mag', 'colmatch' : 'i_mag', 'colerr' : 'e_i_mag', 'colname' : 'r-i', 'colrev' : '0'}},                
                 'ip' : {'SDSS' : {'filter' : 'imag', 'error' : 'e_imag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-i', 'colrev' : '1'},
                         'SkyMapper' : {'filter' : 'iPSF', 'error' : 'e_iPSF', 'colmatch' : 'rPSF', 'colerr' : 'e_rPSF', 'colname' : 'r-i', 'colrev' : '1'},
                         'PanSTARRS': {'filter' : 'imag', 'error' : 'e_imag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-i', 'colrev' : '1'},
@@ -761,6 +814,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                     logger.info("Skipping PanSTARRS")
                 elif cat_name == 'SDSS' and nosdss==True:
                     logger.info("Skipping SDSS")
+                elif cat_name == 'SkyMapper' and noskymapper==True:
+                    logger.info("Skipping Skymapper")
                 else:
 
                     coords = catalogue_call(avgCoord, 1.5*radius, opt, cat_name, targets=targets, closerejectd=closerejectd)
@@ -877,8 +932,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                     #     coords.colrev = 1
 
                     # Save catalogue search
-                    catalogueOut=np.hstack(np.array([[coords.ra],[coords.dec],[coords.mag],[coords.emag],[coords.colmatch],[coords.colerr]]))
-                    savetxt(parentPath / "results/catalogueSearch.csv", np.asarray(catalogueOut) , delimiter=",", fmt='%0.8f')
+                    catalogueOut=np.transpose(np.vstack(np.array([[coords.ra],[coords.dec],[coords.mag],[coords.emag],[coords.colmatch],[coords.colerr]])))
+                    #catalogueOut=np.array([[coords.ra],[coords.dec],[coords.mag],[coords.emag],[coords.colmatch],[coords.colerr]])
+                    
+                    savetxt(parentPath / "results/catalogueSearch.csv", np.asarray(catalogueOut), newline='\n' , delimiter=",", fmt='%0.8f',header='RA,Dec,Mag,err_Mag,colourmatch_mag,colourmatch_mag_err')
                     del catalogueOut
 
                     #Setup standard catalogue coordinates
@@ -906,10 +963,11 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                                 else:
                                     calibStands.append([compFile[q][0],compFile[q][1],compFile[q][2],coords.mag[idxcomp],coords.emag[idxcomp],compFile[q][3],coords.colmatch[idxcomp],coords.colerr[idxcomp],compFile[q][4]])
 
+                                    
 
                     ### remove stars that that brighter (--restrictmagbrighter) or dimmer (--restrictmagdimmer) than requested.
                     calibStandsReject=[]
-                    if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and calibStands != []:
+                    if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and len(calibStands) != 0:
                         for q in range(len(asarray(calibStands)[:,0])):
 
                             if (calibStands[q][3] > restrictmagdimmest) or (calibStands[q][3] < restrictmagbrightest):
@@ -935,18 +993,19 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
                     calibStandsReject=[]
 
-                    if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and calibStands != []:
+                    if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and len(calibStands) != 0:
                         for q in range(len(asarray(calibStands)[:,0])):
                             reject=0
-                            if colourdetect == True:
-                                if np.isnan(calibStands[q][6]): # if no matching colour
-                                    reject=1
-                                elif calibStands[q][6] == 0:
-                                    reject=1
-                                elif np.isnan(calibStands[q][7]):
-                                    reject=1
-                                elif calibStands[q][7] == 0:
-                                    reject=1
+                            #if colourdetect == True:
+                            # There needs to be a colour in here to make various plots.
+                            if np.isnan(calibStands[q][6]): # if no matching colour
+                                reject=1
+                            elif calibStands[q][6] == 0:
+                                reject=1
+                            elif np.isnan(calibStands[q][7]):
+                                reject=1
+                            elif calibStands[q][7] == 0:
+                                reject=1
                             if np.isnan(calibStands[q][3]): # If no magnitude info
                                 reject=1
                             elif calibStands[q][3] == 0:
@@ -961,13 +1020,15 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
                         if len(calibStandsReject) != len(asarray(calibStands)[:,0]):
                             calibStands=delete(calibStands, calibStandsReject, axis=0)
-
-                    if asarray(calibStands).shape[0] != 0:
-                        logger.debug('Calibration Stars Identified below')
-                        tabl = PrettyTable()
-                        tabl.field_names = ["RA","Dec","MagDiff","Mag"]
-                        tabl.add_rows(calibStands[:,0:4])
-                        logger.debug(tabl)
+                    try:
+                        if asarray(calibStands).shape[0] != 0:
+                            logger.debug('Calibration Stars Identified below')
+                            tabl = PrettyTable()
+                            tabl.field_names = ["RA","Dec","MagDiff","Mag"]
+                            tabl.add_rows(calibStands[:,0:4])
+                            logger.debug(tabl)
+                    except:
+                        print ("something fishy in the calib mags table")
 
                     # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
                     if asarray(calibStands).shape[0] == 0:
@@ -975,7 +1036,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                         coords=[]
                         raise AstrosourceException("There is no adequate match between this catalogue and your comparisons.")
 
-                    if coords !=[] and calibStands !=[]:
+                    if len(coords.mag) !=0 and len(calibStands) !=0:
                         cat_used=cat_name
 
         except AstrosourceException as e:
@@ -984,7 +1045,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     if not coords or len(coords.ra)==0:
         raise AstrosourceException(f"Could not find coordinate match in any catalogues for {filterCode}")
 
-    savetxt(parentPath / "results/calibStandsAll.csv", calibStands , delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/calibStandsAll.csv", calibStands , delimiter=",", fmt='%0.8f', header='RA,Dec,Variability,Mag,Mag_err,fillincolumn,colourmatch_Mag,colourmatch_Magerr,fillincolumn')
 
     # Colour Term Calculations
     colname=(opt['colname'])
@@ -1049,32 +1110,38 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         colTemp=delete(colTemp, calibStandsReject, axis=0)
 
     # Pre-colour Reference plot
-    plt.cla()
-    fig = plt.gcf()
-    outplotx=colTemp[:,4]
-    outploty=colTemp[:,2]-colTemp[:,0]
-    weights=1/(colTemp[:,3])
-    linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
-    linB = outploty * np.sqrt(weights)
-    sqsol = np.linalg.lstsq(linA,linB, rcond=None)
-    m, c = sqsol[0]
-    x, residuals, rank, s = sqsol
+    
+        plt.cla()
+        fig = plt.gcf()
+        outplotx=colTemp[:,4]
+        outploty=colTemp[:,2]-colTemp[:,0]
+        weights=1/(colTemp[:,3])
+        plt.xlabel(colname + ' Catalogue Colour')
+        plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
+        plt.plot(outplotx,outploty,'bo')
+        try:
+            linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
+            linB = outploty * np.sqrt(weights)
+            sqsol = np.linalg.lstsq(linA,linB, rcond=None)
+            m, c = sqsol[0]
+            x, residuals, rank, s = sqsol
+            plt.plot(outplotx,m*outplotx+c,'r')
+        except:
+            logger.info("Couldn't fit a line to pre-colour reference plot")
 
-    plt.xlabel(colname + ' Catalogue Colour')
-    plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
-    plt.plot(outplotx,outploty,'bo')
-    plt.plot(outplotx,m*outplotx+c,'r')
-    plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
-    plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
-    plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
-    plt.grid(True)
-    plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
-    fig.set_size_inches(6,3)
-    plt.savefig(parentPath / str("results/CalibrationSanityPlot_PreColour_Reference.png"))
-    plt.savefig(parentPath / str("results/CalibrationSanityPlot_PreColour_Reference.eps"))
-
-    logger.info('Estimated Colour Slope in Reference Frame: ' + str(m))
-
+        
+        
+        plt.ylim(max(outploty)+0.05,min(outploty)-0.05)
+        plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+        plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
+        plt.grid(True)
+        plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+        fig.set_size_inches(6,3)
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_PreColour_Reference.png"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_PreColour_Reference.eps"))
+    
+        logger.info('Estimated Colour Slope in Reference Frame: ' + str(m))
+    
     # MAKE ALL PRE-COLOUR PLOTS
 
     if colourdetect == True and colourTerm == 0.0:
@@ -1137,35 +1204,41 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
 
             # Colour Term Reference plot
-            plt.cla()
-            fig = plt.gcf()
-            outplotx=colTemp[:,4]
-            outploty=colTemp[:,2]-colTemp[:,0]
-            #Weighted fit, weighted by error in this dataset
-            weights=1/(colTemp[:,3])
-            linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
-            linB = outploty * np.sqrt(weights)
-            sqsol = np.linalg.lstsq(linA,linB, rcond=None)
-            m, c = sqsol[0]
-            x, residuals, rank, s = sqsol
-
-            plt.xlabel(colname + ' Catalogue Colour')
-            plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
-            plt.plot(outplotx,outploty,'bo')
-            plt.plot(outplotx,m*outplotx+c,'r')
-            plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
-            plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
-            plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
-            plt.grid(True)
-            plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
-            fig.set_size_inches(6,3)
-            #breakpoint()
-            plt.savefig(colourPath / str("CalibrationSanityPlot_Colour_" + str(z) + "_Pre.png"))
-            plt.savefig(colourPath  / str("CalibrationSanityPlot_Colour_" + str(z) + "_Pre.eps"))
-
-            slopeHolder.append(m)
-            zeroHolder.append(c)
-
+            try:
+                plt.cla()
+                fig = plt.gcf()
+                outplotx=colTemp[:,4]
+                outploty=colTemp[:,2]-colTemp[:,0]
+                #Weighted fit, weighted by error in this dataset
+                weights=1/(colTemp[:,3])
+                plt.xlabel(colname + ' Catalogue Colour')
+                plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
+                plt.plot(outplotx,outploty,'bo')
+                plt.ylim(max(outploty)+0.05,min(outploty)-0.05)
+                plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+                plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
+                
+                try:
+                    linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
+                    linB = outploty * np.sqrt(weights)
+                    sqsol = np.linalg.lstsq(linA,linB, rcond=None)
+                    m, c = sqsol[0]
+                    x, residuals, rank, s = sqsol
+                    plt.plot(outplotx,m*outplotx+c,'r')
+                    slopeHolder.append(m)
+                    zeroHolder.append(c)
+                except:
+                    print ("Couldn't fit a line to the colour term reference plot")
+                plt.grid(True)
+                plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+                fig.set_size_inches(6,3)
+                #breakpoint()
+                plt.savefig(colourPath / str("CalibrationSanityPlot_Colour_" + str(z) + "_Pre.png"))
+                plt.savefig(colourPath  / str("CalibrationSanityPlot_Colour_" + str(z) + "_Pre.eps"))
+    
+                
+            except:
+                print ("Couldn't make colour term reference plot")
         # Reject outliers in colour slope
         outReject=[]
         while True:
@@ -1232,7 +1305,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         else:
             calibStands=delete(calibStands, calibStandsReject, axis=0)
 
-    savetxt(parentPath / "results/calibStands.csv", calibStands , delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/calibStands.csv", calibStands , delimiter=",", fmt='%0.8f', header='RA,Dec,Variability,Mag,Mag_err,fillincolumn,colourmatch_Mag,colourmatch_Magerr,fillincolumn')
 
     # Lets use this set to calibrate each datafile and pull out the calibrated compsused magnitudes
     compUsedFile = genfromtxt(parentPath / 'results/compsUsed.csv', dtype=float, delimiter=',')
@@ -1391,7 +1464,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 plt.xlabel(colname + ' Catalogue Colour')
                 plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
                 plt.plot(outplotx,outploty,'bo')
-                plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
+                plt.ylim(max(outploty)+0.05,min(outploty)-0.05)
                 plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
                 plt.errorbar(outplotx, outploty, yerr=calibOut[:,1], fmt='-o', linestyle='None')
                 plt.grid(True)
@@ -1471,26 +1544,34 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     outplotx=colTemp[:,4]
     outploty=colTemp[:,2]-colTemp[:,0]
     weights=1/(colTemp[:,3])
-    linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
-    linB = outploty * np.sqrt(weights)
-    sqsol = np.linalg.lstsq(linA,linB, rcond=None)
-    m, c = sqsol[0]
-    x, residuals, rank, s = sqsol
-
+    
     plt.xlabel(colname + ' Catalogue Colour')
     plt.ylabel('Instrumental - Calibrated ' + str(filterCode) + ' Mag')
     plt.plot(outplotx,outploty,'bo')
-    plt.plot(outplotx,m*outplotx+c,'r')
-    plt.ylim(max(outploty)+0.05,min(outploty)-0.05,'k-')
-    plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
-    plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
-    plt.grid(True)
-    plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
-    fig.set_size_inches(6,3)
-    plt.savefig(parentPath / str("results/CalibrationSanityPlot_POSTColour_Reference.png"))
-    plt.savefig(parentPath / str("results/CalibrationSanityPlot_POSTColour_Reference.eps"))
-
-    logger.info('Estimated POST Colour Slope in Reference Frame: ' + str(m))
+    
+    try:
+        linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
+        linB = outploty * np.sqrt(weights)
+        sqsol = np.linalg.lstsq(linA,linB, rcond=None)
+        m, c = sqsol[0]
+        x, residuals, rank, s = sqsol
+        plt.plot(outplotx,m*outplotx+c,'r')
+        
+    except:
+        logger.info("Couldn't fit a line to colour plot2")
+    try:
+        plt.ylim(max(outploty)+0.05,min(outploty)-0.05)
+        plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
+        plt.errorbar(outplotx, outploty, yerr=colTemp[:,3], fmt='-o', linestyle='None')
+        plt.grid(True)
+        plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
+        fig.set_size_inches(6,3)
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_POSTColour_Reference.png"))
+        plt.savefig(parentPath / str("results/CalibrationSanityPlot_POSTColour_Reference.eps"))
+    
+        logger.info('Estimated POST Colour Slope in Reference Frame: ' + str(m))
+    except:
+        logger.info('Could not make POST colour slope plot')
 
     if emptyCalibFlag==1:
         logger.info("\nSome or all of the photometry files did not calibrate successfully due to NAN values in the calibration catalogue.")
@@ -1537,7 +1618,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.savefig(parentPath / str("results/CalibrationSanityPlot_CORRECTEDColourTermHistogram.eps"))
 
     calibOverlord=asarray(calibOverlord)
-    savetxt(parentPath / "results/CalibAll.csv", calibOverlord, delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/CalibAll.csv", calibOverlord, delimiter=",", fmt='%0.8f',header='RA,DEC,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy')
 
 
     logger.info("*********************")
@@ -1559,7 +1640,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.plot(outplotx,outploty,'bo')
         plt.plot(outplotx,m*outplotx+c,'r')
 
-        plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
+        plt.ylim(min(outploty)-0.05,max(outploty)+0.05)
         plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
         plt.grid(True)
         plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
@@ -1647,7 +1728,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.plot(outplotx,outploty,'bo')
         plt.plot(outplotx,m*outplotx+c,'r')
 
-        plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
+        plt.ylim(min(outploty)-0.05,max(outploty)+0.05)
         plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
         plt.grid(True)
         plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
@@ -1684,7 +1765,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.ylabel('Calibrated - Catalogue Magnitude')
         plt.plot(outplotx,outploty,'bo')
         plt.plot(outplotx,m*outplotx+c,'r')
-        plt.ylim(min(outploty)-0.05,max(outploty)+0.05,'k-')
+        plt.ylim(min(outploty)-0.05,max(outploty)+0.05)
         plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
         plt.grid(True)
         plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
@@ -1736,7 +1817,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         f.write("Standard Error/Uncertainty in Calibration: " +str(errCalib))
 
     compFile = asarray(finalCompUsedFile)
-    savetxt(parentPath / "results/calibCompsUsed.csv", compFile, delimiter=",", fmt='%0.8f')
+    savetxt(parentPath / "results/calibCompsUsed.csv", compFile, delimiter=",", fmt='%0.8f',header='RA,Dec,Variability')
     sys.stdout.write('\n')
 
     return colourTerm, colourError, compFile
