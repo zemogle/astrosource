@@ -81,12 +81,7 @@ def plot_variability(output, variableID, parentPath, compFile):
     # star Variability Plot
 
     if output != []: # Do not attempt plot if output array is empty
-<<<<<<< HEAD
-        
-
-=======
     
->>>>>>> dev
         # If single comp
         if len(compFile) == 3:
             compSkyCoord = SkyCoord(compFile[0],compFile[1], frame='icrs', unit=degree)   
@@ -129,11 +124,7 @@ def plot_variability(output, variableID, parentPath, compFile):
             for q in range(len(compSkyCoord)):
                 idx, d2d, _ = compSkyCoord[q].match_to_catalog_sky(outputSkyCoord)
                 compStarPlot.append([output[idx][2],output[idx][3]])
-<<<<<<< HEAD
-                
-=======
             
->>>>>>> dev
     
         plt.cla()
         outplotx = asarray(output)[:, 2]
