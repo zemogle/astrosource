@@ -13,7 +13,6 @@ import os
 from tqdm import tqdm
 #import traceback
 import logging
-from multiprocessing import Pool
 
 #from astrosource.utils import photometry_files_to_array, AstrosourceException
 from astrosource.utils import AstrosourceException
@@ -55,56 +54,6 @@ def get_total_counts(photFileArray, compFile, loopLength, photCoords):
         allCountsArray.append([allCounts, allCountsErr])
     #logger.debug(allCountsArray)
     return allCountsArray
-
-def process_varsearch_target(target, photFileArray, allCountsArray, matchRadius, minimumNoOfObs):
-    diffMagHolder = []
-    
-    for allcountscount, photFile in enumerate(photFileArray):
-        # Efficiently calculate the closest match using numpy
-        idx = (np.abs(photFile[:, 0] - target[0]) + np.abs(photFile[:, 1] - target[1])).argmin()
-        d2d = np.sqrt((photFile[idx, 0] - target[0])**2 + (photFile[idx, 1] - target[1])**2) * 3600
-        multTemp = -2.5 * np.log10(photFile[idx, 11] / allCountsArray[allcountscount][0])
-        
-        if d2d < matchRadius and not np.isinf(multTemp):
-            diffMagHolder.append(multTemp)
-    
-    # Remove major outliers
-    diffMagHolder = np.array(diffMagHolder)
-    while True:
-        stdVar = np.std(diffMagHolder)
-        avgVar = np.mean(diffMagHolder)
-        sizeBefore = diffMagHolder.size
-
-        # Mask outliers
-        mask = (diffMagHolder <= avgVar + 4 * stdVar) & (diffMagHolder >= avgVar - 4 * stdVar)
-        diffMagHolder = diffMagHolder[mask]
-
-        if diffMagHolder.size == sizeBefore:
-            break
-
-    # Append to output if sufficient observations are available
-    if diffMagHolder.size > minimumNoOfObs:
-        return [target[0], target[1], np.median(diffMagHolder), np.std(diffMagHolder), diffMagHolder.size]
-    return None
-
-
-def process_varsearch_targets_multiprocessing(targetFile, photFileArray, allCountsArray, matchRadius, minimumNoOfObs):
-    # Partial function to pass shared arguments
-    from functools import partial
-    worker = partial(
-        process_varsearch_target,
-        photFileArray=photFileArray,
-        allCountsArray=allCountsArray,
-        matchRadius=matchRadius,
-        minimumNoOfObs=minimumNoOfObs,
-    )
-    
-    # Multiprocessing with Pool
-    with Pool() as pool:
-        results = pool.map(worker, targetFile)
-    
-    # Filter out None results
-    return [res for res in results if res is not None]
 
 def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None, varsearchglobalstdev=-99.9, varsearchthresh=10000, varsearchstdev=2.0, varsearchmagwidth=0.25, varsearchminimages=0.3, photCoords=None, photFileHolder=None, fileList=None):
     '''
@@ -175,44 +124,39 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     logger.info("Measuring variability of stars...... ")
     taketime=time.time()
 
-    # for target in targetFile:
-    #     diffMagHolder=[]
-    #     allcountscount=0
+    for target in targetFile:
+        diffMagHolder=[]
+        allcountscount=0
 
         
-    #     for photFile in photFileArray:
-    #         # A bit rougher than using SkyCoord, but way faster
-    #         # The amount of calculations is too slow for SkyCoord
-    #         idx=(np.abs(photFile[:,0] - target[0]) + np.abs(photFile[:,1] - target[1])).argmin()
-    #         d2d=pow(pow(photFile[idx,0] - target[0],2) + pow(photFile[idx,1] - target[1],2),0.5) * 3600
-    #         multTemp=(multiply(-2.5,log10(divide(photFile[idx][11],allCountsArray[allcountscount][0]))))
-    #         if less(d2d, matchRadius) and (multTemp != inf) :
-    #             diffMagHolder=append(diffMagHolder,multTemp)
-    #         allcountscount=add(allcountscount,1)
+        for photFile in photFileArray:
+            # A bit rougher than using SkyCoord, but way faster
+            # The amount of calculations is too slow for SkyCoord
+            idx=(np.abs(photFile[:,0] - target[0]) + np.abs(photFile[:,1] - target[1])).argmin()
+            d2d=pow(pow(photFile[idx,0] - target[0],2) + pow(photFile[idx,1] - target[1],2),0.5) * 3600
+            multTemp=(multiply(-2.5,log10(divide(photFile[idx][11],allCountsArray[allcountscount][0]))))
+            if less(d2d, matchRadius) and (multTemp != inf) :
+                diffMagHolder=append(diffMagHolder,multTemp)
+            allcountscount=add(allcountscount,1)
             
-    #     ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
-    #     diffMagHolder=np.array(diffMagHolder)
-    #     while True:
-    #         stdVar=std(diffMagHolder)
-    #         avgVar=average(diffMagHolder)
+        ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
+        diffMagHolder=np.array(diffMagHolder)
+        while True:
+            stdVar=std(diffMagHolder)
+            avgVar=average(diffMagHolder)
 
-    #         sizeBefore=diffMagHolder.shape[0]
-    #         #print (sizeBefore)
+            sizeBefore=diffMagHolder.shape[0]
+            #print (sizeBefore)
 
-    #         diffMagHolder[diffMagHolder > avgVar+(4*stdVar) ] = np.nan
-    #         diffMagHolder[diffMagHolder < avgVar-(4*stdVar) ] = np.nan
-    #         diffMagHolder=diffMagHolder[~np.isnan(diffMagHolder)]
+            diffMagHolder[diffMagHolder > avgVar+(4*stdVar) ] = np.nan
+            diffMagHolder[diffMagHolder < avgVar-(4*stdVar) ] = np.nan
+            diffMagHolder=diffMagHolder[~np.isnan(diffMagHolder)]
 
-    #         if diffMagHolder.shape[0] == sizeBefore:
-    #             break
+            if diffMagHolder.shape[0] == sizeBefore:
+                break
 
-    #     if (diffMagHolder.shape[0] > minimumNoOfObs):
-    #         outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), diffMagHolder.shape[0]])
-
-# process_varsearch_target
-    outputVariableHolder = process_varsearch_targets_multiprocessing(
-        targetFile, photFileArray, allCountsArray, matchRadius, minimumNoOfObs
-    )
+        if (diffMagHolder.shape[0] > minimumNoOfObs):
+            outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), diffMagHolder.shape[0]])
 
     print ("Star Variability done in " + str(time.time()-taketime))
 
