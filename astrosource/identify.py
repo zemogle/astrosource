@@ -331,7 +331,7 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
     def process_file(fn, racut, deccut, radiuscut, ignoreedgefraction, lowestcounts, logger):
         try:
             # Read the file
-            photFile = genfromtxt(fn, dtype=float, delimiter=',', skip_header=1)
+            photFile = genfromtxt(fn, dtype=float, delimiter=',', skip_header=1, invalid_raise=False)
             logger.info(fn)
     
             # Validate file shape and range
