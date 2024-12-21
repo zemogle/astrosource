@@ -13,7 +13,7 @@ import pickle
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
+from multiprocessing import Pool, cpu_count
 from numpy import min, max, median, std, isnan, delete, genfromtxt, savetxt, load, \
     asarray, add, append, log10, average, array, where, cos
 from astropy.units import degree, arcsecond
@@ -282,77 +282,184 @@ def read_data_files(parentPath, fileList):
 
 def ensemble_comparisons(photFileArray, compFile, parentPath, photSkyCoord):
 
-    # get rid of dumb for loop
-    fileCount = []
-    q=0
-    for photFile in photFileArray:
-        allCounts = 0.0
+    # # get rid of dumb for loop
+    # fileCount = []
+    # q=0
+    # for photFile in photFileArray:
+    #     allCounts = 0.0
 
-        if compFile.size ==2 and compFile.shape[0]==2:
-            matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-        else:
-            matchCoord = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
+    #     if compFile.size ==2 and compFile.shape[0]==2:
+    #         matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+    #     else:
+    #         matchCoord = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
 
-        idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
+    #     idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
 
-        allCounts = add(allCounts,sum(photFile[idx,4]))
+    #     allCounts = add(allCounts,sum(photFile[idx,4]))
 
-        fileCount.append(allCounts)
-        q=q+1
+    #     fileCount.append(allCounts)
+    #     q=q+1
 
-    logger.debug("Total Ensemble Star Counts in Reference Frame {}".format(np.sum(np.array(fileCount))))
+    # logger.debug("Total Ensemble Star Counts in Reference Frame {}".format(np.sum(np.array(fileCount))))
+    # return fileCount
+    
+    #degree = np.deg2rad(1)  # Degree to radians conversion
+    fileCount = np.zeros(len(photFileArray))  # Pre-allocate output array
+
+    # Prepare the `matchCoord` SkyCoord object
+    if compFile.size == 2 and compFile.shape[0] == 2:
+        matchCoord = SkyCoord(ra=compFile[0] * degree, dec=compFile[1] * degree)
+    else:
+        matchCoord = SkyCoord(ra=compFile[:,0] * degree, dec=compFile[:,1] * degree)
+
+    # Process all photSkyCoord entries in a vectorized way
+    for q, (photFile, skyCoord) in enumerate(zip(photFileArray, photSkyCoord)):
+        # Match coordinates
+        idx, _, _ = matchCoord.match_to_catalog_sky(skyCoord)
+        # Accumulate counts
+        fileCount[q] = np.sum(photFile[idx, 4])
+
+    total_counts = np.sum(fileCount)
+    logger.debug("Total Ensemble Star Counts in Reference Frame {}".format(total_counts))
     return fileCount
 
+
+# def process_phot_file_for_variation(args):
+#     """
+#     Process a single photFileArray element.
+#     """
+#     q, matchCoord, photSkyCoord, photFileArray, fileCount = args
+
+#     photFile = photFileArray[q]
+#     idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
+#     comp_diff_mag = 2.5 * np.log10(photFile[idx][4] / fileCount[q])
+#     instr_mag = -2.5 * np.log10(photFile[idx][4])
+
+#     return comp_diff_mag, instr_mag
+
+def process_phot_file_for_variation(args):
+    q, matchCoord, photSkyCoord, photFileArray, fileCount = args
+    idx, _, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
+    photFile = photFileArray[q]
+    compDiffMags = 2.5 * np.log10(photFile[idx, 4] / fileCount[q])
+    instrMags = -2.5 * np.log10(photFile[idx, 4])
+    return compDiffMags, instrMags
+
 def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPath, photSkyCoord):
-    stdCompStar=[]
-    sortStars=[]
+    # stdCompStar=[]
+    # sortStars=[]
+    # logger.debug("Calculating Variation in Individual Comparisons")
+
+    # if compFile.size ==2 and compFile.shape[0]==2:
+    #     compDiffMags = []
+
+    #     # matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+    #     # for q, photFile in enumerate(photFileArray):
+    #     #     idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
+    #     #     compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
+    #     #     instrMags = -2.5 * log10(photFile[idx][4])
+
+        
+    #     matchCoord = SkyCoord(ra=compFile[0] * degree, dec=compFile[1] * degree)
+    #     args = [(q, matchCoord, photSkyCoord, photFileArray, fileCount) for q in range(len(photFileArray))]
+    
+    #     with Pool() as pool:
+    #         results = pool.map(process_phot_file_for_variation, args)
+    
+    #     # Unpack results
+    #     compDiffMags = np.array([result[0] for result in results])
+    #     instrMags = np.array([result[1] for result in results])
+
+    #     stdCompDiffMags=std(compDiffMags)
+    #     medCompDiffMags=np.nanmedian(compDiffMags)
+    #     medInstrMags= np.nanmedian(instrMags)
+
+    #     if np.isnan(stdCompDiffMags) :
+    #         logger.error("Star Variability non rejected")
+    #         stdCompDiffMags=99
+    #     stdCompStar.append(stdCompDiffMags)
+    #     sortStars.append([compFile[0],compFile[1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+
+
+
+    # else:
+    #     sortStars=[]
+    #     compDiffMags = []
+    #     instrMags=[]
+    #     matchCoord = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
+    #     for q, photFile in enumerate(photFileArray):
+    #         idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
+    #         compDiffMags.append(2.5 * log10(photFile[idx,4]/fileCount[q]))
+    #         instrMags.append(-2.5 * log10(photFile[idx,4]))
+
+    #     compDiffMags=array(compDiffMags)
+    #     instrMags=array(instrMags)
+
+    #     sortStars=[]
+    #     for z in range(len(compDiffMags[0])):
+    #         stdCompDiffMags=std(compDiffMags[:,z])
+    #         medCompDiffMags=np.nanmedian(compDiffMags[:,z])
+    #         medInstrMags=np.nanmedian(instrMags[:,z])
+    #         if np.isnan(stdCompDiffMags) :
+    #             logger.error("Star Variability non rejected")
+    #             stdCompDiffMags=99
+    #         stdCompStar.append(stdCompDiffMags)
+    #         sortStars.append([compFile[z,0],compFile[z,1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+
+    # return stdCompStar, sortStars
+    
+    stdCompStar = []
+    sortStars = []
     logger.debug("Calculating Variation in Individual Comparisons")
 
-    if compFile.size ==2 and compFile.shape[0]==2:
-        compDiffMags = []
+    if compFile.size == 2 and compFile.shape[0] == 2:
+        # Case for single comparison star
+        matchCoord = SkyCoord(ra=compFile[0] * degree, dec=compFile[1] * degree)
 
-        matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-        for q, photFile in enumerate(photFileArray):
-            idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
-            compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
-            instrMags = -2.5 * log10(photFile[idx][4])
+        args = [(q, matchCoord, photSkyCoord, photFileArray, fileCount) for q in range(len(photFileArray))]
+        
+        with Pool(processes=max([cpu_count()-1,1])) as pool:
+            results = pool.map(process_phot_file_for_variation, args)
+        
+        compDiffMags = np.array([result[0] for result in results])
+        instrMags = np.array([result[1] for result in results])
+        
+        stdCompDiffMags = np.std(compDiffMags)
+        medCompDiffMags = np.nanmedian(compDiffMags)
+        medInstrMags = np.nanmedian(instrMags)
 
-
-        stdCompDiffMags=std(compDiffMags)
-        medCompDiffMags=np.nanmedian(compDiffMags)
-        medInstrMags= np.nanmedian(instrMags)
-
-        if np.isnan(stdCompDiffMags) :
+        if np.isnan(stdCompDiffMags):
             logger.error("Star Variability non rejected")
-            stdCompDiffMags=99
+            stdCompDiffMags = 99
+
         stdCompStar.append(stdCompDiffMags)
-        sortStars.append([compFile[0],compFile[1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-
-
+        sortStars.append([compFile[0], compFile[1], stdCompDiffMags, medCompDiffMags, medInstrMags] + [0.0] * 8)
 
     else:
-        sortStars=[]
+        # Case for multiple comparison stars
+        matchCoord = SkyCoord(ra=compFile[:, 0] * degree, dec=compFile[:, 1] * degree)
         compDiffMags = []
-        instrMags=[]
-        matchCoord = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
+        instrMags = []
+
         for q, photFile in enumerate(photFileArray):
-            idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
-            compDiffMags.append(2.5 * log10(photFile[idx,4]/fileCount[q]))
-            instrMags.append(-2.5 * log10(photFile[idx,4]))
+            idx, _, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
+            compDiffMags.append(2.5 * np.log10(photFile[idx, 4] / fileCount[q]))
+            instrMags.append(-2.5 * np.log10(photFile[idx, 4]))
 
-        compDiffMags=array(compDiffMags)
-        instrMags=array(instrMags)
+        compDiffMags = np.array(compDiffMags)
+        instrMags = np.array(instrMags)
 
-        sortStars=[]
-        for z in range(len(compDiffMags[0])):
-            stdCompDiffMags=std(compDiffMags[:,z])
-            medCompDiffMags=np.nanmedian(compDiffMags[:,z])
-            medInstrMags=np.nanmedian(instrMags[:,z])
-            if np.isnan(stdCompDiffMags) :
+        for z in range(compDiffMags.shape[1]):
+            stdCompDiffMags = np.std(compDiffMags[:, z])
+            medCompDiffMags = np.nanmedian(compDiffMags[:, z])
+            medInstrMags = np.nanmedian(instrMags[:, z])
+
+            if np.isnan(stdCompDiffMags):
                 logger.error("Star Variability non rejected")
-                stdCompDiffMags=99
+                stdCompDiffMags = 99
+
             stdCompStar.append(stdCompDiffMags)
-            sortStars.append([compFile[z,0],compFile[z,1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+            sortStars.append([compFile[z, 0], compFile[z, 1], stdCompDiffMags, medCompDiffMags, medInstrMags] + [0.0] * 8)
 
     return stdCompStar, sortStars
 
@@ -1029,6 +1136,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                             logger.debug(tabl)
                     except:
                         print ("something fishy in the calib mags table")
+                        import traceback; logger.error(traceback.print_exc())
 
                     # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
                     if asarray(calibStands).shape[0] == 0:

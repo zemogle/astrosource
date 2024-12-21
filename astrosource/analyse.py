@@ -13,12 +13,14 @@ import os
 from tqdm import tqdm
 #import traceback
 import logging
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 
 #from astrosource.utils import photometry_files_to_array, AstrosourceException
 from astrosource.utils import AstrosourceException
 from astrosource.plots import plot_variability
+from astropy.stats import sigma_clip
 
+from scipy.optimize import curve_fit
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -100,11 +102,170 @@ def process_varsearch_targets_multiprocessing(targetFile, photFileArray, allCoun
     )
     
     # Multiprocessing with Pool
-    with Pool() as pool:
+    with Pool(processes=max([cpu_count()-1,1])) as pool:
         results = pool.map(worker, targetFile)
     
     # Filter out None results
     return [res for res in results if res is not None]
+
+
+def fit_sigma_clipped_poly(x, y, order=3, sigma=2, parentPath=''):
+    """
+    Fits a sigma-clipped polynomial to the data and identifies outliers.
+
+    Parameters:
+    x (array-like): The x-values of the data points.
+    y (array-like): The y-values of the data points.
+    order (int): The order of the polynomial to fit (default: 3).
+    sigma (float): The number of standard deviations for sigma clipping (default: 2).
+
+    Returns:
+    None (plots the data, fitted polynomial, and identified outliers).
+    """
+    # Ensure inputs are numpy arrays
+    x = np.array(x)
+    y = np.array(y)
+
+    # Sigma clipping
+    clipped_data = sigma_clip(y, sigma=sigma, maxiters=5)
+    mask = clipped_data.mask
+
+    # Fit polynomial to non-masked data
+    poly_coeff = np.polyfit(x[~mask], y[~mask], order)
+    poly_func = np.poly1d(poly_coeff)
+
+    # Calculate residuals and standard deviation
+    y_fit = poly_func(x)
+    residuals = y - y_fit
+    std_dev = np.std(residuals[~mask])
+
+    # Identify outliers
+    outliers = residuals > (2 * std_dev)
+
+    # Plot results
+    plt.figure(figsize=(10, 6))
+    plt.scatter(x, y, color='blue', label='Data')
+    plt.plot(x, y_fit, color='red', label=f'{order}-order Polynomial Fit')
+    plt.scatter(x[outliers], y[outliers], color='orange', label='Outliers (>2 std dev)', zorder=5)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title('Sigma-Clipped Polynomial Fit and Outliers')
+    plt.legend()
+    plt.grid(True)
+    #plt.show()
+    
+    plt.savefig(parentPath / "results/polifitdiagram.png")
+    
+    #breakpoint()
+
+def sigmoid_func(x, L, k, x0):
+    """Sigmoid function: y = L / (1 + exp(-k * (x - x0))) + 0.01"""
+    return L / (1 + np.exp(-k * (x - x0))) + 0.01
+
+def fit_sigma_clipped_sigmoid(x, y, sigma=2, parentPath=''):
+    """
+    Fits a sigma-clipped sigmoid function to the data with weighted fitting and identifies outliers.
+
+    Parameters:
+    x (array-like): The x-values of the data points.
+    y (array-like): The y-values of the data points.
+    sigma (float): The number of standard deviations for sigma clipping (default: 2).
+
+    Returns:
+    outlier_indices (array): Indices of the identified outliers.
+    """
+    # Ensure inputs are numpy arrays
+    x = np.array(x)
+    y = np.array(y)
+
+    # Sigma clipping
+    clipped_data = sigma_clip(y, sigma=sigma, maxiters=5)
+    mask = clipped_data.mask
+
+    # Create weights that emphasize the middle of the x-range
+    weights = np.exp(-((x - np.median(x))**2) / (2 * (np.std(x) / 2)**2))
+
+    # Fit sigmoid function to non-masked data with weights
+    p0 = [max(y), 1, np.median(x)]  # Initial guesses for L, k, x0
+    popt, _ = curve_fit(sigmoid_func, x[~mask], y[~mask], p0=p0, sigma=1/weights[~mask])
+
+    # Calculate residuals and standard deviation
+    y_fit = sigmoid_func(x, *popt)
+    residuals = y - y_fit
+    std_dev = np.std(residuals[~mask])
+
+    # Identify outliers
+    outliers = residuals > (2 * std_dev)
+    outlier_indices = np.where(outliers)[0]
+
+    # Plot results
+    plt.figure(figsize=(10, 6))
+    plt.scatter(x, y, color='blue', label='Data')
+    plt.plot(x, y_fit, color='red', label='Sigmoid Fit')
+    plt.scatter(x[outliers], y[outliers], color='orange', label='Outliers (>2 std dev)', zorder=5)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title('Weighted Sigma-Clipped Sigmoid Fit and Outliers')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    
+    plt.savefig(parentPath / "results/polifitdiagram.png")
+
+    return outlier_indices
+
+def exponential_func(x, a, b, c):
+    """Exponential function: y = a * exp(b * x) + c"""
+    return a * np.exp(b * x) + c
+
+def fit_sigma_clipped_exp(x, y, sigma=2, parentPath=''):
+    """
+    Fits a sigma-clipped exponential function to the data and identifies outliers.
+
+    Parameters:
+    x (array-like): The x-values of the data points.
+    y (array-like): The y-values of the data points.
+    sigma (float): The number of standard deviations for sigma clipping (default: 2).
+
+    Returns:
+    outlier_indices (array): Indices of the identified outliers.
+    """
+    # Ensure inputs are numpy arrays
+    x = np.array(x)
+    y = np.array(y)
+
+    # Sigma clipping
+    clipped_data = sigma_clip(y, sigma=sigma, maxiters=5)
+    mask = clipped_data.mask
+
+    # Fit exponential function to non-masked data
+    popt, _ = curve_fit(exponential_func, x[~mask], y[~mask], p0=(1, 0.1, 1))
+
+    # Calculate residuals and standard deviation
+    y_fit = exponential_func(x, *popt)
+    residuals = y - y_fit
+    std_dev = np.std(residuals[~mask])
+
+    # Identify outliers
+    outliers = residuals > (2 * std_dev)
+    outlier_indices = np.where(outliers)[0]
+
+    # Plot results
+    plt.figure(figsize=(10, 6))
+    plt.scatter(x, y, color='blue', label='Data')
+    plt.plot(x, y_fit, color='red', label='Exponential Fit')
+    plt.scatter(x[outliers], y[outliers], color='orange', label='Outliers (>2 std dev)', zorder=5)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title('Sigma-Clipped Exponential Fit and Outliers')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    
+    plt.savefig(parentPath / "results/polifitdiagram.png")
+
+    return outlier_indices
+
 
 def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None, varsearchglobalstdev=-99.9, varsearchthresh=10000, varsearchstdev=2.0, varsearchmagwidth=0.25, varsearchminimages=0.3, photCoords=None, photFileHolder=None, fileList=None):
     '''
@@ -218,10 +379,23 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     savetxt(parentPath / "results/starVariability.csv", outputVariableHolder, delimiter=",", fmt='%0.8f', header='RA,DEC,DiffMag,Variability,No_of_images_used')
 
+
+
+
+    
+
+    #breakpoint()
+
     ## Routine that actually pops out potential variables.
     starVar = np.asarray(outputVariableHolder)
 
     
+    outliers=fit_sigma_clipped_sigmoid(starVar[:,2],starVar[:,3], parentPath=parentPath)
+
+    #breakpoint()
+
+    potentialVariables = np.delete(starVar, outliers, axis=0)
+
     meanMags = starVar[:,2]
     variations = starVar[:,3]
 
@@ -230,51 +404,51 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     xbins = np.arange(np.min(meanMags), np.max(meanMags), xStepSize)
     ybins = np.arange(np.min(variations), np.max(variations), yStepSize)
 
-    #split it into one array and identify variables in bins with centre
-    variationsByMag=[]
-    potentialVariables=[]
-    for xbinner in range(len (xbins)):
+    # #split it into one array and identify variables in bins with centre
+    # variationsByMag=[]
+    # potentialVariables=[]
+    # for xbinner in range(len (xbins)):
 
-        starsWithin=[]
-        for q in range(len(meanMags)):
-            if meanMags[q] >= xbins[xbinner] and meanMags[q] < xbins[xbinner]+xStepSize:
-                starsWithin.append(variations[q])
+    #     starsWithin=[]
+    #     for q in range(len(meanMags)):
+    #         if meanMags[q] >= xbins[xbinner] and meanMags[q] < xbins[xbinner]+xStepSize:
+    #             starsWithin.append(variations[q])
 
-        meanStarsWithin= (np.mean(starsWithin))
-        stdStarsWithin= (np.std(starsWithin))
-        variationsByMag.append([xbins[xbinner]+0.5*xStepSize,meanStarsWithin,stdStarsWithin])
+    #     meanStarsWithin= (np.mean(starsWithin))
+    #     stdStarsWithin= (np.std(starsWithin))
+    #     variationsByMag.append([xbins[xbinner]+0.5*xStepSize,meanStarsWithin,stdStarsWithin])
 
-        # At this point extract RA and Dec of stars that may be variable
-        for q in range(len(starVar[:,2])):
-            if starVar[q,2] >= xbins[xbinner] and starVar[q,2] < xbins[xbinner]+xStepSize:
-                if varsearchglobalstdev != -99.9:
-                    if starVar[q,3] > varsearchglobalstdev :
-                        potentialVariables.append([starVar[q,0],starVar[q,1],starVar[q,2],starVar[q,3]])
-                elif starVar[q,3] > (meanStarsWithin + varsearchstdev*stdStarsWithin):
-                    #print (starVar[q,3])
-                    potentialVariables.append([starVar[q,0],starVar[q,1],starVar[q,2],starVar[q,3]])
+    #     # At this point extract RA and Dec of stars that may be variable
+    #     for q in range(len(starVar[:,2])):
+    #         if starVar[q,2] >= xbins[xbinner] and starVar[q,2] < xbins[xbinner]+xStepSize:
+    #             if varsearchglobalstdev != -99.9:
+    #                 if starVar[q,3] > varsearchglobalstdev :
+    #                     potentialVariables.append([starVar[q,0],starVar[q,1],starVar[q,2],starVar[q,3]])
+    #             elif starVar[q,3] > (meanStarsWithin + varsearchstdev*stdStarsWithin):
+    #                 #print (starVar[q,3])
+    #                 potentialVariables.append([starVar[q,0],starVar[q,1],starVar[q,2],starVar[q,3]])
 
-    potentialVariables=np.array(potentialVariables)
-    logger.debug("Potential Variables Identified: " + str(potentialVariables.shape[0]))
+    # potentialVariables=np.array(potentialVariables)
+    # logger.debug("Potential Variables Identified: " + str(potentialVariables.shape[0]))
 
     if potentialVariables.shape[0] == 0:
         logger.info("No Potential Variables identified in this set of data using the parameters requested.")
     else:
         savetxt(parentPath / "results/potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f', header='RA,DEC,DiffMag,Variability')
 
-        plot_variability(outputVariableHolder, potentialVariables, parentPath, compFile)
+    plot_variability(outputVariableHolder, potentialVariables, parentPath, compFile)
 
-        plt.cla()
-        fig, ax = plt.subplots(figsize =(10, 7))
-        plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(), cmap = plt.cm.YlOrRd)
-        plt.colorbar()
-        plt.title("Variation Histogram")
-        ax.set_xlabel('Mean Differential Magnitude')
-        ax.set_ylabel('Variation (Standard Deviation)')
-        plt.plot(potentialVariables[:,2],potentialVariables[:,3],'bo')
-        plt.tight_layout()
+    plt.cla()
+    fig, ax = plt.subplots(figsize =(10, 7))
+    plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(), cmap = plt.cm.YlOrRd)
+    plt.colorbar()
+    plt.title("Variation Histogram")
+    ax.set_xlabel('Mean Differential Magnitude')
+    ax.set_ylabel('Variation (Standard Deviation)')
+    plt.plot(potentialVariables[:,2],potentialVariables[:,3],'bo')
+    plt.tight_layout()
 
-        plt.savefig(parentPath / "results/Variation2DHistogram.png")
+    plt.savefig(parentPath / "results/Variation2DHistogram.png")
 
     return outputVariableHolder
 

@@ -4,8 +4,11 @@ import sys
 import os
 import logging
 import pickle
+from concurrent.futures import ProcessPoolExecutor
 
-from numpy import genfromtxt, delete, asarray, save, savetxt, load, transpose, isnan, zeros, max, min, nan, where, average, cos, hstack, array, column_stack, copy, c_, sqrt, ptp
+#import copy
+
+from numpy import genfromtxt, delete, argmax, asarray, save, savetxt, load, transpose, isnan, zeros, max, min, nan, where, average, cos, hstack, array, column_stack, copy, c_, sqrt, ptp
 from astropy import units as u
 from astropy.units import degree, arcsecond
 from astropy import wcs
@@ -15,7 +18,7 @@ from astropy.time import Time
 from barycorrpy import utc_tdb
 from tqdm import tqdm
 from prettytable import PrettyTable
-from multiprocessing import Pool
+from multiprocessing import Pool,cpu_count
 
 from astrosource.utils import AstrosourceException
 from astrosource.comparison import catalogue_call
@@ -128,7 +131,7 @@ def export_photometry_files(filelist, indir, filetype='csv', bjd=False, ignoreed
     def process_files_multiprocessing(filelist, indir, bjd, ignoreedgefraction, lowestcounts, racut, deccut, radiuscut):
         # Wrap arguments for multiprocessing
         args = (indir, bjd, ignoreedgefraction, lowestcounts, racut, deccut, radiuscut)
-        with Pool() as pool:
+        with Pool(processes=max([cpu_count()-1,1])) as pool:
             results = list(tqdm(pool.starmap(process_fits_file, [(f, *args) for f in filelist]), total=len(filelist)))
     
         # Filter valid results
@@ -229,6 +232,80 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
 
     return outfile, photFile
 
+
+def process_convert_photometry_file(fn, racut, deccut, radiuscut, ignoreedgefraction, lowestcounts, logger):
+    try:
+        # Read the file
+        photFile = genfromtxt(fn, dtype=float, delimiter=',', skip_header=1, invalid_raise=False)
+        logger.info(fn)
+
+        # Validate file shape and range
+        if photFile.size <= 16 or photFile.shape[1] != 8:
+            logger.debug(f"REJECT {fn}: Invalid size or shape.")
+            return None
+
+        if max(photFile[:, 0]) >= 360 or max(photFile[:, 1]) >= 90:
+            logger.debug(f"REJECT {fn}: Invalid RA/Dec range.")
+            return None
+
+        # Reject NaN entries
+        photFile = photFile[~isnan(photFile).any(axis=1)]
+
+        # Apply radial cut or image edge trimming
+        if racut != -99.9 and deccut != -99.9 and radiuscut != -99.9:
+            distanceArray = sqrt((photFile[:, 0] - racut)**2 + (photFile[:, 1] - deccut)**2)
+            photFile = delete(photFile, where(distanceArray > radiuscut / 60), axis=0)
+        else:
+            # Handle RA crossover
+            if (max(photFile[:, 0]) - min(photFile[:, 0])) > 180:
+                photFile[:, 0] = where(photFile[:, 0] > 180, photFile[:, 0] - 360, photFile[:, 0] + 360)
+
+            # Clip edges
+            raRange, decRange = ptp(photFile[:, 0]), ptp(photFile[:, 1])
+            raClip, decClip = raRange * ignoreedgefraction, decRange * ignoreedgefraction
+            photFile = photFile[
+                (photFile[:, 0] > min(photFile[:, 0]) + raClip) &
+                (photFile[:, 0] < max(photFile[:, 0]) - raClip) &
+                (photFile[:, 1] > min(photFile[:, 1]) + decClip) &
+                (photFile[:, 1] < max(photFile[:, 1]) - decClip)
+            ]
+
+        # Remove zero and low-count entries
+        photFile = photFile[(photFile[:, 4] > lowestcounts) & (photFile[:, 0] != 0) & (photFile[:, 1] != 0)]
+
+        # Prepare output
+        photFile = c_[photFile, zeros((len(photFile), 4))]
+        photFile[:, 8:10] = nan
+        photFile[:, 11] = photFile[:, 4].copy()
+
+        # Return processed data
+        if photFile.size > 16:
+            filepath = Path(fn).with_suffix('.npy')
+            photSkyCoord = SkyCoord(ra=photFile[:, 0] * u.degree, dec=photFile[:, 1] * u.degree)
+            return filepath.name, photFile, photSkyCoord
+
+        logger.debug(f"REJECT {fn}: Insufficient valid entries.")
+        return None
+    except Exception as e:
+        logger.error(f"Error processing file {fn}: {e}")
+        return None
+
+
+def process_convert_files_multiprocessing(filelist, racut, deccut, radiuscut, ignoreedgefraction, lowestcounts, logger):
+    # Pool for multiprocessing
+    with Pool(processes=max([cpu_count()-1,1])) as pool:
+        results = pool.starmap(
+            process_convert_photometry_file,
+            [(fn, racut, deccut, radiuscut, ignoreedgefraction, lowestcounts, logger) for fn in filelist]
+        )
+    
+    # Filter results
+    results = [res for res in results if res is not None]
+    new_files, photFileHolder, photSkyCoord = zip(*results) if results else ([], [], [])
+    return list(new_files), list(photFileHolder), list(photSkyCoord)
+
+
+
 def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=1800,  racut=-99.9, deccut=-99.9, radiuscut=-99.9):
 
     new_files = []
@@ -328,83 +405,13 @@ def convert_photometry_files(filelist, ignoreedgefraction=0.05, lowestcounts=180
     #         logger.debug(fn)
     
     
-    def process_file(fn, racut, deccut, radiuscut, ignoreedgefraction, lowestcounts, logger):
-        try:
-            # Read the file
-            photFile = genfromtxt(fn, dtype=float, delimiter=',', skip_header=1, invalid_raise=False)
-            logger.info(fn)
-    
-            # Validate file shape and range
-            if photFile.size <= 16 or photFile.shape[1] != 8:
-                logger.debug(f"REJECT {fn}: Invalid size or shape.")
-                return None
-    
-            if max(photFile[:, 0]) >= 360 or max(photFile[:, 1]) >= 90:
-                logger.debug(f"REJECT {fn}: Invalid RA/Dec range.")
-                return None
-    
-            # Reject NaN entries
-            photFile = photFile[~isnan(photFile).any(axis=1)]
-    
-            # Apply radial cut or image edge trimming
-            if racut != -99.9 and deccut != -99.9 and radiuscut != -99.9:
-                distanceArray = sqrt((photFile[:, 0] - racut)**2 + (photFile[:, 1] - deccut)**2)
-                photFile = delete(photFile, where(distanceArray > radiuscut / 60), axis=0)
-            else:
-                # Handle RA crossover
-                if (max(photFile[:, 0]) - min(photFile[:, 0])) > 180:
-                    photFile[:, 0] = where(photFile[:, 0] > 180, photFile[:, 0] - 360, photFile[:, 0] + 360)
-    
-                # Clip edges
-                raRange, decRange = ptp(photFile[:, 0]), ptp(photFile[:, 1])
-                raClip, decClip = raRange * ignoreedgefraction, decRange * ignoreedgefraction
-                photFile = photFile[
-                    (photFile[:, 0] > min(photFile[:, 0]) + raClip) &
-                    (photFile[:, 0] < max(photFile[:, 0]) - raClip) &
-                    (photFile[:, 1] > min(photFile[:, 1]) + decClip) &
-                    (photFile[:, 1] < max(photFile[:, 1]) - decClip)
-                ]
-    
-            # Remove zero and low-count entries
-            photFile = photFile[(photFile[:, 4] > lowestcounts) & (photFile[:, 0] != 0) & (photFile[:, 1] != 0)]
-    
-            # Prepare output
-            photFile = c_[photFile, zeros((len(photFile), 4))]
-            photFile[:, 8:10] = nan
-            photFile[:, 11] = photFile[:, 4].copy()
-    
-            # Return processed data
-            if photFile.size > 16:
-                filepath = Path(fn).with_suffix('.npy')
-                photSkyCoord = SkyCoord(ra=photFile[:, 0] * u.degree, dec=photFile[:, 1] * u.degree)
-                return filepath.name, photFile, photSkyCoord
-    
-            logger.debug(f"REJECT {fn}: Insufficient valid entries.")
-            return None
-        except Exception as e:
-            logger.error(f"Error processing file {fn}: {e}")
-            return None
-    
-    
-    def process_files_multiprocessing(filelist, racut, deccut, radiuscut, ignoreedgefraction, lowestcounts, logger):
-        # Pool for multiprocessing
-        with Pool() as pool:
-            results = pool.starmap(
-                process_file,
-                [(fn, racut, deccut, radiuscut, ignoreedgefraction, lowestcounts, logger) for fn in filelist]
-            )
-        
-        # Filter results
-        results = [res for res in results if res is not None]
-        new_files, photFileHolder, photSkyCoord = zip(*results) if results else ([], [], [])
-        return list(new_files), list(photFileHolder), list(photSkyCoord)
+
     
     
     # Example usage
-    if __name__ == "__main__":
-        new_files, photFileHolder, photSkyCoord = process_files_multiprocessing(
-            filelist, racut, deccut, radiuscut, ignoreedgefraction, lowestcounts, logger
-        )
+    new_files, photFileHolder, photSkyCoord = process_convert_files_multiprocessing(
+        filelist, racut, deccut, radiuscut, ignoreedgefraction, lowestcounts, logger
+    )
     
 
     if new_files ==[] or photFileHolder==[] :
@@ -466,6 +473,90 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
 
     return phot_list, filterCode, photFileHolder, photSkyCoord
 
+def process_phot_file(index, photFile, photCoords, referenceFrame, acceptDistance, starreject, rejectStart, mincompstars, imgsize, logger):
+    try:
+        imgRejFlag = 0
+        photReject = []
+
+        # Check minimum stars requirement
+        if referenceFrame.shape[0] < mincompstars:
+            return None, referenceFrame, photReject
+
+        # Validate photometry file
+        if photFile.size > imgsize and photFile.size > 7:
+            photRAandDec = photCoords[index]
+            rejectStars = []
+
+            if (max(photFile[:, 0]) <= 360) and (photFile[0][0] != 'null') and (photFile[0][0] != 0.0):
+                testStars = SkyCoord(ra=referenceFrame[:, 0] * u.degree, dec=referenceFrame[:, 1] * u.degree)
+                idx, d2d, _ = testStars.match_to_catalog_sky(photRAandDec)
+                rejectStars = where(d2d.arcsecond > acceptDistance)[0]
+            else:
+                logger.debug(f"Image {index} rejected due to problematic entries.")
+                imgRejFlag = 1
+                photReject.append(index)
+
+            # Remove rejected stars from the reference frame
+            if rejectStars.size > 0:
+                if not ((len(rejectStars) / referenceFrame.shape[0]) > starreject and index > rejectStart):
+                    referenceFrame = delete(referenceFrame, rejectStars, axis=0)
+                    logger.debug(f"Image {index}: Removed {len(rejectStars)} stars.")
+                else:
+                    logger.debug(f"Image {index} rejected due to too high a fraction of rejected stars.")
+                    imgRejFlag = 1
+                    photReject.append(index)
+
+            if imgRejFlag == 0:
+                logger.debug(f"Image {index}: All stars present.")
+        elif photFile.size <= 7:
+            logger.error(f"Image {index}: WCS coordinates broken or too few stars.")
+            photReject.append(index)
+        else:
+            logger.debug(f"Image {index}: Contains too few stars.")
+            photReject.append(index)
+
+        return imgRejFlag, referenceFrame, photReject
+    except Exception as e:
+        logger.error(f"Error processing image {index}: {e}")
+        return None, referenceFrame, [index]
+
+
+def process_photometry_files_multiprocessing(photFileHolder, photCoords, referenceFrame, acceptDistance, starreject, rejectStart, mincompstars, imgsize, logger):
+    with Pool(processes=max([cpu_count()-1,1])) as pool:
+        # Prepare arguments
+        args = [
+            (index, photFileHolder[index], photCoords, referenceFrame, acceptDistance, starreject, rejectStart, mincompstars, imgsize, logger)
+            for index in range(len(photFileHolder))
+        ]
+
+        # Process files in parallel
+        results = pool.starmap(process_phot_file, args)
+
+    # Collect results
+    updated_referenceFrame = referenceFrame
+    photReject = []
+
+    for imgRejFlag, refFrameUpdate, rejects in results:
+        if refFrameUpdate is not None:
+            updated_referenceFrame = refFrameUpdate
+        photReject.extend(rejects)
+
+    return updated_referenceFrame, photReject
+
+
+def evaluate_file_size(file_index, file_list, phot_file_holder, phot_coords):
+    """Evaluate a file to determine its size and suitability."""
+    file = file_list[file_index]
+    phot_file = phot_file_holder[file_index]
+    file_size = phot_file.size
+    file_ra_dec = phot_coords[file_index]
+    return file_size, file_index, file_ra_dec
+
+
+def compute_size(phot_file):
+    """Compute the size for a specific file."""
+    return phot_file.size
+
 def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, noskymapper=False,closerejectd=5.0, photCoords=None, photFileHolder=None, mincompstars=0.1, mincompstarstotal=-99, starreject=0.1 , acceptDistance=1.0, lowcounts=2000, hicounts=3000000, imageFracReject=0.0,  rejectStart=3, maxcandidatestars=10000, restrictcompcolourcentre=-99.0, restrictcompcolourrange=-99.0, filterCode=None, restrictmagbrightest=-99.0, restrictmagdimmest=99.0, minfractionimages=0.5):
     """
     Finds stars useful for photometry in each photometry/data file
@@ -510,21 +601,89 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, noskym
     if os.path.exists(paths['parent'] / "photFileHolder"):
         os.remove(paths['parent'] / "photFileHolder")
 
-    fileSizer=0
-    logger.info("Finding image with most stars detected and reject ones with bad WCS")
+    # fileSizer=0
+    # logger.info("Finding image with most stars detected and reject ones with bad WCS")
+    # referenceFrame = None
+
+    # counter=0
+    # for file in fileList:
+    #     photFile = photFileHolder[counter]
+
+    #     # Sort through and find the largest file and use that as the reference file
+    #     if photFile.size > fileSizer:            
+    #         referenceFrame = photFile
+    #         fileSizer = photFile.size
+    #         fileRaDec = photCoords[counter]
+    #         logger.debug("{} - {}".format(photFile.size, file))
+    #     counter=counter+1
+    
+    logger.info("Finding image with most stars detected and rejecting ones with bad WCS")
     referenceFrame = None
+    file_sizer = 0
+    fileRaDec = None
+    
+    
+    
+    
+    # list_of_sizes=[]
+    
+    
+    # with Pool() as pool:
+    #     # Use pool.map to distribute the computation across multiple processes
+    #     list_of_sizes = pool.starmap(compute_size, [(i, photFileHolder) for i in range(len(photFileHolder))])
+    
+    
+    # def compute_size(phot_file):
+    #     """Compute the size for a specific file."""
+    #     return phot_file.size
+    # import time
+    
+    
+    # with Pool() as pool:
+    #     # Parallelize the size computation
+    #     list_of_sizes = pool.map(compute_size, photFileHolder)
+    
+    
+    import time
+    # googtime=time.time()
+    
+    
+    
+    list_of_sizes=[]
+    for filething in photFileHolder:
+        # zingtime=time.time()
+        list_of_sizes.append(filething.size)
+    #     print ("Z: " + str(time.time()-zingtime))
+    
+    # print ("D: " + str(time.time()-googtime))
+    
+    largest_file_index= argmax(list_of_sizes)
+    
+    referenceFrame=photFileHolder[largest_file_index]
+    fileRaDec = photCoords[largest_file_index]
+    fileSizer=referenceFrame.size
+    
+    # breakpoint()
+    
+    # for file in len(photFileHolder):        
+    #     list_of_sizes.append(photFileHolder.size)
+    
+    # with ProcessPoolExecutor() as executor:
+    #     results = list(executor.map(
+    #         evaluate_file_size,
+    #         range(len(fileList)),
+    #         [fileList] * len(fileList),
+    #         [photFileHolder] * len(fileList),
+    #         [photCoords] * len(fileList)
+    #     ))
 
-    counter=0
-    for file in fileList:
-        photFile = photFileHolder[counter]
-
-        # Sort through and find the largest file and use that as the reference file
-        if photFile.size > fileSizer:            
-            referenceFrame = photFile
-            fileSizer = photFile.size
-            fileRaDec = photCoords[counter]
-            logger.debug("{} - {}".format(photFile.size, file))
-        counter=counter+1
+    # # Process the results
+    # for file_size, index, file_ra_dec in results:
+    #     if file_size > file_sizer:
+    #         referenceFrame = photFileHolder[index]
+    #         file_sizer = file_size
+    #         fileRaDec = file_ra_dec
+    #         logger.debug("{} - {}".format(file_size, fileList[index]))
 
     if not referenceFrame.size:
         raise AstrosourceException("No suitable reference files found")
@@ -670,75 +829,6 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, noskym
 
         #     q=q+1
         
-        def process_phot_file(index, photFile, photCoords, referenceFrame, acceptDistance, starreject, rejectStart, mincompstars, imgsize, logger):
-            try:
-                imgRejFlag = 0
-                photReject = []
-        
-                # Check minimum stars requirement
-                if referenceFrame.shape[0] < mincompstars:
-                    return None, referenceFrame, photReject
-        
-                # Validate photometry file
-                if photFile.size > imgsize and photFile.size > 7:
-                    photRAandDec = photCoords[index]
-                    rejectStars = []
-        
-                    if (max(photFile[:, 0]) <= 360) and (photFile[0][0] != 'null') and (photFile[0][0] != 0.0):
-                        testStars = SkyCoord(ra=referenceFrame[:, 0] * u.degree, dec=referenceFrame[:, 1] * u.degree)
-                        idx, d2d, _ = testStars.match_to_catalog_sky(photRAandDec)
-                        rejectStars = where(d2d.arcsecond > acceptDistance)[0]
-                    else:
-                        logger.debug(f"Image {index} rejected due to problematic entries.")
-                        imgRejFlag = 1
-                        photReject.append(index)
-        
-                    # Remove rejected stars from the reference frame
-                    if rejectStars.size > 0:
-                        if not ((len(rejectStars) / referenceFrame.shape[0]) > starreject and index > rejectStart):
-                            referenceFrame = delete(referenceFrame, rejectStars, axis=0)
-                            logger.debug(f"Image {index}: Removed {len(rejectStars)} stars.")
-                        else:
-                            logger.debug(f"Image {index} rejected due to too high a fraction of rejected stars.")
-                            imgRejFlag = 1
-                            photReject.append(index)
-        
-                    if imgRejFlag == 0:
-                        logger.debug(f"Image {index}: All stars present.")
-                elif photFile.size <= 7:
-                    logger.error(f"Image {index}: WCS coordinates broken or too few stars.")
-                    photReject.append(index)
-                else:
-                    logger.debug(f"Image {index}: Contains too few stars.")
-                    photReject.append(index)
-        
-                return imgRejFlag, referenceFrame, photReject
-            except Exception as e:
-                logger.error(f"Error processing image {index}: {e}")
-                return None, referenceFrame, [index]
-        
-        
-        def process_photometry_files_multiprocessing(photFileHolder, photCoords, referenceFrame, acceptDistance, starreject, rejectStart, mincompstars, imgsize, logger):
-            with Pool() as pool:
-                # Prepare arguments
-                args = [
-                    (index, photFileHolder[index], photCoords, referenceFrame, acceptDistance, starreject, rejectStart, mincompstars, imgsize, logger)
-                    for index in range(len(photFileHolder))
-                ]
-        
-                # Process files in parallel
-                results = pool.starmap(process_phot_file, args)
-        
-            # Collect results
-            updated_referenceFrame = referenceFrame
-            photReject = []
-        
-            for imgRejFlag, refFrameUpdate, rejects in results:
-                if refFrameUpdate is not None:
-                    updated_referenceFrame = refFrameUpdate
-                photReject.extend(rejects)
-        
-            return updated_referenceFrame, photReject
         
         
         # Example usage
