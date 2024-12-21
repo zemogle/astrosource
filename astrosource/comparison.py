@@ -22,7 +22,7 @@ from astroquery.vo_conesearch.exceptions import VOSError
 from astroquery.vizier import Vizier
 from tqdm import tqdm
 from prettytable import PrettyTable
-
+import traceback
 import requests
 import http
 import urllib3
@@ -1136,7 +1136,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                             logger.debug(tabl)
                     except:
                         print ("something fishy in the calib mags table")
-                        import traceback; logger.error(traceback.print_exc())
+                        logger.error(traceback.print_exc())
 
                     # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
                     if asarray(calibStands).shape[0] == 0:
@@ -1218,7 +1218,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         colTemp=delete(colTemp, calibStandsReject, axis=0)
 
     # Pre-colour Reference plot
-    
+    try:
         plt.cla()
         fig = plt.gcf()
         outplotx=colTemp[:,4]
@@ -1249,7 +1249,9 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.savefig(parentPath / str("results/CalibrationSanityPlot_PreColour_Reference.eps"))
     
         logger.info('Estimated Colour Slope in Reference Frame: ' + str(m))
-    
+    except:
+        print ("Couldn't make colour plot")
+        logger.error(traceback.print_exc())
     # MAKE ALL PRE-COLOUR PLOTS
 
     if colourdetect == True and colourTerm == 0.0:
