@@ -811,3 +811,7 @@ def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colour
         logger.info("as well as an appropriate colour term for this filter (using --colourdetect or --colourterm).")
 
     return pdata
+
+# Needed for windows to multiprocess appropriately
+if __name__ == "__main__":
+    pass

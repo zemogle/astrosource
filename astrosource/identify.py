@@ -1186,3 +1186,7 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, noskym
 
 
     return fileList, outputComps, photFileHolder, photCoords
+
+# Needed for windows to multiprocess appropriately
+if __name__ == "__main__":
+    pass

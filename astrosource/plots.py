@@ -373,3 +373,7 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
 
 
     return
+
+# Needed for windows to multiprocess appropriately
+if __name__ == "__main__":
+    pass

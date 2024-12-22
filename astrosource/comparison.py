@@ -1942,3 +1942,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     sys.stdout.write('\n')
 
     return colourTerm, colourError, compFile
+
+# Needed for windows to multiprocess appropriately
+if __name__ == "__main__":
+    pass

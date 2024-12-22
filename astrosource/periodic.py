@@ -2364,3 +2364,7 @@ def plot_with_period(paths, filterCode, numBins = 10, minperiod=0.2, maxperiod=1
     #     return pdm["distance_minperiod"]
     # else:
     return 0.0
+
+# Needed for windows to multiprocess appropriately
+if __name__ == "__main__":
+    pass
