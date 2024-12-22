@@ -19,7 +19,7 @@ from astrosource.utils import AstrosourceException
 from astropy.timeseries import LombScargle
 
 logger = logging.getLogger('astrosource')
-NCPUS = 1
+#NCPUS = 1
 
 # Note that the functions that calculate the ANOVA periodograms have been adapted from the astrobase codeset
 # These are aov_theta, resort_by_time, get_frequency_grid, sigclip_magseries, phase_magseries, aov_periodfind, phase_magseries_with_errs, aovhm_theta, aovhm_periodfind

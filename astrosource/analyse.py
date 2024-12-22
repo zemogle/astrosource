@@ -13,7 +13,7 @@ import os
 from tqdm import tqdm
 #import traceback
 import logging
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, shared_memory
 import traceback
 #from astrosource.utils import photometry_files_to_array, AstrosourceException
 from astrosource.utils import AstrosourceException
@@ -25,7 +25,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-
+from functools import partial
 logger = logging.getLogger('astrosource')
 
 
@@ -58,7 +58,14 @@ def get_total_counts(photFileArray, compFile, loopLength, photCoords):
     #logger.debug(allCountsArray)
     return allCountsArray
 
-def process_varsearch_target(target, photFileArray, allCountsArray, matchRadius, minimumNoOfObs):
+#def process_varsearch_target(target, photFileArray, allCountsArray, matchRadius, minimumNoOfObs):
+def process_varsearch_target(target, photFileArray_shape, photFileArray_dtype, shm_name, allCountsArray, matchRadius, minimumNoOfObs):
+    
+    # Attach to the shared memory for photFileArray
+    existing_shm = shared_memory.SharedMemory(name=shm_name)
+    photFileArray = np.ndarray(photFileArray_shape, dtype=photFileArray_dtype, buffer=existing_shm.buf)
+
+    
     diffMagHolder = []
     
     for allcountscount, photFile in enumerate(photFileArray):
@@ -84,6 +91,8 @@ def process_varsearch_target(target, photFileArray, allCountsArray, matchRadius,
         if diffMagHolder.size == sizeBefore:
             break
 
+    existing_shm.close()
+
     # Append to output if sufficient observations are available
     if diffMagHolder.size > minimumNoOfObs:
         return [target[0], target[1], np.median(diffMagHolder), np.std(diffMagHolder), diffMagHolder.size]
@@ -91,11 +100,21 @@ def process_varsearch_target(target, photFileArray, allCountsArray, matchRadius,
 
 
 def process_varsearch_targets_multiprocessing(targetFile, photFileArray, allCountsArray, matchRadius, minimumNoOfObs):
+    # Create shared memory for photFileArray
+    # As this can lead to gigantic RAM use for large datasets
+    shm = shared_memory.SharedMemory(create=True, size=photFileArray.nbytes)
+    shared_photFileArray = np.ndarray(photFileArray.shape, dtype=photFileArray.dtype, buffer=shm.buf)
+    shared_photFileArray[:] = photFileArray[:]
+    
+    
     # Partial function to pass shared arguments
-    from functools import partial
+    
     worker = partial(
         process_varsearch_target,
-        photFileArray=photFileArray,
+        #photFileArray=photFileArray,
+        photFileArray_shape=photFileArray.shape,
+        photFileArray_dtype=photFileArray.dtype,
+        shm_name=shm.name,               
         allCountsArray=allCountsArray,
         matchRadius=matchRadius,
         minimumNoOfObs=minimumNoOfObs,
@@ -104,6 +123,10 @@ def process_varsearch_targets_multiprocessing(targetFile, photFileArray, allCoun
     # Multiprocessing with Pool
     with Pool(processes=max([cpu_count()-1,1])) as pool:
         results = pool.map(worker, targetFile)
+    
+    # Clean up shared memory
+    shm.close()
+    shm.unlink()
     
     # Filter out None results
     return [res for res in results if res is not None]

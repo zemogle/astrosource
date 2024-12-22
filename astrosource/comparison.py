@@ -338,9 +338,10 @@ def ensemble_comparisons(photFileArray, compFile, parentPath, photSkyCoord):
 #     return comp_diff_mag, instr_mag
 
 def process_phot_file_for_variation(args):
-    q, matchCoord, photSkyCoord, photFileArray, fileCount = args
+    #q, matchCoord, photSkyCoord, photFileArray, fileCount = args
+    q, matchCoord, photSkyCoord, photFile, fileCount = args
     idx, _, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
-    photFile = photFileArray[q]
+    #photFile = photFileArray[q]
     compDiffMags = 2.5 * np.log10(photFile[idx, 4] / fileCount[q])
     instrMags = -2.5 * np.log10(photFile[idx, 4])
     return compDiffMags, instrMags
@@ -416,7 +417,7 @@ def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPat
         # Case for single comparison star
         matchCoord = SkyCoord(ra=compFile[0] * degree, dec=compFile[1] * degree)
 
-        args = [(q, matchCoord, photSkyCoord, photFileArray, fileCount) for q in range(len(photFileArray))]
+        args = [(q, matchCoord, photSkyCoord, photFileArray[q], fileCount) for q in range(len(photFileArray))]
         
         with Pool(processes=max([cpu_count()-1,1])) as pool:
             results = pool.map(process_phot_file_for_variation, args)
