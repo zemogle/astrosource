@@ -13,6 +13,7 @@ import os
 from tqdm import tqdm
 #import traceback
 import logging
+import multiprocessing as mp
 from multiprocessing import Pool, cpu_count, shared_memory
 import traceback
 #from astrosource.utils import photometry_files_to_array, AstrosourceException
@@ -27,6 +28,16 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from functools import partial
 logger = logging.getLogger('astrosource')
+
+import platform
+# import platform
+# # Check the operating system
+# if platform.system() == "Windows":
+#     # Use 'forkserver' for Windows
+#     mp.set_start_method("forkserver", force=True)
+# else:
+#     # Use the default method for other OS
+#     mp.set_start_method("fork", force=True)
 
 
 def get_total_counts(photFileArray, compFile, loopLength, photCoords):
@@ -96,6 +107,39 @@ def process_varsearch_target(target, photFileArray_shape, photFileArray_dtype, s
     # Append to output if sufficient observations are available
     if diffMagHolder.size > minimumNoOfObs:
         return [target[0], target[1], np.median(diffMagHolder), np.std(diffMagHolder), diffMagHolder.size]
+    return None
+
+def process_varsearch_target_singleprocess(target, photFileArray, allCountsArray, matchRadius, minimumNoOfObs):    
+        
+    diffMagHolder = []
+    
+    for allcountscount, photFile in enumerate(photFileArray):
+        # Efficiently calculate the closest match using numpy
+        idx = (np.abs(photFile[:, 0] - target[0]) + np.abs(photFile[:, 1] - target[1])).argmin()
+        d2d = np.sqrt((photFile[idx, 0] - target[0])**2 + (photFile[idx, 1] - target[1])**2) * 3600
+        multTemp = -2.5 * np.log10(photFile[idx, 11] / allCountsArray[allcountscount][0])
+        
+        if d2d < matchRadius and not np.isinf(multTemp):
+            diffMagHolder.append(multTemp)
+    
+    # Remove major outliers
+    diffMagHolder = np.array(diffMagHolder)
+    while True:
+        stdVar = np.std(diffMagHolder)
+        avgVar = np.mean(diffMagHolder)
+        sizeBefore = diffMagHolder.size
+
+        # Mask outliers
+        mask = (diffMagHolder <= avgVar + 4 * stdVar) & (diffMagHolder >= avgVar - 4 * stdVar)
+        diffMagHolder = diffMagHolder[mask]
+
+        if diffMagHolder.size == sizeBefore:
+            break
+
+    # Append to output if sufficient observations are available
+    if diffMagHolder.size > minimumNoOfObs:
+        return [target[0], target[1], np.median(diffMagHolder), np.std(diffMagHolder), diffMagHolder.size]
+    
     return None
 
 
@@ -394,9 +438,24 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     #         outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), diffMagHolder.shape[0]])
 
 # process_varsearch_target
-    outputVariableHolder = process_varsearch_targets_multiprocessing(
-        targetFile, photFileArray, allCountsArray, matchRadius, minimumNoOfObs
-    )
+
+
+    # Hack to get windows to not multiprocess until I figure out how to do it.    
+    if platform.system() == "Windows":
+        
+        
+        outputVariableHolder=[]
+        for target in targetFile:
+            result= process_varsearch_target_singleprocess(target, photFileArray, allCountsArray, matchRadius, minimumNoOfObs)
+            if result == None:
+                pass
+            else:
+                outputVariableHolder.append(result)
+    else:
+        
+        outputVariableHolder = process_varsearch_targets_multiprocessing(
+            targetFile, photFileArray, allCountsArray, matchRadius, minimumNoOfObs
+        )
 
     print ("Star Variability done in " + str(time.time()-taketime))
 
@@ -528,15 +587,15 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
         starDistanceRejCount=0
         logger.debug("****************************")
         logger.debug("Processing Variable {}".format(q+1))
-        if int(len(targets)) == 4 and targets.size==4:
+        if int(len(targets)) == 5 and targets.size==5:
             logger.debug("RA {}".format(targets[0]))
         else:
             logger.debug("RA {}".format(targets[q][0]))
-        if int(len(targets)) == 4 and targets.size==4:
+        if int(len(targets)) == 5 and targets.size==5:
             logger.debug("Dec {}".format(targets[1]))
         else:
             logger.debug("Dec {}".format(targets[q][1]))
-        if int(len(targets)) == 4 and targets.size==4:
+        if int(len(targets)) == 5 and targets.size==5:
             #varCoord = SkyCoord(targets[0],(targets[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
             singleCoordRA=targets[0]
             singleCoordDEC=targets[1]
