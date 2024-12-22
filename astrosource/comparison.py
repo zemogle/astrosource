@@ -924,8 +924,18 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 elif cat_name == 'SkyMapper' and noskymapper==True:
                     logger.info("Skipping Skymapper")
                 else:
-
-                    coords = catalogue_call(avgCoord, 1.5*radius, opt, cat_name, targets=targets, closerejectd=closerejectd)
+                    try:
+                        coords = catalogue_call(avgCoord, 1.5*radius, opt, cat_name, targets=targets, closerejectd=closerejectd)
+                    except Exception as e:
+                        
+                        if 'Could not find RA' in str(e):
+                            raise AstrosourceException("Empty catalogue produced from catalogue call")
+                            #pass
+                        else:
+                            print (e)
+                            print ("MTF hunting this bug")
+                            print(traceback.print_exc())
+                            breakpoint()
                     # If no results try next catalogue
                     if len(coords.ra) == 0:
                         coords=[]

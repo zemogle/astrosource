@@ -9,6 +9,7 @@ import os
 from astropy.units import degree, arcsecond
 import logging
 import numpy as np
+import traceback
 
 #from astrosource.utils import photometry_files_to_array, AstrosourceException
 from astrosource.utils import AstrosourceException
@@ -94,13 +95,17 @@ def plot_variability(output, variableID, parentPath, compFile):
         if (parentPath / 'results/calibCompsUsed.csv').exists():
             logger.debug("Calibrated")
             calibCompFile=genfromtxt(parentPath / 'results/calibCompsUsed.csv', dtype=float, delimiter=',')
-            
-            if len(calibCompFile) == 5:
-                calibCompSkyCoord = SkyCoord(calibCompFile[0],calibCompFile[1], frame='icrs', unit=degree)
-                calibnumber=1
-            else:
-                calibCompSkyCoord = SkyCoord(calibCompFile[:,0],calibCompFile[:,1], frame='icrs', unit=degree)
-                calibnumber=len(calibCompSkyCoord)
+            try:
+                if len(calibCompFile) == 5 and calibCompFile.size == 5:
+                    calibCompSkyCoord = SkyCoord(calibCompFile[0],calibCompFile[1], frame='icrs', unit=degree)
+                    calibnumber=1
+                else:
+                    calibCompSkyCoord = SkyCoord(calibCompFile[:,0],calibCompFile[:,1], frame='icrs', unit=degree)
+                    calibnumber=len(calibCompSkyCoord)
+            except:
+                print ("MTF FIXING THIS ERROR")
+                logger.error(traceback.print_exc())
+                breakpoint()
             calibCompExist=True
             
             calibCompStarPlot = []        

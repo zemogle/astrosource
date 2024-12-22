@@ -14,7 +14,7 @@ from tqdm import tqdm
 #import traceback
 import logging
 from multiprocessing import Pool, cpu_count
-
+import traceback
 #from astrosource.utils import photometry_files_to_array, AstrosourceException
 from astrosource.utils import AstrosourceException
 from astrosource.plots import plot_variability
@@ -394,7 +394,9 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     #breakpoint()
 
-    potentialVariables = np.delete(starVar, outliers, axis=0)
+    #potentialVariables = np.delete(starVar, outliers, axis=0)
+
+    potentialVariables=starVar[outliers]
 
     meanMags = starVar[:,2]
     variations = starVar[:,3]
@@ -436,7 +438,12 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     else:
         savetxt(parentPath / "results/potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f', header='RA,DEC,DiffMag,Variability')
 
-    plot_variability(outputVariableHolder, potentialVariables, parentPath, compFile)
+    try:
+        plot_variability(outputVariableHolder, potentialVariables, parentPath, compFile)
+    except:
+        print ("MTF hunting this bug")
+        logger.error(traceback.print_exc())
+        breakpoint()
 
     plt.cla()
     fig, ax = plt.subplots(figsize =(10, 7))
