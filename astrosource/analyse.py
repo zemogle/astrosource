@@ -782,7 +782,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
 
         except ValueError:
             #raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
-            import traceback; logger.error(traceback.print_exc())
+            logger.error(traceback.print_exc())
             logger.error("This target star was not detected in your dataset. Check your input target(s) RA/Dec")
             #logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
             #logger.error("Rejected Error Measurements: : {}".format(starErrorRejCount))
