@@ -576,6 +576,8 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
 
     allcountscount=0
 
+    #breakpoint()
+
     if len(targets)== 4 and targets.size == 4:
         loopLength=1
     else:
@@ -784,6 +786,7 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
             #raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
             logger.error(traceback.print_exc())
             logger.error("This target star was not detected in your dataset. Check your input target(s) RA/Dec")
+            #breakpoint()
             #logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
             #logger.error("Rejected Error Measurements: : {}".format(starErrorRejCount))
             #logger.error("Rejected Distance Measurements: : {}".format(starDistanceRejCount))

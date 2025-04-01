@@ -625,7 +625,7 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     TABLES = {'APASS':'II/336/apass9',
               'SDSS' :'V/154/sdss16',
               'PanSTARRS' : 'II/349/ps1',
-              'SkyMapper' : 'II/358/smss'
+              'SkyMapper' : 'II/379/smssdr4'
               }
 
     tbname = TABLES.get(cat_name, None)

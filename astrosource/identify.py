@@ -20,6 +20,7 @@ from tqdm import tqdm
 from prettytable import PrettyTable
 from multiprocessing import Pool,cpu_count
 
+import platform
 from astrosource.utils import AstrosourceException
 from astrosource.comparison import catalogue_call
 
@@ -470,6 +471,8 @@ def gather_files(paths, filelist=None, filetype="fz", bjd=False, ignoreedgefract
     file1=open(paths['parent'] / "filterCode","wb")
     pickle.dump(filterCode, file1)
     file1.close
+    
+    #breakpoint()
 
     return phot_list, filterCode, photFileHolder, photSkyCoord
 
@@ -477,6 +480,7 @@ def process_phot_file(index, photFile, photCoords, referenceFrame, acceptDistanc
     try:
         imgRejFlag = 0
         photReject = []
+
 
         # Check minimum stars requirement
         if referenceFrame.shape[0] < mincompstars:
@@ -522,15 +526,24 @@ def process_phot_file(index, photFile, photCoords, referenceFrame, acceptDistanc
 
 
 def process_photometry_files_multiprocessing(photFileHolder, photCoords, referenceFrame, acceptDistance, starreject, rejectStart, mincompstars, imgsize, logger):
-    with Pool(processes=max([cpu_count()-1,1])) as pool:
-        # Prepare arguments
-        args = [
-            (index, photFileHolder[index], photCoords, referenceFrame, acceptDistance, starreject, rejectStart, mincompstars, imgsize, logger)
-            for index in range(len(photFileHolder))
-        ]
 
-        # Process files in parallel
-        results = pool.starmap(process_phot_file, args)
+    
+    # Hack to get windows to not multiprocess until I figure out how to do it.    
+    if platform.system() == "Windows":
+        results=[]
+        for index in range(len(photFileHolder)):
+            results.append(process_phot_file(index, photFileHolder[index], photCoords, referenceFrame, acceptDistance, starreject, rejectStart, mincompstars, imgsize, logger))
+    
+    else:    
+        with Pool(processes=max([cpu_count()-1,1])) as pool:
+            # Prepare arguments
+            args = [
+                (index, photFileHolder[index], photCoords, referenceFrame, acceptDistance, starreject, rejectStart, mincompstars, imgsize, logger)
+                for index in range(len(photFileHolder))
+            ]
+    
+            # Process files in parallel
+            results = pool.starmap(process_phot_file, args)
 
     # Collect results
     updated_referenceFrame = referenceFrame
@@ -540,6 +553,7 @@ def process_photometry_files_multiprocessing(photFileHolder, photCoords, referen
         if refFrameUpdate is not None:
             updated_referenceFrame = refFrameUpdate
         photReject.extend(rejects)
+
 
     return updated_referenceFrame, photReject
 
