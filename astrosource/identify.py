@@ -213,13 +213,23 @@ def extract_photometry(infile, parentPath, outfile=None, bjd=False, ignoreedgefr
                         for entry in range(len(photFile[:,0])):
                             if photFile[entry,0] < 0:
                                 photFile[entry,0] = photFile[entry,0] + 360
+                                
+
+                
                 #remove odd zero entries
                 photFile[:,0][photFile[:,0] == 0.0 ] = nan
                 photFile[:,0][photFile[:,0] == 0.0 ] = nan
                 photFile[:,1][photFile[:,1] == 0.0 ] = nan
                 photFile[:,1][photFile[:,1] == 0.0 ] = nan
 
+                num_rows_with_nans = sum(isnan(photFile).any(axis=1))
+                
+                if len(photFile) == num_rows_with_nans:
+                    print(f"REJECT {infile}: Very likely no wcs fit - RA and Dec columns are zero.")
+
                 photFile=photFile[~isnan(photFile).any(axis=1)]
+
+                                
 
                 #remove lowcounts
                 rejectStars=where(photFile[:,4] < lowestcounts)[0]
@@ -272,6 +282,12 @@ def process_convert_photometry_file(fn, racut, deccut, radiuscut, ignoreedgefrac
             ]
 
         # Remove zero and low-count entries
+        
+        #num_rows_with_nans = sum(isnan(photFile).any(axis=1))
+        #print (len((photFile[:, 0] != 0) & (photFile[:, 1] != 0)))
+        if len((photFile[:, 0] != 0) & (photFile[:, 1] != 0)) == 0:
+            print(f"REJECTED {fn}: Very likely no wcs fit - RA and Dec columns are zero.")
+        
         photFile = photFile[(photFile[:, 4] > lowestcounts) & (photFile[:, 0] != 0) & (photFile[:, 1] != 0)]
 
         # Prepare output
@@ -481,6 +497,7 @@ def process_phot_file(index, photFile, photCoords, referenceFrame, acceptDistanc
         imgRejFlag = 0
         photReject = []
 
+        #breakpoint()
 
         # Check minimum stars requirement
         if referenceFrame.shape[0] < mincompstars:
@@ -526,7 +543,7 @@ def process_phot_file(index, photFile, photCoords, referenceFrame, acceptDistanc
 
 
 def process_photometry_files_multiprocessing(photFileHolder, photCoords, referenceFrame, acceptDistance, starreject, rejectStart, mincompstars, imgsize, logger):
-
+    
     
     # Hack to get windows to not multiprocess until I figure out how to do it.    
     if platform.system() == "Windows":
@@ -544,7 +561,7 @@ def process_photometry_files_multiprocessing(photFileHolder, photCoords, referen
     
             # Process files in parallel
             results = pool.starmap(process_phot_file, args)
-
+    
     # Collect results
     updated_referenceFrame = referenceFrame
     photReject = []
@@ -553,7 +570,8 @@ def process_photometry_files_multiprocessing(photFileHolder, photCoords, referen
         if refFrameUpdate is not None:
             updated_referenceFrame = refFrameUpdate
         photReject.extend(rejects)
-
+        
+    #breakpoint()
 
     return updated_referenceFrame, photReject
 
@@ -850,6 +868,8 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, noskym
             photFileHolder, photCoords, referenceFrame, acceptDistance, starreject, rejectStart, mincompstars, imgsize, logger
         )
 
+        #breakpoint()
+
         # Remove files and Hold the photSkyCoords in memory
 
         photCoords=asarray(photCoords, dtype=object)
@@ -1094,9 +1114,9 @@ def find_stars(targets, paths, fileList, nopanstarrs=False, nosdss=False, noskym
                             'SkyMapper' : {'filter' : 'iPSF', 'error' : 'e_iPSF', 'colmatch' : 'rPSF', 'colerr' : 'e_rPSF', 'colname' : 'r-i', 'colrev' : '1'},
                             'PanSTARRS': {'filter' : 'imag', 'error' : 'e_imag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-i', 'colrev' : '1'},
                             'APASS' : {'filter' : 'i_mag', 'error' : 'e_i_mag', 'colmatch' : 'r_mag', 'colerr' : 'e_r_mag', 'colname' : 'r-i', 'colrev' : '1'}},
-                    'zs' : {'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-zs', 'colrev' : '1'},
+                    'zs' : {'SDSS' : {'filter' : 'zmag', 'error' : 'e_zmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-zs', 'colrev' : '1'},
                             'SkyMapper' : {'filter' : 'zPSF', 'error' : 'e_zPSF', 'colmatch' : 'rPSF', 'colerr' : 'e_rPSF', 'colname' : 'r-zs', 'colrev' : '1'},
-                            'SDSS' : {'filter' : 'zmag', 'error' : 'e_zmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-zs', 'colrev' : '1'}},
+                            'PanSTARRS': {'filter' : 'zmag', 'error' : 'e_zmag', 'colmatch' : 'rmag', 'colerr' : 'e_rmag', 'colname' : 'r-zs', 'colrev' : '1'}},
                     }
 
         try:
