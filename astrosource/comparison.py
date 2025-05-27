@@ -521,7 +521,7 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     tableFound=False
     # Check VSX for any known variable stars and remove them from the list
     logger.info("Searching for known variable stars in VSX......")
-    vServers = ['vizier.cfa.harvard.edu','vizier.u-strasbg.fr']
+    vServers = ['vizier.cds.unistra.fr','vizier.cfa.harvard.edu','vizier.u-strasbg.fr']
     vS=0
     try:
         while vS < len(vServers):
