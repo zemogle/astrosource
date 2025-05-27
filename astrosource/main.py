@@ -2,7 +2,7 @@ from pathlib import Path
 import click
 import sys
 import logging
-
+import os
 from numpy import array, all
 from astropy.utils.exceptions import AstropyWarning, AstropyDeprecationWarning
 
@@ -217,7 +217,10 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
             ts.find_variables()
 
         if variablehunt == True:
-            targets = get_targets(parentPath / 'results/potentialVariables.csv')
+            if os.path.exists(parentPath / 'results/potentialVariables.csv'):
+                targets = get_targets(parentPath / 'results/potentialVariables.csv')
+            else:
+                targets=None
 
 
 

@@ -254,7 +254,11 @@ def fit_sigma_clipped_sigmoid(x, y, sigma=2, parentPath=''):
 
     # Fit sigmoid function to non-masked data with weights
     p0 = [max(y), 1, np.median(x)]  # Initial guesses for L, k, x0
-    popt, _ = curve_fit(sigmoid_func, x[~mask], y[~mask], p0=p0, sigma=1/weights[~mask])
+    try:
+        popt, _ = curve_fit(sigmoid_func, x[~mask], y[~mask], p0=p0, sigma=1/weights[~mask])
+    except:
+        logger.info("Sigmoid curve fit failed")
+        return []
 
     # Calculate residuals and standard deviation
     y_fit = sigmoid_func(x, *popt)
