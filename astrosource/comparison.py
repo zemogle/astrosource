@@ -630,11 +630,11 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
 
     tbname = TABLES.get(cat_name, None)
     kwargs = {'radius': str(1.5*radius)+' deg'}
-    kwargs['catalog'] = cat_name
+    kwargs['catalog'] = cat_name 
 
-    vServers = ['vizier.u-strasbg.fr',
+    vServers = ['vizier.cds.unistra.fr','vizier.u-strasbg.fr']#,
          #'vizier.nao.ac.jp',
-         'vizier.cfa.harvard.edu']
+         #'vizier.cfa.harvard.edu']
          #'vizier.iucaa.in',
          #'vizier.china-vo.org',
          #'vizier.inasan.ru',
@@ -701,10 +701,15 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     #             tableFound=True
 
     cycler=0
+    vS=0
     try:
         while vS < len(vServers):
+            
             v.VIZIER_SERVER=vServers[vS]
-            query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
+            try:
+                query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
+            except:
+                logger.info("Failed vizier query)")
             if str(query)=="Empty TableList":
                 vS=vS+1
             else:
@@ -1143,7 +1148,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                             logger.debug('Calibration Stars Identified below')
                             tabl = PrettyTable()
                             tabl.field_names = ["RA","Dec","MagDiff","Mag"]
-                            tabl.add_rows(calibStands[:,0:4])
+                            #abl.add_rows(calibStands[:,0:4])
+                            rows = calibStands[:,0:4].tolist()
+                            if rows:                 
+                                tabl.add_rows(rows)
                             logger.debug(tabl)
                     except:
                         print ("something fishy in the calib mags table")
