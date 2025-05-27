@@ -32,7 +32,7 @@ If you need to install the development branch, there are two methods:
 pip install -U git+https://github.com/zemogle/astrosource@dev
 ```
 
-(2) download from [GitHub](https://github.com/zemogle/astrosource) and from the root of the repo, run:
+(2) download from [GitHub](https://github.com/zemogle/astrosource/tree/dev) and from the root of the repo, run:
 
 ```bash
 cd astrosource
