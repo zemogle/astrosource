@@ -22,7 +22,17 @@ pip install astrosource
 
 ### Install development version
 
-If you need to install the development branch, download from [GitHub](https://github.com/zemogle/astrosource) and from the root of the repo, run:
+The development version tends to be more cutting edge with hotfixes applied to latest problems and with new features that are new enough that we are still monitoring for bugs. Having said that, it is probably the better choice to use, just be aware that there may be bugs and if you find one, let us know! 
+
+If you need to install the development branch, there are two methods:
+
+(1) Use pip to install the development branch
+
+```bash
+pip install -U git+https://github.com/zemogle/astrosource@dev
+```
+
+(2) download from [GitHub](https://github.com/zemogle/astrosource/tree/dev) and from the root of the repo, run:
 
 ```bash
 cd astrosource
