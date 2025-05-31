@@ -30,15 +30,6 @@ from functools import partial
 logger = logging.getLogger('astrosource')
 
 import platform
-# import platform
-# # Check the operating system
-# if platform.system() == "Windows":
-#     # Use 'forkserver' for Windows
-#     mp.set_start_method("forkserver", force=True)
-# else:
-#     # Use the default method for other OS
-#     mp.set_start_method("fork", force=True)
-
 
 def get_total_counts(photFileArray, compFile, loopLength, photCoords):
 
@@ -50,7 +41,6 @@ def get_total_counts(photFileArray, compFile, loopLength, photCoords):
     for photFile in photFileArray:
         allCounts = 0.0
         allCountsErr = 0.0
-        #fileRaDec = SkyCoord(ra=photFile[:, 0]*degree, dec=photFile[:, 1]*degree)
         fileRaDec = photCoords[counter]
         counter=counter+1
         #Array of comp measurements
@@ -66,7 +56,6 @@ def get_total_counts(photFileArray, compFile, loopLength, photCoords):
             if (compFile.shape[0] == 5 and compFile.size == 5) or (compFile.shape[0] == 3 and compFile.size == 3):
                 break
         allCountsArray.append([allCounts, allCountsErr])
-    #logger.debug(allCountsArray)
     return allCountsArray
 
 #def process_varsearch_target(target, photFileArray, allCountsArray, matchRadius, minimumNoOfObs):
@@ -74,9 +63,7 @@ def process_varsearch_target(target, photFileArray_shape, photFileArray_dtype, s
     
     # Attach to the shared memory for photFileArray
     existing_shm = shared_memory.SharedMemory(name=shm_name)
-    photFileArray = np.ndarray(photFileArray_shape, dtype=photFileArray_dtype, buffer=existing_shm.buf)
-
-    
+    photFileArray = np.ndarray(photFileArray_shape, dtype=photFileArray_dtype, buffer=existing_shm.buf)    
     diffMagHolder = []
     
     for allcountscount, photFile in enumerate(photFileArray):
@@ -155,7 +142,6 @@ def process_varsearch_targets_multiprocessing(targetFile, photFileArray, allCoun
     
     worker = partial(
         process_varsearch_target,
-        #photFileArray=photFileArray,
         photFileArray_shape=photFileArray.shape,
         photFileArray_dtype=photFileArray.dtype,
         shm_name=shm.name,               
@@ -223,8 +209,6 @@ def fit_sigma_clipped_poly(x, y, order=3, sigma=2, parentPath=''):
     
     plt.savefig(parentPath / "results/polifitdiagram.png")
     
-    #breakpoint()
-
 def sigmoid_func(x, L, k, x0):
     """Sigmoid function: y = L / (1 + exp(-k * (x - x0))) + 0.01"""
     return L / (1 + np.exp(-k * (x - x0))) + 0.01
@@ -358,7 +342,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
 
     photFileArray=photFileHolder
-    photFileCoords=photCoords
+    #photFileCoords=photCoords
 
     # allocate minimum images to detect
     minimumNoOfObs=int(varsearchminimages*len(fileList))
@@ -381,7 +365,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     compFile = genfromtxt(parentPath / "results/compsUsed.csv", dtype=float, delimiter=',')
     logger.debug("Stable Comparison Candidates below variability threshold")
-    outputPhot = []
+    #outputPhot = []
 
     # Get total counts for each file
     allCountsArray = get_total_counts(photFileArray, compFile, loopLength=compFile.shape[0], photCoords=photCoords)
@@ -400,53 +384,15 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     ## NEED TO REMOVE COMPARISON STARS FROM TARGETLIST
 
-    allcountscount=0
+    #allcountscount=0
     # For each variable calculate the variability
     outputVariableHolder=[]
 
     logger.info("Measuring variability of stars...... ")
     taketime=time.time()
 
-    # for target in targetFile:
-    #     diffMagHolder=[]
-    #     allcountscount=0
-
-        
-    #     for photFile in photFileArray:
-    #         # A bit rougher than using SkyCoord, but way faster
-    #         # The amount of calculations is too slow for SkyCoord
-    #         idx=(np.abs(photFile[:,0] - target[0]) + np.abs(photFile[:,1] - target[1])).argmin()
-    #         d2d=pow(pow(photFile[idx,0] - target[0],2) + pow(photFile[idx,1] - target[1],2),0.5) * 3600
-    #         multTemp=(multiply(-2.5,log10(divide(photFile[idx][11],allCountsArray[allcountscount][0]))))
-    #         if less(d2d, matchRadius) and (multTemp != inf) :
-    #             diffMagHolder=append(diffMagHolder,multTemp)
-    #         allcountscount=add(allcountscount,1)
-            
-    #     ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
-    #     diffMagHolder=np.array(diffMagHolder)
-    #     while True:
-    #         stdVar=std(diffMagHolder)
-    #         avgVar=average(diffMagHolder)
-
-    #         sizeBefore=diffMagHolder.shape[0]
-    #         #print (sizeBefore)
-
-    #         diffMagHolder[diffMagHolder > avgVar+(4*stdVar) ] = np.nan
-    #         diffMagHolder[diffMagHolder < avgVar-(4*stdVar) ] = np.nan
-    #         diffMagHolder=diffMagHolder[~np.isnan(diffMagHolder)]
-
-    #         if diffMagHolder.shape[0] == sizeBefore:
-    #             break
-
-    #     if (diffMagHolder.shape[0] > minimumNoOfObs):
-    #         outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), diffMagHolder.shape[0]])
-
-# process_varsearch_target
-
-
-    # Hack to get windows to not multiprocess until I figure out how to do it.    
-    if platform.system() == "Windows":
-        
+    # Hack to get windows to not multiprocess until a good solution is found.    
+    if platform.system() == "Windows":       
         
         outputVariableHolder=[]
         for target in targetFile:
@@ -465,22 +411,11 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     savetxt(parentPath / "results/starVariability.csv", outputVariableHolder, delimiter=",", fmt='%0.8f', header='RA,DEC,DiffMag,Variability,No_of_images_used')
 
-
-
-
-    
-
-    #breakpoint()
-
     ## Routine that actually pops out potential variables.
     starVar = np.asarray(outputVariableHolder)
 
     
     outliers=fit_sigma_clipped_sigmoid(starVar[:,2],starVar[:,3], parentPath=parentPath)
-
-    #breakpoint()
-
-    #potentialVariables = np.delete(starVar, outliers, axis=0)
 
     potentialVariables=starVar[outliers]
 
@@ -491,33 +426,6 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     yStepSize=0.02
     xbins = np.arange(np.min(meanMags), np.max(meanMags), xStepSize)
     ybins = np.arange(np.min(variations), np.max(variations), yStepSize)
-
-    # #split it into one array and identify variables in bins with centre
-    # variationsByMag=[]
-    # potentialVariables=[]
-    # for xbinner in range(len (xbins)):
-
-    #     starsWithin=[]
-    #     for q in range(len(meanMags)):
-    #         if meanMags[q] >= xbins[xbinner] and meanMags[q] < xbins[xbinner]+xStepSize:
-    #             starsWithin.append(variations[q])
-
-    #     meanStarsWithin= (np.mean(starsWithin))
-    #     stdStarsWithin= (np.std(starsWithin))
-    #     variationsByMag.append([xbins[xbinner]+0.5*xStepSize,meanStarsWithin,stdStarsWithin])
-
-    #     # At this point extract RA and Dec of stars that may be variable
-    #     for q in range(len(starVar[:,2])):
-    #         if starVar[q,2] >= xbins[xbinner] and starVar[q,2] < xbins[xbinner]+xStepSize:
-    #             if varsearchglobalstdev != -99.9:
-    #                 if starVar[q,3] > varsearchglobalstdev :
-    #                     potentialVariables.append([starVar[q,0],starVar[q,1],starVar[q,2],starVar[q,3]])
-    #             elif starVar[q,3] > (meanStarsWithin + varsearchstdev*stdStarsWithin):
-    #                 #print (starVar[q,3])
-    #                 potentialVariables.append([starVar[q,0],starVar[q,1],starVar[q,2],starVar[q,3]])
-
-    # potentialVariables=np.array(potentialVariables)
-    # logger.debug("Potential Variables Identified: " + str(potentialVariables.shape[0]))
 
     if potentialVariables.shape[0] == 0:
         logger.info("No Potential Variables identified in this set of data using the parameters requested.")
@@ -580,8 +488,6 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
 
     allcountscount=0
 
-    #breakpoint()
-
     if len(targets)== 4 and targets.size == 4:
         loopLength=1
     else:
@@ -616,20 +522,11 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
         allcountscount=0
 
         for imgs, photFile in enumerate(tqdm(photFileArray)):
-            #fileRaDec = photCoordsFile[imgs]
-            #idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
-            #breakpoint()
             idx=(np.abs(photFile[:,0] - singleCoordRA) + np.abs(photFile[:,1] - singleCoordDEC)).argmin()
             d2d=pow(pow(photFile[idx,0] - singleCoordRA,2) + pow(photFile[idx,1] - singleCoordDEC,2),0.5) * 3600
             
-            #print (d2d)
-            
             starRejected=0
-            if (less(d2d, targetRadius)):
-                #magErrVar = 1.0857 * (photFile[idx][5]/photFile[idx][4])
-                
-                
-                
+            if (less(d2d, targetRadius)):                
                 # If the file hasn't been calibrated, then it still contains the countrate in it.
                 # So convert these to mags, otherwise use the calibrated error.
                 if photFile[idx][4] > 50:
@@ -725,8 +622,6 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                     fileCount.append(allCountsArray[allcountscount][0])
                     allcountscount=allcountscount+1
 
-        #breakpoint()
-
         # Check for dud images
         imageReject=[]
         for j in range(asarray(outputPhot).shape[0]):
@@ -757,7 +652,6 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                     break
 
             # Reject by outsized error elimination
-
             while True:
                 errorsArray=[]
                 for j in range(asarray(outputPhot).shape[0]):
@@ -787,13 +681,8 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
             outputPhot=delete(outputPhot, starReject, axis=0)
 
         except ValueError:
-            #raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
             logger.error(traceback.print_exc())
             logger.error("This target star was not detected in your dataset. Check your input target(s) RA/Dec")
-            #breakpoint()
-            #logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
-            #logger.error("Rejected Error Measurements: : {}".format(starErrorRejCount))
-            #logger.error("Rejected Distance Measurements: : {}".format(starDistanceRejCount))
 
         # Add calibration columns
         outputPhot= np.c_[outputPhot, np.ones(outputPhot.shape[0]),np.ones(outputPhot.shape[0])]

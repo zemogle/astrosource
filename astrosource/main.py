@@ -126,12 +126,8 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
             logger.info('All output files removed')
             return
         if not (ra and dec) and not target_file and not variablehunt:
-            #logger.error("Either RA and Dec or a targetfile must be specified")
             logger.error("No specified RA or Dec nor targetfile nor request for a variable hunt. It is assumed you have no target to analyse.")
             notarget=True
-            #return
-
-
 
         if ra and dec:
             ra, dec = convert_coords(ra, dec)
