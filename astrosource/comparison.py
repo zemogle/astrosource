@@ -26,7 +26,7 @@ import traceback
 import requests
 import http
 import urllib3
-
+from collections import OrderedDict
 from astrosource.utils import AstrosourceException
 
 import logging
@@ -566,17 +566,25 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     cycler=0
     vS=0
     try:
+        vtimeout=180
         while vS < len(vServers):
             
             v.VIZIER_SERVER=vServers[vS]
+            v.TIMEOUT = vtimeout 
             try:
                 query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
-            except:
-                logger.info("Failed vizier query)")
-            if str(query)=="Empty TableList":
+                if str(query)=="Empty TableList":
+                    vS=vS+1
+                else:
+                    break
+            except requests.exceptions.ReadTimeout:
+                
+                logger.info("Read Timeout for Vizier, might be a very dense field or slow server today")
                 vS=vS+1
-            else:
-                break
+            except:
+                logger.info("Failed vizier query")
+                print(traceback.print_exc())
+            
             
     except VOSError:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
@@ -771,7 +779,15 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         raise AstrosourceException(f"{filterCode} is not accepted at present")
 
     # Look up in online catalogues and make sure there are sufficient comparison stars
-
+    # If in the realm of skymapper and a skymapper filter, put skymapper at the front
+    if avgCoord.dec.deg < 15 and 'SkyMapper' in catalogues:
+        ordered = OrderedDict()
+        ordered['SkyMapper'] = catalogues['SkyMapper']
+        for key, val in catalogues.items():
+            if key != 'SkyMapper':
+                ordered[key] = val
+        catalogues = ordered
+        
     coords=[]
     for cat_name, opt in catalogues.items():
         try:
