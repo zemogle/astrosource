@@ -42,7 +42,7 @@ def process_fits_file(f, indir, bjd, ignoreedgefraction, lowestcounts, racut, de
             lowestcounts=lowestcounts, racut=racut, deccut=deccut, radiuscut=radiuscut
         )
 
-        if not filepath or not photFile:
+        if filepath is None or photFile is None or len(photFile) == 0:
             return None  # Skip if extraction failed
 
         # Close S3 file if applicable
@@ -65,7 +65,7 @@ def process_files_multiprocessing(filelist, indir, bjd, ignoreedgefraction, lowe
     # Wrap arguments for multiprocessing
     args = (indir, bjd, ignoreedgefraction, lowestcounts, racut, deccut, radiuscut)
     with Pool(processes=max([cpu_count()-1,1])) as pool:
-        results = list(tqdm(pool.starmap(process_fits_file, [(f, *args) for f in filelist]), total=len(filelist)))
+        results = list(tqdm(pool.starmap(process_fits_file, [(f, *args) for f in filelist]), total=len(list(filelist))))
 
     # Filter valid results
     results = [res for res in results if res is not None]
