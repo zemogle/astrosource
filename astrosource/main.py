@@ -225,7 +225,7 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
                 ts.plot(detrend=detrend, period=period, eebls=eebls, filesave=True)
                 
             # Output the list of targets that was used in this run.
-            with open(csv_path, 'w', newline='') as csvfile:
+            with open((parentPath / 'results/TargetsUsed.csv', 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 num_cols = len(targets[0]) + 1
                 header = [f'col{i}' for i in range(1, num_cols + 1)]
