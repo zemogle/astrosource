@@ -55,7 +55,7 @@ logger = logging.getLogger('astrosource')
 
 
 
-@click.option('--period', is_flag=True, help='Search for periodicity in the data, currently with PDM and String methods. This will autoselect a reasonable search range if not provided a range.')
+@click.option('--period', is_flag=True, default=True, help='Search for periodicity in the data, currently with PDM and String methods. This will autoselect a reasonable search range if not provided a range.')
 @click.option('--periodlower', '-pl', type=float, default=-99.9, help='Shortest period to trial in days. Default is 0.05 days')
 @click.option('--periodupper', '-pu', type=float, default=-99.9, help='Longest period to trial in days. Default is one-third the observational baseline of your dataset.')
 @click.option('--periodtests', '-pt', type=int, default=10000, help='Number of different trial periods to run')
