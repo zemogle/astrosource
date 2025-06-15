@@ -2,6 +2,7 @@ from pathlib import Path
 import click
 import sys
 import logging
+import csv
 import os
 from numpy import array, all
 from astropy.utils.exceptions import AstropyWarning, AstropyDeprecationWarning
@@ -225,15 +226,18 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
                 ts.plot(detrend=detrend, period=period, eebls=eebls, filesave=True)
                 
             # Output the list of targets that was used in this run.
-            with open((parentPath / 'results/TargetsUsed.csv', 'w', newline='') as csvfile:
+            results_dir = parentPath / 'results'
+            #results_dir.mkdir(exist_ok=True)
+            
+            csv_path = results_dir / 'TargetsUsed.csv'
+            with open(csv_path, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 num_cols = len(targets[0]) + 1
                 header = [f'col{i}' for i in range(1, num_cols + 1)]
                 writer.writerow(header)
             
                 for idx, targ in enumerate(targets, start=1):
-                    row = [f'V{idx}'] + list(targ)
-                    writer.writerow(row)
+                    writer.writerow([f'V{idx}'] + list(targ))
 
         
         sys.stdout.write("✅ AstroSource analysis complete\n")
