@@ -546,8 +546,9 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         radecname = {'ra' :'raj2000', 'dec': 'dej2000'}
 
     if cat_name in ['APASS']:
+
         searchColumns=[radecname['ra'], radecname['dec'], opt['filter'].replace('i_mag','i\'mag').replace('r_mag','r\'mag').replace('g_mag','g\'mag'), opt['error'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag'), opt['colmatch'].replace('i_mag','i\'mag').replace('r_mag','r\'mag').replace('g_mag','g\'mag'), opt['colerr'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag')]
-          
+    
     else:
         searchColumns=[radecname['ra'], radecname['dec'], opt['filter'], opt['error'], opt['colmatch'], opt['colerr']]
     
