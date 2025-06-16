@@ -4,6 +4,7 @@ import pickle
 import ssl
 import sys
 from pathlib import Path
+import csv
 
 if (not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unverified_context', None)):
     ssl._create_default_https_context = ssl._create_unverified_context
@@ -240,6 +241,22 @@ class TimeSeries:
                 phased_plots(filterCode=self.filtercode, paths=self.paths, targets=self.targets, period=self.period, phaseShift=phaseShift)
         if eebls:
             plot_bls(paths=self.paths)
+        
+        # Output the list of targets that was used in this run.
+        #results_dir = parentPath / 'results'
+        #results_dir.mkdir(exist_ok=True)
+        
+        csv_path = self.paths['results'] / 'TargetsUsed.csv'
+        with open(csv_path, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            num_cols = len(self.targets[0]) + 1
+            header = [f'col{i}' for i in range(1, num_cols + 1)]
+            writer.writerow(header)
+        
+            for idx, targ in enumerate(self.targets, start=1):
+                writer.writerow([f'V{idx}'] + list(targ))
+        
+        
 
     def output(self, mode, data):
         output_files(paths=self.paths, photometrydata=data, mode=mode)

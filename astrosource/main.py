@@ -2,6 +2,7 @@ from pathlib import Path
 import click
 import sys
 import logging
+import csv
 import os
 from numpy import array, all
 from astropy.utils.exceptions import AstropyWarning, AstropyDeprecationWarning
@@ -55,7 +56,7 @@ logger = logging.getLogger('astrosource')
 
 
 
-@click.option('--period', is_flag=True, type=float, help='Search for periodicity in the data, currently with PDM and String methods. This will autoselect a reasonable search range if not provided a range.')
+@click.option('--period', is_flag=True, default=False, help='Search for periodicity in the data, currently with PDM and String methods. This will autoselect a reasonable search range if not provided a range.')
 @click.option('--periodlower', '-pl', type=float, default=-99.9, help='Shortest period to trial in days. Default is 0.05 days')
 @click.option('--periodupper', '-pu', type=float, default=-99.9, help='Longest period to trial in days. Default is one-third the observational baseline of your dataset.')
 @click.option('--periodtests', '-pt', type=int, default=10000, help='Number of different trial periods to run')
@@ -217,15 +218,14 @@ def main(full, stars, comparison, variablehunt, notarget, lowestcounts, usescree
                 targets = get_targets(parentPath / 'results/potentialVariables.csv')
             else:
                 targets=None
-
-
-
+                
         if targets is not None:
             if full or phot:
                 ts.photometry(filesave=True, targets=targets)
             if full or plot:
                 ts.plot(detrend=detrend, period=period, eebls=eebls, filesave=True)
 
+        
         sys.stdout.write("✅ AstroSource analysis complete\n")
 
     except AstrosourceException as e:
