@@ -13,7 +13,7 @@ import pickle
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
+from multiprocessing import Pool, cpu_count
 from numpy import min, max, median, std, isnan, delete, genfromtxt, savetxt, load, \
     asarray, add, append, log10, average, array, where, cos
 from astropy.units import degree, arcsecond
@@ -22,18 +22,16 @@ from astroquery.vo_conesearch.exceptions import VOSError
 from astroquery.vizier import Vizier
 from tqdm import tqdm
 from prettytable import PrettyTable
-
+import traceback
 import requests
 import http
 import urllib3
-
+from collections import OrderedDict
 from astrosource.utils import AstrosourceException
 
 import logging
 
 logger = logging.getLogger('astrosource')
-
-
 
 def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, photSkyCoord=None, matchRadius=1.45):
     '''
@@ -54,7 +52,6 @@ def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, 
     if fileList==None:
         fileList= genfromtxt(parentPath / 'results/usedImages.txt', dtype=str)
 
-    #print (fileList)
     usedImages=[]
     q=0
     imageRemove=[]
@@ -73,7 +70,6 @@ def check_comparisons_files(parentPath=None, fileList=None, photFileArray=None, 
             logger.debug('The Following file does not contain one or more of the provided comparison stars. It has been removed')
             logger.debug(file)
             logger.debug('**********************')
-            #fileList.remove(file)
             imageRemove.append(q)
         else:
             usedImages.append(file)
@@ -282,77 +278,88 @@ def read_data_files(parentPath, fileList):
 
 def ensemble_comparisons(photFileArray, compFile, parentPath, photSkyCoord):
 
-    # get rid of dumb for loop
-    fileCount = []
-    q=0
-    for photFile in photFileArray:
-        allCounts = 0.0
+    fileCount = np.zeros(len(photFileArray))  # Pre-allocate output array
 
-        if compFile.size ==2 and compFile.shape[0]==2:
-            matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-        else:
-            matchCoord = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
+    # Prepare the `matchCoord` SkyCoord object
+    if compFile.size == 2 and compFile.shape[0] == 2:
+        matchCoord = SkyCoord(ra=compFile[0] * degree, dec=compFile[1] * degree)
+    else:
+        matchCoord = SkyCoord(ra=compFile[:,0] * degree, dec=compFile[:,1] * degree)
 
-        idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
+    # Process all photSkyCoord entries in a vectorized way
+    for q, (photFile, skyCoord) in enumerate(zip(photFileArray, photSkyCoord)):
+        # Match coordinates
+        idx, _, _ = matchCoord.match_to_catalog_sky(skyCoord)
+        # Accumulate counts
+        fileCount[q] = np.sum(photFile[idx, 4])
 
-        allCounts = add(allCounts,sum(photFile[idx,4]))
-
-        fileCount.append(allCounts)
-        q=q+1
-
-    logger.debug("Total Ensemble Star Counts in Reference Frame {}".format(np.sum(np.array(fileCount))))
+    total_counts = np.sum(fileCount)
+    logger.debug("Total Ensemble Star Counts in Reference Frame {}".format(total_counts))
     return fileCount
 
+def process_phot_file_for_variation(args):
+    #q, matchCoord, photSkyCoord, photFileArray, fileCount = args
+    q, matchCoord, photSkyCoord, photFile, fileCount = args
+    idx, _, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
+    #photFile = photFileArray[q]
+    compDiffMags = 2.5 * np.log10(photFile[idx, 4] / fileCount[q])
+    instrMags = -2.5 * np.log10(photFile[idx, 4])
+    return compDiffMags, instrMags
+
 def calculate_comparison_variation(compFile, photFileArray, fileCount, parentPath, photSkyCoord):
-    stdCompStar=[]
-    sortStars=[]
+        
+    stdCompStar = []
+    sortStars = []
     logger.debug("Calculating Variation in Individual Comparisons")
 
-    if compFile.size ==2 and compFile.shape[0]==2:
-        compDiffMags = []
+    if compFile.size == 2 and compFile.shape[0] == 2:
+        # Case for single comparison star
+        matchCoord = SkyCoord(ra=compFile[0] * degree, dec=compFile[1] * degree)
 
-        matchCoord = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
-        for q, photFile in enumerate(photFileArray):
-            idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
-            compDiffMags = append(compDiffMags,2.5 * log10(photFile[idx][4]/fileCount[q]))
-            instrMags = -2.5 * log10(photFile[idx][4])
+        args = [(q, matchCoord, photSkyCoord, photFileArray[q], fileCount) for q in range(len(photFileArray))]
+        
+        with Pool(processes=max([cpu_count()-1,1])) as pool:
+            results = pool.map(process_phot_file_for_variation, args)
+        
+        compDiffMags = np.array([result[0] for result in results])
+        instrMags = np.array([result[1] for result in results])
+        
+        stdCompDiffMags = np.std(compDiffMags)
+        medCompDiffMags = np.nanmedian(compDiffMags)
+        medInstrMags = np.nanmedian(instrMags)
 
-
-        stdCompDiffMags=std(compDiffMags)
-        medCompDiffMags=np.nanmedian(compDiffMags)
-        medInstrMags= np.nanmedian(instrMags)
-
-        if np.isnan(stdCompDiffMags) :
+        if np.isnan(stdCompDiffMags):
             logger.error("Star Variability non rejected")
-            stdCompDiffMags=99
+            stdCompDiffMags = 99
+
         stdCompStar.append(stdCompDiffMags)
-        sortStars.append([compFile[0],compFile[1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-
-
+        sortStars.append([compFile[0], compFile[1], stdCompDiffMags, medCompDiffMags, medInstrMags] + [0.0] * 8)
 
     else:
-        sortStars=[]
+        # Case for multiple comparison stars
+        matchCoord = SkyCoord(ra=compFile[:, 0] * degree, dec=compFile[:, 1] * degree)
         compDiffMags = []
-        instrMags=[]
-        matchCoord = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
+        instrMags = []
+
         for q, photFile in enumerate(photFileArray):
-            idx, d2d, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
-            compDiffMags.append(2.5 * log10(photFile[idx,4]/fileCount[q]))
-            instrMags.append(-2.5 * log10(photFile[idx,4]))
+            idx, _, _ = matchCoord.match_to_catalog_sky(photSkyCoord[q])
+            compDiffMags.append(2.5 * np.log10(photFile[idx, 4] / fileCount[q]))
+            instrMags.append(-2.5 * np.log10(photFile[idx, 4]))
 
-        compDiffMags=array(compDiffMags)
-        instrMags=array(instrMags)
+        compDiffMags = np.array(compDiffMags)
+        instrMags = np.array(instrMags)
 
-        sortStars=[]
-        for z in range(len(compDiffMags[0])):
-            stdCompDiffMags=std(compDiffMags[:,z])
-            medCompDiffMags=np.nanmedian(compDiffMags[:,z])
-            medInstrMags=np.nanmedian(instrMags[:,z])
-            if np.isnan(stdCompDiffMags) :
+        for z in range(compDiffMags.shape[1]):
+            stdCompDiffMags = np.std(compDiffMags[:, z])
+            medCompDiffMags = np.nanmedian(compDiffMags[:, z])
+            medInstrMags = np.nanmedian(instrMags[:, z])
+
+            if np.isnan(stdCompDiffMags):
                 logger.error("Star Variability non rejected")
-                stdCompDiffMags=99
+                stdCompDiffMags = 99
+
             stdCompStar.append(stdCompDiffMags)
-            sortStars.append([compFile[z,0],compFile[z,1],stdCompDiffMags,medCompDiffMags,medInstrMags,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+            sortStars.append([compFile[z, 0], compFile[z, 1], stdCompDiffMags, medCompDiffMags, medInstrMags] + [0.0] * 8)
 
     return stdCompStar, sortStars
 
@@ -361,10 +368,10 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     logger.info("Removing Target Stars from potential Comparisons")
     tableFound=False
 
-    if not (compFile.shape[0] == 2 and compFile.size ==2):
-        fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
-    else:
-        fileRaDec = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
+    # if not (compFile.shape[0] == 2 and compFile.size ==2):
+    #     fileRaDec = SkyCoord(ra=compFile[:,0]*degree, dec=compFile[:,1]*degree)
+    # else:
+    #     fileRaDec = SkyCoord(ra=compFile[0]*degree, dec=compFile[1]*degree)
 
     # Remove any nan rows from targetFile
     if targetFile is not None:
@@ -413,20 +420,13 @@ def remove_stars_targets(parentPath, compFile, acceptDistance, targetFile, remov
     tableFound=False
     # Check VSX for any known variable stars and remove them from the list
     logger.info("Searching for known variable stars in VSX......")
-    vServers = ['vizier.cfa.harvard.edu','vizier.u-strasbg.fr']
+    vServers = ['vizier.cds.unistra.fr','vizier.cfa.harvard.edu','vizier.u-strasbg.fr']
     vS=0
     try:
         while vS < len(vServers):
             v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
             v.ROW_LIMIT=-1
-            
-                 #'vizier.nao.ac.jp',
-                 #]
-                 #'vizier.iucaa.in',
-                 #'vizier.china-vo.org',
-                 #'vizier.inasan.ru',
-                 #'vizier.idia.ac.za']
-            
+                        
             v.VIZIER_SERVER=vServers[vS]
             vS=vS + 1
             variableResult=v.query_region(avgCoord, radius=1.5*radius*degree, catalog='VSX')
@@ -517,16 +517,16 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     TABLES = {'APASS':'II/336/apass9',
               'SDSS' :'V/154/sdss16',
               'PanSTARRS' : 'II/349/ps1',
-              'SkyMapper' : 'II/358/smss'
+              'SkyMapper' : 'II/379/smssdr4'
               }
 
     tbname = TABLES.get(cat_name, None)
     kwargs = {'radius': str(1.5*radius)+' deg'}
-    kwargs['catalog'] = cat_name
+    kwargs['catalog'] = cat_name 
 
-    vServers = ['vizier.u-strasbg.fr',
+    vServers = ['vizier.cds.unistra.fr','vizier.u-strasbg.fr']#,
          #'vizier.nao.ac.jp',
-         'vizier.cfa.harvard.edu']
+         #'vizier.cfa.harvard.edu']
          #'vizier.iucaa.in',
          #'vizier.china-vo.org',
          #'vizier.inasan.ru',
@@ -546,17 +546,13 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
         radecname = {'ra' :'raj2000', 'dec': 'dej2000'}
 
     if cat_name in ['APASS']:
-        searchColumns=[]
-        #searchColumns=[radecname['ra'], radecname['dec'], 'i_mag', opt['filter'].replace('i_mag','i\'mag').replace('r_mag','r\'mag').replace('g_mag','g\'mag'), opt['error'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag'), opt['colmatch'].replace('i_mag','i\'mag').replace('r_mag','r\'mag').replace('g_mag','g\'mag'), opt['colerr'].replace('e_i_mag','e_i\'mag').replace('e_r_mag','e_r\'mag').replace('e_g_mag','e_g\'mag')]
-        #print (searchColumns)
+        searchColumns=[]        
     else:
         searchColumns=[radecname['ra'], radecname['dec'], opt['filter'], opt['error'], opt['colmatch'], opt['colerr']]
-    #print (searchColumns)
-
+    
     v=Vizier(columns=searchColumns) # Skymapper by default does not report the error columns
     v.ROW_LIMIT=-1
 
-    #queryConstraint=
     # Filter out bad data from catalogues
     if cat_name == 'PanSTARRS':
         queryConstraint={'Qual' : '52 || 60 || 61'}
@@ -567,40 +563,28 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     elif cat_name == 'APASS':
         queryConstraint={}
 
-
-
-    # vServers = ['vizier.cfa.harvard.edu','vizier.u-strasbg.fr']
-    # vS=0
-    # try:
-    #     while vS < len(vServers):
-    #         v=Vizier(columns=['RAJ2000', 'DEJ2000']) # Skymapper by default does not report the error columns
-    #         v.ROW_LIMIT=-1
-            
-    #              #'vizier.nao.ac.jp',
-    #              #]
-    #              #'vizier.iucaa.in',
-    #              #'vizier.china-vo.org',
-    #              #'vizier.inasan.ru',
-    #              #'vizier.idia.ac.za']
-            
-    #         v.VIZIER_SERVER=vServers[vS]
-    #         vS=vS + 1
-    #         variableResult=v.query_region(avgCoord, radius=1.5*radius*degree, catalog='VSX')
-    #         if str(variableResult)=="Empty TableList":
-    #             logger.info("VSX Returned an Empty Table from " + str(vServers[vS]) + ".")
-    #         else:
-    #             variableResult=variableResult['B/vsx/vsx']
-    #             tableFound=True
-
     cycler=0
+    vS=0
     try:
+        vtimeout=180
         while vS < len(vServers):
+            
             v.VIZIER_SERVER=vServers[vS]
-            query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
-            if str(query)=="Empty TableList":
+            v.TIMEOUT = vtimeout 
+            try:
+                query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
+                if str(query)=="Empty TableList":
+                    vS=vS+1
+                else:
+                    break
+            except requests.exceptions.ReadTimeout:
+                
+                logger.info("Read Timeout for Vizier, might be a very dense field or slow server today")
                 vS=vS+1
-            else:
-                break
+            except:
+                logger.info("Failed vizier query")
+                print(traceback.print_exc())
+            
             
     except VOSError:
         raise AstrosourceException("Could not find RA {} Dec {} in {}".format(avgCoord.ra.value,avgCoord.dec.value, cat_name))
@@ -655,13 +639,6 @@ def catalogue_call(avgCoord, radius, opt, cat_name, targets, closerejectd):
     if len(resp) != 0:
         catReject=[]
         
-        # v=Vizier() # Skymapper by default does not report the error columns
-        # v.ROW_LIMIT=-1
-        # query = v.query_region(avgCoord, column_filters=queryConstraint, **kwargs)
-        # resp = query[tbname]
-
-        #breakpoint()
-
         for q in range(len(resp)):
             if np.asarray(resp[opt['filter']][q]) == 0.0 or np.asarray(resp[opt['error']][q]) == 0.0 or np.isnan(resp[opt['filter']][q]) or np.isnan(resp[opt['error']][q]):
                 catReject.append(q)
@@ -741,8 +718,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     if not calibPath.exists():
         os.makedirs(calibPath)
 
-    #Vizier.ROW_LIMIT = -1
-
     # Get List of Files Used
     fileList=[]
     for line in (parentPath / "results/usedImages.txt").read_text().strip().split('\n'):
@@ -804,7 +779,15 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         raise AstrosourceException(f"{filterCode} is not accepted at present")
 
     # Look up in online catalogues and make sure there are sufficient comparison stars
-
+    # If in the realm of skymapper and a skymapper filter, put skymapper at the front
+    if avgCoord.dec.deg < 15 and 'SkyMapper' in catalogues:
+        ordered = OrderedDict()
+        ordered['SkyMapper'] = catalogues['SkyMapper']
+        for key, val in catalogues.items():
+            if key != 'SkyMapper':
+                ordered[key] = val
+        catalogues = ordered
+        
     coords=[]
     for cat_name, opt in catalogues.items():
         try:
@@ -817,8 +800,18 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 elif cat_name == 'SkyMapper' and noskymapper==True:
                     logger.info("Skipping Skymapper")
                 else:
-
-                    coords = catalogue_call(avgCoord, 1.5*radius, opt, cat_name, targets=targets, closerejectd=closerejectd)
+                    try:
+                        coords = catalogue_call(avgCoord, 1.5*radius, opt, cat_name, targets=targets, closerejectd=closerejectd)
+                    except Exception as e:
+                        
+                        if 'Could not find RA' in str(e):
+                            raise AstrosourceException("Empty catalogue produced from catalogue call")
+                            #pass
+                        else:
+                            print (e)
+                            print ("MTF hunting this bug")
+                            print(traceback.print_exc())
+                            breakpoint()
                     # If no results try next catalogue
                     if len(coords.ra) == 0:
                         coords=[]
@@ -829,111 +822,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                     else:
                         max_sep=1.5 * arcsecond
 
-                    # The following commented out code is temporary code to manually access Skymapper DR3 and APASS10 prior to them becoming publically available through vizier.
-                    # It will be removed in later versions.
-
-                    # SKYMAPPER OVERRIDE
-                    # max_sep=1.5 * arcsecond
-                    # smapdr3=genfromtxt(parentPath / 'SkymapperDR3.csv', dtype=float, delimiter=',')
-                    # coords = namedtuple(typename='data',field_names=['ra','dec','mag','emag','cat_name', 'colmatch', 'colerr'])
-                    # coords.ra=smapdr3[:,0]
-                    # coords.dec=smapdr3[:,1]
-                    # print (opt['filter'])
-                    # if opt['filter'] == 'uPSF':
-                    #     coords.mag = smapdr3[:,2]
-                    #     coords.emag = smapdr3[:,3]
-                    #     coords.colmatch = smapdr3[:,4]
-                    #     coords.colerr = smapdr3[:,5]
-                    #     coords.colrev = 0
-
-                    # if opt['filter'] == 'gPSF':
-                    #     coords.mag = smapdr3[:,4]
-                    #     coords.emag = smapdr3[:,5]
-                    #     coords.colmatch = smapdr3[:,6]
-                    #     coords.colerr = smapdr3[:,7]
-                    #     coords.colrev = 0
-
-                    # if opt['filter'] == 'rPSF':
-                    #     coords.mag = smapdr3[:,6]
-                    #     coords.emag = smapdr3[:,7]
-                    #     coords.colmatch = smapdr3[:,8]
-                    #     coords.colerr = smapdr3[:,9]
-                    #     coords.colrev = 0
-
-                    # if opt['filter'] == 'iPSF':
-                    #     coords.mag = smapdr3[:,8]
-                    #     coords.emag = smapdr3[:,9]
-                    #     coords.colmatch = smapdr3[:,6]
-                    #     coords.colerr = smapdr3[:,7]
-                    #     coords.colrev = 1
-
-                    # if opt['filter'] == 'zPSF':
-                    #     coords.mag = smapdr3[:,10]
-                    #     coords.emag = smapdr3[:,11]
-                    #     coords.colmatch = smapdr3[:,8]
-                    #     coords.colerr = smapdr3[:,9]
-                    #     coords.colrev = 1
-
-                    # APASS OVERRIDE
-                    # max_sep=2.5 * arcsecond
-                    # smapdr3=genfromtxt(parentPath / 'ap10.csv', dtype=float, delimiter=',')
-                    # coords = namedtuple(typename='data',field_names=['ra','dec','mag','emag','cat_name', 'colmatch', 'colerr'])
-                    # coords.ra=smapdr3[:,0]
-                    # coords.dec=smapdr3[:,1]
-                    # print (opt['filter'])
-
-                    # if opt['filter'] == 'Bmag':
-                    #     coords.mag = smapdr3[:,2]
-                    #     coords.emag = smapdr3[:,3]
-                    #     coords.colmatch = smapdr3[:,4]
-                    #     coords.colerr = smapdr3[:,5]
-                    #     coords.colrev = 0
-
-                    # if opt['filter'] == 'Vmag':
-                    #     coords.mag = smapdr3[:,4]
-                    #     coords.emag = smapdr3[:,5]
-                    #     coords.colmatch = smapdr3[:,2]
-                    #     coords.colerr = smapdr3[:,3]
-                    #     coords.colrev = 1
-
-                    # if opt['filter'] == 'umag':
-                    #     coords.mag = smapdr3[:,6]
-                    #     coords.emag = smapdr3[:,7]
-                    #     coords.colmatch = smapdr3[:,8]
-                    #     coords.colerr = smapdr3[:,9]
-                    #     coords.colrev = 0
-
-                    # if opt['filter'] == 'gmag':
-                    #     coords.mag = smapdr3[:,8]
-                    #     coords.emag = smapdr3[:,9]
-                    #     coords.colmatch = smapdr3[:,10]
-                    #     coords.colerr = smapdr3[:,11]
-                    #     coords.colrev = 0
-
-                    # if opt['filter'] == 'rmag':
-                    #     coords.mag = smapdr3[:,10]
-                    #     coords.emag = smapdr3[:,11]
-                    #     coords.colmatch = smapdr3[:,12]
-                    #     coords.colerr = smapdr3[:,13]
-                    #     coords.colrev = 0
-
-                    # if opt['filter'] == 'imag':
-                    #     coords.mag = smapdr3[:,12]
-                    #     coords.emag = smapdr3[:,13]
-                    #     coords.colmatch = smapdr3[:,10]
-                    #     coords.colerr = smapdr3[:,11]
-                    #     coords.colrev = 1
-
-                    # if opt['filter'] == 'zmag':
-                    #     coords.mag = smapdr3[:,14]
-                    #     coords.emag = smapdr3[:,15]
-                    #     coords.colmatch = smapdr3[:,12]
-                    #     coords.colerr = smapdr3[:,13]
-                    #     coords.colrev = 1
-
                     # Save catalogue search
                     catalogueOut=np.transpose(np.vstack(np.array([[coords.ra],[coords.dec],[coords.mag],[coords.emag],[coords.colmatch],[coords.colerr]])))
-                    #catalogueOut=np.array([[coords.ra],[coords.dec],[coords.mag],[coords.emag],[coords.colmatch],[coords.colerr]])
                     
                     savetxt(parentPath / "results/catalogueSearch.csv", np.asarray(catalogueOut), newline='\n' , delimiter=",", fmt='%0.8f',header='RA,Dec,Mag,err_Mag,colourmatch_mag,colourmatch_mag_err')
                     del catalogueOut
@@ -990,13 +880,11 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
 
                     ### If looking for colour, remove those without matching colour information
-
                     calibStandsReject=[]
 
                     if (asarray(calibStands).shape[0] != 9 and asarray(calibStands).size !=9) and len(calibStands) != 0:
                         for q in range(len(asarray(calibStands)[:,0])):
                             reject=0
-                            #if colourdetect == True:
                             # There needs to be a colour in here to make various plots.
                             if np.isnan(calibStands[q][6]): # if no matching colour
                                 reject=1
@@ -1025,10 +913,14 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                             logger.debug('Calibration Stars Identified below')
                             tabl = PrettyTable()
                             tabl.field_names = ["RA","Dec","MagDiff","Mag"]
-                            tabl.add_rows(calibStands[:,0:4])
+                            #abl.add_rows(calibStands[:,0:4])
+                            rows = calibStands[:,0:4].tolist()
+                            if rows:                 
+                                tabl.add_rows(rows)
                             logger.debug(tabl)
                     except:
                         print ("something fishy in the calib mags table")
+                        logger.error(traceback.print_exc())
 
                     # Get the set of least variable stars to use as a comparison to calibrate the files (to eventually get the *ACTUAL* standards
                     if asarray(calibStands).shape[0] == 0:
@@ -1065,8 +957,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
 
     #Colour Term Estimation routine
-    
-
     # use a temporary calibStands array for colour terms
     arrayCalibStands=np.asarray(calibStands)
 
@@ -1110,7 +1000,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         colTemp=delete(colTemp, calibStandsReject, axis=0)
 
     # Pre-colour Reference plot
-    
+    try:
         plt.cla()
         fig = plt.gcf()
         outplotx=colTemp[:,4]
@@ -1127,9 +1017,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             x, residuals, rank, s = sqsol
             plt.plot(outplotx,m*outplotx+c,'r')
         except:
-            logger.info("Couldn't fit a line to pre-colour reference plot")
-
-        
+            logger.info("Couldn't fit a line to pre-colour reference plot")        
         
         plt.ylim(max(outploty)+0.05,min(outploty)-0.05)
         plt.xlim(min(outplotx)-0.05,max(outplotx)+0.05)
@@ -1141,9 +1029,11 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         plt.savefig(parentPath / str("results/CalibrationSanityPlot_PreColour_Reference.eps"))
     
         logger.info('Estimated Colour Slope in Reference Frame: ' + str(m))
-    
+    except:
+        print ("Couldn't make colour plot")
+        logger.error(traceback.print_exc())
+        
     # MAKE ALL PRE-COLOUR PLOTS
-
     if colourdetect == True and colourTerm == 0.0:
 
         logger.info('Estimating Colour Slope from all Frames...')
@@ -1161,14 +1051,8 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             os.makedirs(colourPath)
         for qert in range(len(photFileHolder)):
 
-            
-            #breakpoint()
-            #photFrame = load(parentPath / filen)
             photFrame = photFileHolder[z]
             z=z+1
-            #photFrame[:,5] = 1.0857 * (photFrame[:,5]/photFrame[:,4])
-            #photFrame[:,4]=-2.5 * np.log10(photFrame[:,4])
-
             photCoords=SkyCoord(ra=photFrame[:,0]*degree, dec=photFrame[:,1]*degree)
             colTemp=[]
             for q in range(len(arrayCalibStands[:,0])):
@@ -1344,14 +1228,9 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         # Get colour information into photFile
         # adding in colour columns to photfile
         
-        idx,d2d,_=catCoords.match_to_catalog_sky(photCoords)
-        
-        
-
+        idx,d2d,_=catCoords.match_to_catalog_sky(photCoords)      
         rejectStars=where(d2d > max_sep)[0]
-        idx=delete(idx, rejectStars, axis=0)
-
-        
+        idx=delete(idx, rejectStars, axis=0)       
 
         for q in range(len(idx)):
             if colrev == 1:
@@ -1361,16 +1240,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             photFile[idx[q],9]=pow(pow(coords.colerr[q],2)+pow(coords.emag[q],2),0.5)
             photFile[idx[q],10]=1
 
-        #breakpoint()
-
         #Replace undetected colours with average colour of the field
         photFile[:,8]=np.nan_to_num(photFile[:,8],nan=np.nanmedian(photFile[:,8]))
         photFile[:,9]=np.nan_to_num(photFile[:,9],nan=np.nanmedian(photFile[:,9]))
-        # If the colour detection routine was run, this was calculated already
-        #if not colourdetect:
-        #    photFile[:,5]=1.0857 * (photFile[:,5]/photFile[:,4])
-
-
+        
         notNanTemp=photFile[np.isnan(photFile).any(axis=1)] #rows where any value is nan
         if colourdetect:
             notNanTemp[:,4]=notNanTemp[:,4] -(colourTerm*notNanTemp[:,8])
@@ -1379,9 +1252,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
         emptyCalibFlag=0
         NanTemp=photFile[~np.isnan(photFile).any(axis=1)] #rows where no value is nan
-        if len(NanTemp) != 0:
-            #if not colourdetect:
-            #    NanTemp[:,4]=-2.5*log10(photFile[:,4])
+        if len(NanTemp) != 0:            
             NanTemp[:,10]=2 # 2 means that there was no colour to use to embed the colour.
         else:
             emptyCalibFlag=1
@@ -1397,9 +1268,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             calibCoord=SkyCoord(ra=calibStands[0]*degree,dec=calibStands[1]*degree)
         else:
             calibCoord=SkyCoord(ra=calibStands[:,0]*degree,dec=calibStands[:,1]*degree)
-
-
-
 
         if calibStands.size == 13 and calibStands.shape[0]== 13:
             for q in range(len(calibStands[:,0])):
@@ -1450,10 +1318,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             weights=1/(calibOut[:,1])
             linA = np.vstack([outplotx,np.ones(len(outplotx))]).T * np.sqrt(weights[:,np.newaxis])
             linB = outploty * np.sqrt(weights)
-
-            #breakpoint()
-            
-
             
             try:
                 sqsol = np.linalg.lstsq(linA,linB, rcond=None)
@@ -1471,8 +1335,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
                 plt.subplots_adjust(left=0.15, right=0.98, top=0.98, bottom=0.17, wspace=0.3, hspace=0.4)
                 fig.set_size_inches(6,3)
                 plt.savefig(colourPath / str("CalibrationSanityPlot_Colour_" + str(z) + "_Post.png"))
-                plt.savefig(colourPath  / str("CalibrationSanityPlot_Colour_" + str(z) + "_Post.eps"))
-                
+                plt.savefig(colourPath  / str("CalibrationSanityPlot_Colour_" + str(z) + "_Post.eps"))                
             except:
                 logger.info("\nFailed linear fit on a postcolour plot: ")
 
@@ -1497,7 +1360,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
 
     # PRINT FINAL REFERENCE IMAGE COLOUR PLOT
     
-    #referenceFrame = genfromtxt(parentPath / 'results/referenceFrame.csv', dtype=float, delimiter=',')
     POSTreferenceFrame=np.copy(referenceFrame)
     # add the colour error in here
     POSTreferenceFrame[:,5] = pow(pow(referenceFrame[:,5],2) + pow(colourError,2),0.5)
@@ -1630,7 +1492,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         fig = plt.gcf()
         outplotx=calibOverlord[:,0]
         outploty=calibOverlord[:,5]
-        #breakpoint()
         sqsol = np.linalg.lstsq(np.vstack([calibOverlord[:,0],np.ones(len(calibOverlord[:,0]))]).T,calibOverlord[:,5], rcond=None)
         m, c = sqsol[0]
         x, residuals, rank, s = sqsol
@@ -1667,7 +1528,6 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
             logger.info("Magnitude residuals not calculated. \n")
     except:
         logger.info("Could not create Difference versus Magnitude calibration plot")
-
 
     # Non-linearity correction routine
     if linearise == False:
@@ -1741,14 +1601,10 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
         logger.debug("CORRECTING EACH FILE FOR NONLINEARITY")
         correctFileList = calibPath.glob("*.calibrated.csv")
         for file in correctFileList:
-
             # NEED TO FIX UP COMPARED!
-
             photFile = genfromtxt(file, dtype=float, delimiter=',')
-
             for q in range(len(photFile[:,0])):
                 photFile[q,4]=photFile[q,4] - nonlinearSlope*photFile[q,4]+nonlinearZero
-
             savetxt(file, photFile, delimiter=",", fmt='%0.8f')
 
     # Difference vs time calibration plot
@@ -1821,3 +1677,7 @@ def find_comparisons_calibrated(targets, paths, filterCode, nopanstarrs=False, n
     sys.stdout.write('\n')
 
     return colourTerm, colourError, compFile
+
+# Needed for windows to multiprocess appropriately
+if __name__ == "__main__":
+    pass

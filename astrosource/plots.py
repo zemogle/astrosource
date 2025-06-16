@@ -9,8 +9,8 @@ import os
 from astropy.units import degree, arcsecond
 import logging
 import numpy as np
+import traceback
 
-#from astrosource.utils import photometry_files_to_array, AstrosourceException
 from astrosource.utils import AstrosourceException
 
 logger = logging.getLogger('astrosource')
@@ -94,17 +94,20 @@ def plot_variability(output, variableID, parentPath, compFile):
         if (parentPath / 'results/calibCompsUsed.csv').exists():
             logger.debug("Calibrated")
             calibCompFile=genfromtxt(parentPath / 'results/calibCompsUsed.csv', dtype=float, delimiter=',')
-            
-            if len(calibCompFile) == 5:
-                calibCompSkyCoord = SkyCoord(calibCompFile[0],calibCompFile[1], frame='icrs', unit=degree)
-                calibnumber=1
-            else:
-                calibCompSkyCoord = SkyCoord(calibCompFile[:,0],calibCompFile[:,1], frame='icrs', unit=degree)
-                calibnumber=len(calibCompSkyCoord)
+            try:
+                if len(calibCompFile) == 5 and calibCompFile.size == 5:
+                    calibCompSkyCoord = SkyCoord(calibCompFile[0],calibCompFile[1], frame='icrs', unit=degree)
+                    calibnumber=1
+                else:
+                    calibCompSkyCoord = SkyCoord(calibCompFile[:,0],calibCompFile[:,1], frame='icrs', unit=degree)
+                    calibnumber=len(calibCompSkyCoord)
+            except:
+                print ("MTF FIXING THIS ERROR")
+                logger.error(traceback.print_exc())
+                breakpoint()
             calibCompExist=True
             
             calibCompStarPlot = []        
-            #for q in range(len(calibCompSkyCoord)):
             if calibnumber==1:
                 idx, d2d, _ = calibCompSkyCoord.match_to_catalog_sky(outputSkyCoord)
                 calibCompStarPlot.append([output[idx][2],output[idx][3]])
@@ -135,7 +138,6 @@ def plot_variability(output, variableID, parentPath, compFile):
         plt.plot(np.asarray(compStarPlot)[:,0],np.asarray(compStarPlot)[:,1], 'yo')
         if calibCompExist:
             plt.plot(np.asarray(calibCompStarPlot)[:,0],np.asarray(calibCompStarPlot)[:,1], 'ro', mfc='none')
-        # plt.plot(linex, liney)
 
         plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04)
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
@@ -190,7 +192,6 @@ def plot_variability(output, variableID, parentPath, compFile):
         plt.plot(np.asarray(compStarPlot)[:,0],np.asarray(compStarPlot)[:,1], 'yo')
         if calibCompExist:
             plt.plot(np.asarray(calibCompStarPlot)[:,0],np.asarray(calibCompStarPlot)[:,1], 'ro', mfc='none')
-        # plt.plot(linex, liney)
         plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04)
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
@@ -210,7 +211,6 @@ def plot_variability(output, variableID, parentPath, compFile):
         if calibCompExist:
             plt.plot(np.asarray(calibCompStarPlot)[:,0],np.asarray(calibCompStarPlot)[:,1], 'ro', mfc='none')
         fig.set_size_inches(16,9)
-        # plt.plot(linex, liney)
         plt.ylim(max([min(outploty)-0.04,0.0]), max(outploty)+0.04)
         plt.xlim(min(outplotx)-0.1, max(outplotx)+0.1)
         plt.grid(True)
@@ -368,3 +368,7 @@ def phased_plots(paths, filterCode, targets, period, phaseShift):
 
 
     return
+
+# Needed for windows to multiprocess appropriately
+if __name__ == "__main__":
+    pass

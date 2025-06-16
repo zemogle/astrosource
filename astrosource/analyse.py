@@ -13,18 +13,23 @@ import os
 from tqdm import tqdm
 #import traceback
 import logging
-
+import multiprocessing as mp
+from multiprocessing import Pool, cpu_count, shared_memory
+import traceback
 #from astrosource.utils import photometry_files_to_array, AstrosourceException
 from astrosource.utils import AstrosourceException
 from astrosource.plots import plot_variability
+from astropy.stats import sigma_clip
 
+from scipy.optimize import curve_fit
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-
+from functools import partial
 logger = logging.getLogger('astrosource')
 
+import platform
 
 def get_total_counts(photFileArray, compFile, loopLength, photCoords):
 
@@ -36,7 +41,6 @@ def get_total_counts(photFileArray, compFile, loopLength, photCoords):
     for photFile in photFileArray:
         allCounts = 0.0
         allCountsErr = 0.0
-        #fileRaDec = SkyCoord(ra=photFile[:, 0]*degree, dec=photFile[:, 1]*degree)
         fileRaDec = photCoords[counter]
         counter=counter+1
         #Array of comp measurements
@@ -52,8 +56,271 @@ def get_total_counts(photFileArray, compFile, loopLength, photCoords):
             if (compFile.shape[0] == 5 and compFile.size == 5) or (compFile.shape[0] == 3 and compFile.size == 3):
                 break
         allCountsArray.append([allCounts, allCountsErr])
-    #logger.debug(allCountsArray)
     return allCountsArray
+
+#def process_varsearch_target(target, photFileArray, allCountsArray, matchRadius, minimumNoOfObs):
+def process_varsearch_target(target, photFileArray_shape, photFileArray_dtype, shm_name, allCountsArray, matchRadius, minimumNoOfObs):
+    
+    # Attach to the shared memory for photFileArray
+    existing_shm = shared_memory.SharedMemory(name=shm_name)
+    photFileArray = np.ndarray(photFileArray_shape, dtype=photFileArray_dtype, buffer=existing_shm.buf)    
+    diffMagHolder = []
+    
+    for allcountscount, photFile in enumerate(photFileArray):
+        # Efficiently calculate the closest match using numpy
+        idx = (np.abs(photFile[:, 0] - target[0]) + np.abs(photFile[:, 1] - target[1])).argmin()
+        d2d = np.sqrt((photFile[idx, 0] - target[0])**2 + (photFile[idx, 1] - target[1])**2) * 3600
+        multTemp = -2.5 * np.log10(photFile[idx, 11] / allCountsArray[allcountscount][0])
+        
+        if d2d < matchRadius and not np.isinf(multTemp):
+            diffMagHolder.append(multTemp)
+    
+    # Remove major outliers
+    diffMagHolder = np.array(diffMagHolder)
+    while True:
+        stdVar = np.std(diffMagHolder)
+        avgVar = np.mean(diffMagHolder)
+        sizeBefore = diffMagHolder.size
+
+        # Mask outliers
+        mask = (diffMagHolder <= avgVar + 4 * stdVar) & (diffMagHolder >= avgVar - 4 * stdVar)
+        diffMagHolder = diffMagHolder[mask]
+
+        if diffMagHolder.size == sizeBefore:
+            break
+
+    existing_shm.close()
+
+    # Append to output if sufficient observations are available
+    if diffMagHolder.size > minimumNoOfObs:
+        return [target[0], target[1], np.median(diffMagHolder), np.std(diffMagHolder), diffMagHolder.size]
+    return None
+
+def process_varsearch_target_singleprocess(target, photFileArray, allCountsArray, matchRadius, minimumNoOfObs):    
+        
+    diffMagHolder = []
+    
+    for allcountscount, photFile in enumerate(photFileArray):
+        # Efficiently calculate the closest match using numpy
+        idx = (np.abs(photFile[:, 0] - target[0]) + np.abs(photFile[:, 1] - target[1])).argmin()
+        d2d = np.sqrt((photFile[idx, 0] - target[0])**2 + (photFile[idx, 1] - target[1])**2) * 3600
+        multTemp = -2.5 * np.log10(photFile[idx, 11] / allCountsArray[allcountscount][0])
+        
+        if d2d < matchRadius and not np.isinf(multTemp):
+            diffMagHolder.append(multTemp)
+    
+    # Remove major outliers
+    diffMagHolder = np.array(diffMagHolder)
+    while True:
+        stdVar = np.std(diffMagHolder)
+        avgVar = np.mean(diffMagHolder)
+        sizeBefore = diffMagHolder.size
+
+        # Mask outliers
+        mask = (diffMagHolder <= avgVar + 4 * stdVar) & (diffMagHolder >= avgVar - 4 * stdVar)
+        diffMagHolder = diffMagHolder[mask]
+
+        if diffMagHolder.size == sizeBefore:
+            break
+
+    # Append to output if sufficient observations are available
+    if diffMagHolder.size > minimumNoOfObs:
+        return [target[0], target[1], np.median(diffMagHolder), np.std(diffMagHolder), diffMagHolder.size]
+    
+    return None
+
+
+def process_varsearch_targets_multiprocessing(targetFile, photFileArray, allCountsArray, matchRadius, minimumNoOfObs):
+    # Create shared memory for photFileArray
+    # As this can lead to gigantic RAM use for large datasets
+    shm = shared_memory.SharedMemory(create=True, size=photFileArray.nbytes)
+    shared_photFileArray = np.ndarray(photFileArray.shape, dtype=photFileArray.dtype, buffer=shm.buf)
+    shared_photFileArray[:] = photFileArray[:]
+    
+    
+    # Partial function to pass shared arguments
+    
+    worker = partial(
+        process_varsearch_target,
+        photFileArray_shape=photFileArray.shape,
+        photFileArray_dtype=photFileArray.dtype,
+        shm_name=shm.name,               
+        allCountsArray=allCountsArray,
+        matchRadius=matchRadius,
+        minimumNoOfObs=minimumNoOfObs,
+    )
+    
+    # Multiprocessing with Pool
+    with Pool(processes=max([cpu_count()-1,1])) as pool:
+        results = pool.map(worker, targetFile)
+    
+    # Clean up shared memory
+    shm.close()
+    shm.unlink()
+    
+    # Filter out None results
+    return [res for res in results if res is not None]
+
+
+def fit_sigma_clipped_poly(x, y, order=3, sigma=2, parentPath=''):
+    """
+    Fits a sigma-clipped polynomial to the data and identifies outliers.
+
+    Parameters:
+    x (array-like): The x-values of the data points.
+    y (array-like): The y-values of the data points.
+    order (int): The order of the polynomial to fit (default: 3).
+    sigma (float): The number of standard deviations for sigma clipping (default: 2).
+
+    Returns:
+    None (plots the data, fitted polynomial, and identified outliers).
+    """
+    # Ensure inputs are numpy arrays
+    x = np.array(x)
+    y = np.array(y)
+
+    # Sigma clipping
+    clipped_data = sigma_clip(y, sigma=sigma, maxiters=5)
+    mask = clipped_data.mask
+
+    # Fit polynomial to non-masked data
+    poly_coeff = np.polyfit(x[~mask], y[~mask], order)
+    poly_func = np.poly1d(poly_coeff)
+
+    # Calculate residuals and standard deviation
+    y_fit = poly_func(x)
+    residuals = y - y_fit
+    std_dev = np.std(residuals[~mask])
+
+    # Identify outliers
+    outliers = residuals > (2 * std_dev)
+
+    # Plot results
+    plt.figure(figsize=(10, 6))
+    plt.scatter(x, y, color='blue', label='Data')
+    plt.plot(x, y_fit, color='red', label=f'{order}-order Polynomial Fit')
+    plt.scatter(x[outliers], y[outliers], color='orange', label='Outliers (>2 std dev)', zorder=5)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title('Sigma-Clipped Polynomial Fit and Outliers')
+    plt.legend()
+    plt.grid(True)
+    #plt.show()
+    
+    plt.savefig(parentPath / "results/polifitdiagram.png")
+    
+def sigmoid_func(x, L, k, x0):
+    """Sigmoid function: y = L / (1 + exp(-k * (x - x0))) + 0.01"""
+    return L / (1 + np.exp(-k * (x - x0))) + 0.01
+
+def fit_sigma_clipped_sigmoid(x, y, sigma=2, parentPath=''):
+    """
+    Fits a sigma-clipped sigmoid function to the data with weighted fitting and identifies outliers.
+
+    Parameters:
+    x (array-like): The x-values of the data points.
+    y (array-like): The y-values of the data points.
+    sigma (float): The number of standard deviations for sigma clipping (default: 2).
+
+    Returns:
+    outlier_indices (array): Indices of the identified outliers.
+    """
+    # Ensure inputs are numpy arrays
+    x = np.array(x)
+    y = np.array(y)
+
+    # Sigma clipping
+    clipped_data = sigma_clip(y, sigma=sigma, maxiters=5)
+    mask = clipped_data.mask
+
+    # Create weights that emphasize the middle of the x-range
+    weights = np.exp(-((x - np.median(x))**2) / (2 * (np.std(x) / 2)**2))
+
+    # Fit sigmoid function to non-masked data with weights
+    p0 = [max(y), 1, np.median(x)]  # Initial guesses for L, k, x0
+    try:
+        popt, _ = curve_fit(sigmoid_func, x[~mask], y[~mask], p0=p0, sigma=1/weights[~mask])
+    except:
+        logger.info("Sigmoid curve fit failed")
+        return []
+
+    # Calculate residuals and standard deviation
+    y_fit = sigmoid_func(x, *popt)
+    residuals = y - y_fit
+    std_dev = np.std(residuals[~mask])
+
+    # Identify outliers
+    outliers = residuals > (2 * std_dev)
+    outlier_indices = np.where(outliers)[0]
+
+    # Plot results
+    plt.figure(figsize=(10, 6))
+    plt.scatter(x, y, color='blue', label='Data')
+    plt.plot(x, y_fit, color='red', label='Sigmoid Fit')
+    plt.scatter(x[outliers], y[outliers], color='orange', label='Outliers (>2 std dev)', zorder=5)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title('Weighted Sigma-Clipped Sigmoid Fit and Outliers')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    
+    plt.savefig(parentPath / "results/polifitdiagram.png")
+
+    return outlier_indices
+
+def exponential_func(x, a, b, c):
+    """Exponential function: y = a * exp(b * x) + c"""
+    return a * np.exp(b * x) + c
+
+def fit_sigma_clipped_exp(x, y, sigma=2, parentPath=''):
+    """
+    Fits a sigma-clipped exponential function to the data and identifies outliers.
+
+    Parameters:
+    x (array-like): The x-values of the data points.
+    y (array-like): The y-values of the data points.
+    sigma (float): The number of standard deviations for sigma clipping (default: 2).
+
+    Returns:
+    outlier_indices (array): Indices of the identified outliers.
+    """
+    # Ensure inputs are numpy arrays
+    x = np.array(x)
+    y = np.array(y)
+
+    # Sigma clipping
+    clipped_data = sigma_clip(y, sigma=sigma, maxiters=5)
+    mask = clipped_data.mask
+
+    # Fit exponential function to non-masked data
+    popt, _ = curve_fit(exponential_func, x[~mask], y[~mask], p0=(1, 0.1, 1))
+
+    # Calculate residuals and standard deviation
+    y_fit = exponential_func(x, *popt)
+    residuals = y - y_fit
+    std_dev = np.std(residuals[~mask])
+
+    # Identify outliers
+    outliers = residuals > (2 * std_dev)
+    outlier_indices = np.where(outliers)[0]
+
+    # Plot results
+    plt.figure(figsize=(10, 6))
+    plt.scatter(x, y, color='blue', label='Data')
+    plt.plot(x, y_fit, color='red', label='Exponential Fit')
+    plt.scatter(x[outliers], y[outliers], color='orange', label='Outliers (>2 std dev)', zorder=5)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title('Sigma-Clipped Exponential Fit and Outliers')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    
+    plt.savefig(parentPath / "results/polifitdiagram.png")
+
+    return outlier_indices
+
 
 def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None, varsearchglobalstdev=-99.9, varsearchthresh=10000, varsearchstdev=2.0, varsearchmagwidth=0.25, varsearchminimages=0.3, photCoords=None, photFileHolder=None, fileList=None):
     '''
@@ -75,7 +342,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
 
     photFileArray=photFileHolder
-    photFileCoords=photCoords
+    #photFileCoords=photCoords
 
     # allocate minimum images to detect
     minimumNoOfObs=int(varsearchminimages*len(fileList))
@@ -98,7 +365,7 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     compFile = genfromtxt(parentPath / "results/compsUsed.csv", dtype=float, delimiter=',')
     logger.debug("Stable Comparison Candidates below variability threshold")
-    outputPhot = []
+    #outputPhot = []
 
     # Get total counts for each file
     allCountsArray = get_total_counts(photFileArray, compFile, loopLength=compFile.shape[0], photCoords=photCoords)
@@ -117,46 +384,28 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
 
     ## NEED TO REMOVE COMPARISON STARS FROM TARGETLIST
 
-    allcountscount=0
+    #allcountscount=0
     # For each variable calculate the variability
     outputVariableHolder=[]
 
     logger.info("Measuring variability of stars...... ")
     taketime=time.time()
 
-    for target in targetFile:
-        diffMagHolder=[]
-        allcountscount=0
-
+    # Hack to get windows to not multiprocess until a good solution is found.    
+    if platform.system() == "Windows":       
         
-        for photFile in photFileArray:
-            # A bit rougher than using SkyCoord, but way faster
-            # The amount of calculations is too slow for SkyCoord
-            idx=(np.abs(photFile[:,0] - target[0]) + np.abs(photFile[:,1] - target[1])).argmin()
-            d2d=pow(pow(photFile[idx,0] - target[0],2) + pow(photFile[idx,1] - target[1],2),0.5) * 3600
-            multTemp=(multiply(-2.5,log10(divide(photFile[idx][11],allCountsArray[allcountscount][0]))))
-            if less(d2d, matchRadius) and (multTemp != inf) :
-                diffMagHolder=append(diffMagHolder,multTemp)
-            allcountscount=add(allcountscount,1)
-            
-        ## REMOVE MAJOR OUTLIERS FROM CONSIDERATION
-        diffMagHolder=np.array(diffMagHolder)
-        while True:
-            stdVar=std(diffMagHolder)
-            avgVar=average(diffMagHolder)
-
-            sizeBefore=diffMagHolder.shape[0]
-            #print (sizeBefore)
-
-            diffMagHolder[diffMagHolder > avgVar+(4*stdVar) ] = np.nan
-            diffMagHolder[diffMagHolder < avgVar-(4*stdVar) ] = np.nan
-            diffMagHolder=diffMagHolder[~np.isnan(diffMagHolder)]
-
-            if diffMagHolder.shape[0] == sizeBefore:
-                break
-
-        if (diffMagHolder.shape[0] > minimumNoOfObs):
-            outputVariableHolder.append( [target[0],target[1],median(diffMagHolder), std(diffMagHolder), diffMagHolder.shape[0]])
+        outputVariableHolder=[]
+        for target in targetFile:
+            result= process_varsearch_target_singleprocess(target, photFileArray, allCountsArray, matchRadius, minimumNoOfObs)
+            if result == None:
+                pass
+            else:
+                outputVariableHolder.append(result)
+    else:
+        
+        outputVariableHolder = process_varsearch_targets_multiprocessing(
+            targetFile, photFileArray, allCountsArray, matchRadius, minimumNoOfObs
+        )
 
     print ("Star Variability done in " + str(time.time()-taketime))
 
@@ -166,6 +415,10 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     starVar = np.asarray(outputVariableHolder)
 
     
+    outliers=fit_sigma_clipped_sigmoid(starVar[:,2],starVar[:,3], parentPath=parentPath)
+
+    potentialVariables=starVar[outliers]
+
     meanMags = starVar[:,2]
     variations = starVar[:,3]
 
@@ -174,51 +427,29 @@ def find_variable_stars(targets, matchRadius, errorReject=0.05, parentPath=None,
     xbins = np.arange(np.min(meanMags), np.max(meanMags), xStepSize)
     ybins = np.arange(np.min(variations), np.max(variations), yStepSize)
 
-    #split it into one array and identify variables in bins with centre
-    variationsByMag=[]
-    potentialVariables=[]
-    for xbinner in range(len (xbins)):
-
-        starsWithin=[]
-        for q in range(len(meanMags)):
-            if meanMags[q] >= xbins[xbinner] and meanMags[q] < xbins[xbinner]+xStepSize:
-                starsWithin.append(variations[q])
-
-        meanStarsWithin= (np.mean(starsWithin))
-        stdStarsWithin= (np.std(starsWithin))
-        variationsByMag.append([xbins[xbinner]+0.5*xStepSize,meanStarsWithin,stdStarsWithin])
-
-        # At this point extract RA and Dec of stars that may be variable
-        for q in range(len(starVar[:,2])):
-            if starVar[q,2] >= xbins[xbinner] and starVar[q,2] < xbins[xbinner]+xStepSize:
-                if varsearchglobalstdev != -99.9:
-                    if starVar[q,3] > varsearchglobalstdev :
-                        potentialVariables.append([starVar[q,0],starVar[q,1],starVar[q,2],starVar[q,3]])
-                elif starVar[q,3] > (meanStarsWithin + varsearchstdev*stdStarsWithin):
-                    #print (starVar[q,3])
-                    potentialVariables.append([starVar[q,0],starVar[q,1],starVar[q,2],starVar[q,3]])
-
-    potentialVariables=np.array(potentialVariables)
-    logger.debug("Potential Variables Identified: " + str(potentialVariables.shape[0]))
-
     if potentialVariables.shape[0] == 0:
         logger.info("No Potential Variables identified in this set of data using the parameters requested.")
     else:
         savetxt(parentPath / "results/potentialVariables.csv", potentialVariables , delimiter=",", fmt='%0.8f', header='RA,DEC,DiffMag,Variability')
 
+    try:
         plot_variability(outputVariableHolder, potentialVariables, parentPath, compFile)
+    except:
+        print ("MTF hunting this bug")
+        logger.error(traceback.print_exc())
+        breakpoint()
 
-        plt.cla()
-        fig, ax = plt.subplots(figsize =(10, 7))
-        plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(), cmap = plt.cm.YlOrRd)
-        plt.colorbar()
-        plt.title("Variation Histogram")
-        ax.set_xlabel('Mean Differential Magnitude')
-        ax.set_ylabel('Variation (Standard Deviation)')
-        plt.plot(potentialVariables[:,2],potentialVariables[:,3],'bo')
-        plt.tight_layout()
+    plt.cla()
+    fig, ax = plt.subplots(figsize =(10, 7))
+    plt.hist2d(meanMags, variations,  bins =[xbins, ybins], norm=colors.LogNorm(), cmap = plt.cm.YlOrRd)
+    plt.colorbar()
+    plt.title("Variation Histogram")
+    ax.set_xlabel('Mean Differential Magnitude')
+    ax.set_ylabel('Variation (Standard Deviation)')
+    plt.plot(potentialVariables[:,2],potentialVariables[:,3],'bo')
+    plt.tight_layout()
 
-        plt.savefig(parentPath / "results/Variation2DHistogram.png")
+    plt.savefig(parentPath / "results/Variation2DHistogram.png")
 
     return outputVariableHolder
 
@@ -268,15 +499,15 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
         starDistanceRejCount=0
         logger.debug("****************************")
         logger.debug("Processing Variable {}".format(q+1))
-        if int(len(targets)) == 4 and targets.size==4:
+        if int(len(targets)) == 5 and targets.size==5:
             logger.debug("RA {}".format(targets[0]))
         else:
             logger.debug("RA {}".format(targets[q][0]))
-        if int(len(targets)) == 4 and targets.size==4:
+        if int(len(targets)) == 5 and targets.size==5:
             logger.debug("Dec {}".format(targets[1]))
         else:
             logger.debug("Dec {}".format(targets[q][1]))
-        if int(len(targets)) == 4 and targets.size==4:
+        if int(len(targets)) == 5 and targets.size==5:
             #varCoord = SkyCoord(targets[0],(targets[1]), frame='icrs', unit=degree) # Need to remove target stars from consideration
             singleCoordRA=targets[0]
             singleCoordDEC=targets[1]
@@ -291,20 +522,11 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
         allcountscount=0
 
         for imgs, photFile in enumerate(tqdm(photFileArray)):
-            #fileRaDec = photCoordsFile[imgs]
-            #idx, d2d, _ = varCoord.match_to_catalog_sky(fileRaDec)
-            #breakpoint()
             idx=(np.abs(photFile[:,0] - singleCoordRA) + np.abs(photFile[:,1] - singleCoordDEC)).argmin()
             d2d=pow(pow(photFile[idx,0] - singleCoordRA,2) + pow(photFile[idx,1] - singleCoordDEC,2),0.5) * 3600
             
-            #print (d2d)
-            
             starRejected=0
-            if (less(d2d, targetRadius)):
-                #magErrVar = 1.0857 * (photFile[idx][5]/photFile[idx][4])
-                
-                
-                
+            if (less(d2d, targetRadius)):                
                 # If the file hasn't been calibrated, then it still contains the countrate in it.
                 # So convert these to mags, otherwise use the calibrated error.
                 if photFile[idx][4] > 50:
@@ -400,8 +622,6 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                     fileCount.append(allCountsArray[allcountscount][0])
                     allcountscount=allcountscount+1
 
-        #breakpoint()
-
         # Check for dud images
         imageReject=[]
         for j in range(asarray(outputPhot).shape[0]):
@@ -432,7 +652,6 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
                     break
 
             # Reject by outsized error elimination
-
             while True:
                 errorsArray=[]
                 for j in range(asarray(outputPhot).shape[0]):
@@ -462,12 +681,8 @@ def photometric_calculations(targets, paths, targetRadius, errorReject=0.1, file
             outputPhot=delete(outputPhot, starReject, axis=0)
 
         except ValueError:
-            #raise AstrosourceException("No target stars were detected in your dataset. Check your input target(s) RA/Dec")
-            import traceback; logger.error(traceback.print_exc())
+            logger.error(traceback.print_exc())
             logger.error("This target star was not detected in your dataset. Check your input target(s) RA/Dec")
-            #logger.info("Rejected Stdev Measurements: : {}".format(stdevReject))
-            #logger.error("Rejected Error Measurements: : {}".format(starErrorRejCount))
-            #logger.error("Rejected Distance Measurements: : {}".format(starDistanceRejCount))
 
         # Add calibration columns
         outputPhot= np.c_[outputPhot, np.ones(outputPhot.shape[0]),np.ones(outputPhot.shape[0])]
@@ -551,3 +766,7 @@ def calibrated_photometry(paths, photometrydata, colourterm, colourerror, colour
         logger.info("as well as an appropriate colour term for this filter (using --colourdetect or --colourterm).")
 
     return pdata
+
+# Needed for windows to multiprocess appropriately
+if __name__ == "__main__":
+    pass
