@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "astrosource"
-version = "1.7.1"
+version = "1.8.1"
 description = "Analysis script for sources with variability in their brightness"
 readme = "README.md"
 authors = [{ name = "Michael Fitzgerald", email = "info@realpython.com" },
