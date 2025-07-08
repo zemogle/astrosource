@@ -83,12 +83,22 @@ def plot_variability(output, variableID, parentPath, compFile):
     if output != []: # Do not attempt plot if output array is empty
     
         # If single comp
-        if len(compFile) == 3 and compFile.size == 3:
-            compSkyCoord = SkyCoord(compFile[0],compFile[1], frame='icrs', unit=degree)   
-        else:
-            compSkyCoord = SkyCoord(compFile[:,0],compFile[:,1], frame='icrs', unit=degree)   
-        outputSkyCoord = SkyCoord(np.asarray(output)[:,0],np.asarray(output)[:,1], frame='icrs', unit=degree)
+        #if len(compFile) == 3 and compFile.size == 3:
+        #    compSkyCoord = SkyCoord(compFile[0],compFile[1], frame='icrs', unit=degree)   
+        #else:
+        #    compSkyCoord = SkyCoord(compFile[:,0],compFile[:,1], frame='icrs', unit=degree)   
+        #outputSkyCoord = SkyCoord(np.asarray(output)[:,0],np.asarray(output)[:,1], frame='icrs', unit=degree)
+
+
+         # Guarantee a 2-D array even if there’s only one row
+        compArr = np.atleast_2d(compFile)
     
+        # Build a SkyCoord array for all comps at once
+        compSkyCoord = SkyCoord(compArr[:,0] * u.degree,
+                                compArr[:,1] * u.degree,
+                                frame='icrs')
+
+        
         # Load calibration comps used if they exist
         calibCompExist=False
         if (parentPath / 'results/calibCompsUsed.csv').exists():
