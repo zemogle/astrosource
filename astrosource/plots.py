@@ -83,7 +83,7 @@ def plot_variability(output, variableID, parentPath, compFile):
     if output != []: # Do not attempt plot if output array is empty
     
         # If single comp
-        if len(compFile) == 3:
+        if len(compFile) == 3 and compFile.size == 3:
             compSkyCoord = SkyCoord(compFile[0],compFile[1], frame='icrs', unit=degree)   
         else:
             compSkyCoord = SkyCoord(compFile[:,0],compFile[:,1], frame='icrs', unit=degree)   
