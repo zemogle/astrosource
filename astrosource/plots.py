@@ -91,7 +91,7 @@ def plot_variability(output, variableID, parentPath, compFile):
         #outputSkyCoord = SkyCoord(np.asarray(output)[:,0],np.asarray(output)[:,1], frame='icrs', unit=degree)
 
 
-         # Guarantee a 2-D array even if there’s only one row
+        # Guarantee a 2-D array even if there’s only one row
         compArr = np.atleast_2d(compFile)
     
         # Build a SkyCoord array for all comps at once
@@ -133,16 +133,22 @@ def plot_variability(output, variableID, parentPath, compFile):
         
         
         
-        compStarPlot = []    
-        if len(compFile) == 3:
-            idx, d2d, _ = compSkyCoord.match_to_catalog_sky(outputSkyCoord)
-            compStarPlot.append([output[idx][2],output[idx][3]])        
-        else:
-            for q in range(len(compSkyCoord)):
-                idx, d2d, _ = compSkyCoord[q].match_to_catalog_sky(outputSkyCoord)
-                compStarPlot.append([output[idx][2],output[idx][3]])
-            
-    
+        #compStarPlot = []    
+        #if len(compFile) == 3 and compFile.size == 3:
+        #    idx, d2d, _ = compSkyCoord.match_to_catalog_sky(outputSkyCoord)
+        #    compStarPlot.append([output[idx][2],output[idx][3]])        
+        #else:
+        #    for q in range(len(compSkyCoord)):
+        #        idx, d2d, _ = compSkyCoord[q].match_to_catalog_sky(outputSkyCoord)
+        #        compStarPlot.append([output[idx][2],output[idx][3]])
+        compStarPlot = []
+        for cs in compSkyCoord:
+            idx, d2d, _ = cs.match_to_catalog_sky(outputSkyCoord)
+            idx = int(idx)   # ensure a plain Python int
+            compStarPlot.append([output[idx][2], output[idx][3]])    
+
+
+        
         plt.cla()
         outplotx = asarray(output)[:, 2]
         outploty = asarray(output)[:, 3]
