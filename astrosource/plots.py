@@ -98,8 +98,11 @@ def plot_variability(output, variableID, parentPath, compFile):
         compSkyCoord = SkyCoord(compArr[:,0] * u.degree,
                                 compArr[:,1] * u.degree,
                                 frame='icrs')
-
         
+        output_arr = np.asarray(output)
+        outputSkyCoord = SkyCoord(output_arr[:,0] * u.degree,
+                                  output_arr[:,1] * u.degree,
+                                  frame='icrs')
         # Load calibration comps used if they exist
         calibCompExist=False
         if (parentPath / 'results/calibCompsUsed.csv').exists():
