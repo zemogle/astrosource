@@ -1,5 +1,6 @@
 from numpy import genfromtxt, savetxt, asarray, average, isnan, delete, min, max, median
 from astropy.coordinates import SkyCoord
+from astropy import units as u
 from pathlib import Path
 import matplotlib
 matplotlib.use('Agg')
